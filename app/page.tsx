@@ -1,12 +1,12 @@
-import Header from '@/components/header'
-import Footer from '@/components/footer'
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { mockProducts } from '@/lib/mock-products'
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import { mockProducts } from "@/lib/mock-products";
 
 export default function HomePage() {
-  const featuredProducts = mockProducts.filter((p) => p.featured).slice(0, 3)
-  const bestSellers = mockProducts.slice(0, 4)
+  const featuredProducts = mockProducts.filter((p) => p.featured).slice(0, 3);
+  const bestSellers = mockProducts.slice(0, 4);
 
   return (
     <main className="bg-white">
@@ -22,8 +22,9 @@ export default function HomePage() {
                 Define Your Silhouette, Reclaim Your Confidence.
               </h1>
               <p className="text-base md:text-lg text-neutral/70 leading-relaxed max-w-lg">
-                Discover our collection of premium shapewear and fashion designed for the modern woman who refuses to
-                compromise on comfort or style.
+                Discover our collection of premium shapewear and fashion
+                designed for the modern woman who refuses to compromise on
+                comfort or style.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
@@ -62,7 +63,9 @@ export default function HomePage() {
             <h2 className="font-serif text-3xl md:text-4xl font-bold text-neutral mb-4">
               Featured Collections
             </h2>
-            <p className="text-neutral/60 max-w-2xl mx-auto">Curated collections for every body and every occasion</p>
+            <p className="text-neutral/60 max-w-2xl mx-auto">
+              Curated collections for every body and every occasion
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -78,8 +81,12 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">Shapewear</h3>
-                  <p className="text-white/90 text-sm">Seamless shaping for every occasion</p>
+                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                    Shapewear
+                  </h3>
+                  <p className="text-white/90 text-sm">
+                    Seamless shaping for every occasion
+                  </p>
                 </div>
               </div>
             </Link>
@@ -96,8 +103,12 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">Waist Trainers</h3>
-                  <p className="text-white/90 text-sm">Professional-grade compression support</p>
+                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                    Waist Trainers
+                  </h3>
+                  <p className="text-white/90 text-sm">
+                    Professional-grade compression support
+                  </p>
                 </div>
               </div>
             </Link>
@@ -114,8 +125,12 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">New Arrivals</h3>
-                  <p className="text-white/90 text-sm">Just released premium styles</p>
+                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                    New Arrivals
+                  </h3>
+                  <p className="text-white/90 text-sm">
+                    Just released premium styles
+                  </p>
                 </div>
               </div>
             </Link>
@@ -127,13 +142,21 @@ export default function HomePage() {
       <section className="py-20 md:py-28 bg-tertiary/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold text-neutral mb-4">Best Sellers</h2>
-            <p className="text-neutral/60 max-w-2xl mx-auto">Customer favorites that deliver results</p>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold text-neutral mb-4">
+              Best Sellers
+            </h2>
+            <p className="text-neutral/60 max-w-2xl mx-auto">
+              Customer favorites that deliver results
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {bestSellers.map((product) => (
-              <Link key={product.id} href={`/product/${product.id}`} className="group">
+              <Link
+                key={product.id}
+                href={`/product/${product.id}`}
+                className="group"
+              >
                 <div className="relative bg-white rounded-lg overflow-hidden mb-4 h-64 md:h-72">
                   <img
                     src={product.images[0]}
@@ -147,9 +170,13 @@ export default function HomePage() {
                 <h3 className="font-serif text-lg font-bold text-neutral group-hover:text-primary transition">
                   {product.name}
                 </h3>
-                <p className="text-neutral/60 text-sm mb-3">{product.description}</p>
+                <p className="text-neutral/60 text-sm mb-3">
+                  {product.description}
+                </p>
                 <div className="flex items-center justify-between">
-                  <span className="text-primary font-bold">£{product.price_gbp}</span>
+                  <span className="text-primary font-bold">
+                    £{product.price_gbp}
+                  </span>
                   <div className="flex gap-2">
                     {product.colors.slice(0, 3).map((color) => (
                       <div
@@ -179,5 +206,5 @@ export default function HomePage() {
 
       <Footer />
     </main>
-  )
+  );
 }

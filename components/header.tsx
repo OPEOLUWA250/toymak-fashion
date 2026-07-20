@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { useState } from 'react'
-import { Menu, X, Search, Heart, ShoppingBag } from 'lucide-react'
-import { useCart } from '@/lib/cart-context'
+import Link from "next/link";
+import { useState } from "react";
+import { Menu, X, Search, Heart, ShoppingBag } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
 export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { getItemCount } = useCart()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { getItemCount } = useCart();
 
   const navItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Shop All', href: '/shop' },
-    { label: 'Shapewear', href: '/shop/shapewear' },
-    { label: 'Waist Trainers', href: '/shop/waist-trainer' },
-    { label: 'New Arrivals', href: '/shop?sort=newest' },
-  ]
+    { label: "Home", href: "/" },
+    { label: "Shop All", href: "/shop" },
+    { label: "Shapewear", href: "/shop/shapewear" },
+    { label: "Waist Trainers", href: "/shop/waist-trainer" },
+    { label: "New Arrivals", href: "/shop?sort=newest" },
+  ];
 
   return (
     <>
@@ -25,7 +25,9 @@ export default function Header() {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="shrink-0">
-              <h1 className="font-serif font-bold text-2xl text-primary">TOYMAK</h1>
+              <h1 className="font-serif font-bold text-2xl text-primary">
+                TOYMAK
+              </h1>
             </Link>
 
             {/* Desktop Nav */}
@@ -43,13 +45,24 @@ export default function Header() {
 
             {/* Desktop Icons */}
             <div className="hidden md:flex items-center space-x-3 text-neutral">
-              <button className="rounded-full p-2 hover:text-primary hover:bg-primary/5 transition" aria-label="Search">
+              <button
+                className="rounded-full p-2 hover:text-primary hover:bg-primary/5 transition"
+                aria-label="Search"
+              >
                 <Search size={20} />
               </button>
-              <Link href="/wishlist" className="rounded-full p-2 hover:text-primary hover:bg-primary/5 transition" aria-label="Wishlist">
+              <Link
+                href="/wishlist"
+                className="rounded-full p-2 hover:text-primary hover:bg-primary/5 transition"
+                aria-label="Wishlist"
+              >
                 <Heart size={20} />
               </Link>
-              <Link href="/cart" className="relative rounded-full p-2 hover:text-primary hover:bg-primary/5 transition" aria-label="Cart">
+              <Link
+                href="/cart"
+                className="relative rounded-full p-2 hover:text-primary hover:bg-primary/5 transition"
+                aria-label="Cart"
+              >
                 <ShoppingBag size={20} />
                 {getItemCount() > 0 && (
                   <span className="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-medium">
@@ -101,5 +114,5 @@ export default function Header() {
       {/* Spacer for fixed header */}
       <div className="h-20" />
     </>
-  )
+  );
 }
