@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Search, Heart, ShoppingBag } from "lucide-react";
+import { Menu, X, Search, Heart, ShoppingBag, User } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 
 export default function Header() {
@@ -24,7 +24,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link href="/" className="shrink-0">
+            <Link href="/" className="flex-shrink-0">
               <h1 className="font-serif font-bold text-2xl text-primary">
                 TOYMAK
               </h1>
@@ -57,6 +57,13 @@ export default function Header() {
                 aria-label="Wishlist"
               >
                 <Heart size={20} />
+              </Link>
+              <Link
+                href="/account"
+                className="rounded-full p-2 hover:text-primary hover:bg-primary/5 transition"
+                aria-label="Account"
+              >
+                <User size={20} />
               </Link>
               <Link
                 href="/cart"
@@ -106,6 +113,14 @@ export default function Header() {
             >
               <ShoppingBag size={20} />
               <span>Cart</span>
+            </Link>
+            <Link
+              href="/account"
+              className="flex items-center space-x-2 text-base font-medium text-neutral hover:text-primary transition"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <User size={20} />
+              <span>Account</span>
             </Link>
           </nav>
         </div>

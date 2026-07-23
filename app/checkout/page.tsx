@@ -4,9 +4,12 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { mockProducts } from "@/lib/mock-products";
 import { getPaymentGatewayForCountry } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { Product, Currency } from "@/lib/types";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronDown,
   CreditCard,
   MapPin,
   ShieldCheck,
@@ -30,10 +33,43 @@ const paymentOptions = [
 ] as const;
 
 const countryPresets = ["United Kingdom", "Nigeria", "United States", "Ghana"];
+const currencySymbols: Record<Currency, string> = {
+  GBP: "£",
+  NGN: "₦",
+  USD: "$",
+};
+
+const checkoutCurrencyForGateway = (
+  gateway: "stripe" | "paystack",
+): Currency => (gateway === "paystack" ? "NGN" : "GBP");
+
+function getProductPriceForCurrency(
+  product: Product | undefined,
+  currency: Currency,
+) {
+  if (!product) {
+    return 0;
+  }
+
+  if (currency === "NGN") {
+    return product.price_ngn;
+  }
+
+  if (currency === "USD") {
+    return product.price_usd ?? product.price_gbp;
+  }
+
+  return product.price_gbp;
+}
+
+function formatCurrency(amount: number, currency: Currency) {
+  return `${currencySymbols[currency]}${amount.toFixed(2)}`;
+}
 
 export default function CheckoutPage() {
   const { items, getTotal } = useCart();
   const [country, setCountry] = useState("United Kingdom");
+  const [countryOpen, setCountryOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,11 +77,16 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [stateRegion, setStateRegion] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const countryMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedGateway = useMemo(
     () => getPaymentGatewayForCountry(country),
     [country],
   );
+  const checkoutCurrency = checkoutCurrencyForGateway(selectedGateway);
+  const productLookup = useMemo(() => {
+    return new Map(mockProducts.map((product) => [product.id, product]));
+  }, []);
 
   useEffect(() => {
     if (selectedGateway === "paystack") {
@@ -53,8 +94,41 @@ export default function CheckoutPage() {
     }
   }, [selectedGateway]);
 
-  const subtotal = getTotal();
-  const shipping = subtotal > 50 ? 0 : 7.99;
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        countryMenuRef.current &&
+        !countryMenuRef.current.contains(event.target as Node)
+      ) {
+        setCountryOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCountryOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const subtotal = items.reduce((runningTotal, item) => {
+    const product = productLookup.get(item.product_id);
+    const unitPrice = getProductPriceForCurrency(product, checkoutCurrency);
+
+    return runningTotal + unitPrice * item.quantity;
+  }, 0);
+
+  const shippingThreshold = checkoutCurrency === "NGN" ? 50000 : 50;
+  const shippingBase = checkoutCurrency === "NGN" ? 7999 : 7.99;
+  const shipping = subtotal > shippingThreshold ? 0 : shippingBase;
   const tax = country.toLowerCase().includes("nigeria")
     ? subtotal * 0.075
     : subtotal * 0.2;
@@ -138,21 +212,48 @@ export default function CheckoutPage() {
                   onChange={setPhone}
                   placeholder="Phone number"
                 />
-                <div className="space-y-2">
+                <div className="relative space-y-2" ref={countryMenuRef}>
                   <label className="text-sm font-medium text-neutral">
                     Country
                   </label>
-                  <select
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="w-full rounded-xl border border-neutral/15 px-4 py-3 text-sm outline-none focus:border-primary"
+                  <button
+                    type="button"
+                    onClick={() => setCountryOpen((current) => !current)}
+                    aria-haspopup="listbox"
+                    aria-expanded={countryOpen}
+                    className="flex w-full items-center justify-between rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-left text-sm text-black outline-none transition placeholder:text-black/40 focus:border-primary"
                   >
-                    {countryPresets.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                    <span>{country}</span>
+                    <ChevronDown
+                      size={16}
+                      className={`text-black/50 transition ${countryOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {countryOpen ? (
+                    <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 rounded-xl border border-neutral/15 bg-white p-1 shadow-2xl">
+                      <div className="max-h-56 overflow-auto rounded-lg">
+                        {countryPresets.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            role="option"
+                            aria-selected={option === country}
+                            onClick={() => {
+                              setCountry(option);
+                              setCountryOpen(false);
+                            }}
+                            className={`flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition ${
+                              option === country
+                                ? "bg-primary/10 text-black"
+                                : "text-black hover:bg-neutral-100"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <Field
                   label="Street address"
@@ -289,20 +390,36 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <p className="text-sm font-semibold text-neutral">
-                      £{(item.price_at_addition * item.quantity).toFixed(2)}
+                      {formatCurrency(
+                        getProductPriceForCurrency(
+                          productLookup.get(item.product_id),
+                          checkoutCurrency,
+                        ) * item.quantity,
+                        checkoutCurrency,
+                      )}
                     </p>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-3 py-5 text-sm text-neutral">
-                <Row label="Subtotal" value={`£${subtotal.toFixed(2)}`} />
+                <Row
+                  label="Subtotal"
+                  value={formatCurrency(subtotal, checkoutCurrency)}
+                />
                 <Row
                   label="Shipping"
-                  value={shipping === 0 ? "FREE" : `£${shipping.toFixed(2)}`}
+                  value={
+                    shipping === 0
+                      ? "FREE"
+                      : formatCurrency(shipping, checkoutCurrency)
+                  }
                   accent={shipping === 0}
                 />
-                <Row label="VAT / Tax" value={`£${tax.toFixed(2)}`} />
+                <Row
+                  label="VAT / Tax"
+                  value={formatCurrency(tax, checkoutCurrency)}
+                />
                 <Row
                   label="Gateway"
                   value={selectedGateway === "paystack" ? "Paystack" : "Stripe"}
@@ -313,7 +430,7 @@ export default function CheckoutPage() {
               <div className="flex items-center justify-between border-t border-neutral/10 pt-5">
                 <span className="font-semibold text-neutral">Total</span>
                 <span className="font-serif text-2xl font-bold text-primary">
-                  £{total.toFixed(2)}
+                  {formatCurrency(total, checkoutCurrency)}
                 </span>
               </div>
 
@@ -372,7 +489,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-neutral/15 px-4 py-3 text-sm outline-none focus:border-primary"
+        className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black placeholder:text-black/40 outline-none focus:border-primary"
       />
     </div>
   );

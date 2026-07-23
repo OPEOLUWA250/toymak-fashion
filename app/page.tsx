@@ -1,7 +1,7 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Shield, RotateCcw, Award } from "lucide-react";
 import { mockProducts } from "@/lib/mock-products";
 
 export default function HomePage() {
@@ -13,7 +13,7 @@ export default function HomePage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="relative bg-linear-to-br from-primary/10 to-secondary/20 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-primary/10 to-secondary/20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
@@ -200,6 +200,47 @@ export default function HomePage() {
               View All Products
               <ArrowRight className="ml-2" size={18} />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Badges */}
+      <section className="py-16 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="flex gap-4">
+              <Shield className="flex-shrink-0 text-primary" size={24} />
+              <div>
+                <h4 className="font-medium text-neutral mb-2">
+                  Secure Checkout
+                </h4>
+                <p className="text-sm text-neutral/60">
+                  SSL encrypted payments with Stripe and Paystack
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <RotateCcw className="flex-shrink-0 text-primary" size={24} />
+              <div>
+                <h4 className="font-medium text-neutral mb-2">
+                  30-Day Returns
+                </h4>
+                <p className="text-sm text-neutral/60">
+                  Not satisfied? Return or exchange within 30 days
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Award className="flex-shrink-0 text-primary" size={24} />
+              <div>
+                <h4 className="font-medium text-neutral mb-2">
+                  Premium Quality
+                </h4>
+                <p className="text-sm text-neutral/60">
+                  Crafted with premium materials and expert attention
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>

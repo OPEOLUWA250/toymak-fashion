@@ -1,18 +1,18 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { Mail, MapPin, Phone, Heart, Share2, Clock } from 'lucide-react'
-import { useState } from 'react'
+import Link from "next/link";
+import { Mail, MapPin, Phone, Heart, Share2, Clock } from "lucide-react";
+import { useState } from "react";
 
 export default function Footer() {
-  const [email, setEmail] = useState('')
-  const currentYear = new Date().getFullYear()
+  const [email, setEmail] = useState("");
+  const currentYear = new Date().getFullYear();
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     // TODO: Integrate Resend email service
-    setEmail('')
-  }
+    setEmail("");
+  };
 
   return (
     <footer className="bg-neutral text-white">
@@ -20,9 +20,12 @@ export default function Footer() {
       <div className="bg-primary py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-md">
-            <h3 className="font-serif text-2xl font-bold mb-4">Join Our Community</h3>
+            <h3 className="font-serif text-2xl font-bold mb-4">
+              Join Our Community
+            </h3>
             <p className="text-sm mb-6 text-white/90">
-              Get exclusive offers, new arrivals, and styling tips delivered to your inbox.
+              Get exclusive offers, new arrivals, and styling tips delivered to
+              your inbox.
             </p>
             <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
               <input
@@ -51,7 +54,8 @@ export default function Footer() {
           <div>
             <h4 className="font-serif text-lg font-bold mb-6">TOYMAK</h4>
             <p className="text-sm text-white/70 mb-6">
-              Premium shapewear and fashion for the modern woman. Confidence through quality.
+              Premium shapewear and fashion for the modern woman. Confidence
+              through quality.
             </p>
             <div className="flex gap-4">
               <a href="#" className="hover:text-primary transition">
@@ -76,17 +80,26 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/shop/shapewear" className="hover:text-primary transition">
+                <Link
+                  href="/shop/shapewear"
+                  className="hover:text-primary transition"
+                >
                   Shapewear
                 </Link>
               </li>
               <li>
-                <Link href="/shop/waist-trainer" className="hover:text-primary transition">
+                <Link
+                  href="/shop/waist-trainer"
+                  className="hover:text-primary transition"
+                >
                   Waist Trainers
                 </Link>
               </li>
               <li>
-                <Link href="/shop/bra" className="hover:text-primary transition">
+                <Link
+                  href="/shop/bra"
+                  className="hover:text-primary transition"
+                >
                   Bras
                 </Link>
               </li>
@@ -103,7 +116,10 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/size-guide" className="hover:text-primary transition">
+                <Link
+                  href="/size-guide"
+                  className="hover:text-primary transition"
+                >
                   Size Guide
                 </Link>
               </li>
@@ -125,27 +141,46 @@ export default function Footer() {
             <h5 className="font-medium mb-4">Get in Touch</h5>
             <ul className="space-y-3 text-sm text-white/70">
               <li className="flex gap-3">
-                <Mail size={16} className="flex-shrink-0 mt-0.5" />
-                <a href="mailto:hello@toymak.com" className="hover:text-primary transition">
+                <Mail size={16} className="shrink-0 mt-0.5" />
+                <a
+                  href="mailto:hello@toymak.com"
+                  className="hover:text-primary transition"
+                >
                   hello@toymak.com
                 </a>
               </li>
               <li className="flex gap-3">
-                <Phone size={16} className="flex-shrink-0 mt-0.5" />
+                <Phone size={16} className="shrink-0 mt-0.5" />
                 <div>
-                  <p>Mobile: <a href="tel:+447776686876" className="hover:text-primary transition">+44 7776 686876</a></p>
-                  <p>Hotline: <a href="tel:+447776686876" className="hover:text-primary transition">+44 7776 686876</a></p>
+                  <p>
+                    Mobile:{" "}
+                    <a
+                      href="tel:+447776686876"
+                      className="hover:text-primary transition"
+                    >
+                      +44 7776 686876
+                    </a>
+                  </p>
+                  <p>
+                    Hotline:{" "}
+                    <a
+                      href="tel:+447776686876"
+                      className="hover:text-primary transition"
+                    >
+                      +44 7776 686876
+                    </a>
+                  </p>
                 </div>
               </li>
               <li className="flex gap-3">
-                <MapPin size={16} className="flex-shrink-0 mt-0.5" />
+                <MapPin size={16} className="shrink-0 mt-0.5" />
                 <div>
                   <p>26, The Close Harbone, Birmingham.</p>
                   <p>B17 8TU, United Kingdom</p>
                 </div>
               </li>
               <li className="flex gap-3">
-                <Clock size={16} className="flex-shrink-0 mt-0.5" />
+                <Clock size={16} className="shrink-0 mt-0.5" />
                 <div>
                   <p>Monday – Friday: 9:00 – 22:00</p>
                   <p>Saturday &amp; Sunday: 9:00 – 21:00</p>
@@ -171,5 +206,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }

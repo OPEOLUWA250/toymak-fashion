@@ -4,11 +4,9 @@ import { useCart } from "@/lib/cart-context";
 import { useState } from "react";
 import { Heart, Share2, ChevronDown } from "lucide-react";
 import { Product } from "@/lib/types";
-import { useWishlist } from "@/lib/wishlist-context";
 
 export default function ProductClient({ product }: { product: Product }) {
   const { addItem } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState(
@@ -18,7 +16,6 @@ export default function ProductClient({ product }: { product: Product }) {
   const [showFitFinder, setShowFitFinder] = useState(false);
   const [fitFinderStep, setFitFinderStep] = useState(0);
   const [suggestedSize, setSuggestedSize] = useState<string | null>(null);
-  const wishlistActive = isInWishlist(product.id);
 
   const handleAddToCart = () => {
     if (!selectedSize) {
@@ -166,20 +163,9 @@ export default function ProductClient({ product }: { product: Product }) {
       </button>
 
       <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() =>
-            wishlistActive
-              ? removeFromWishlist(product.id)
-              : addToWishlist(product.id)
-          }
-          className={`flex items-center justify-center gap-2 rounded-md border py-3 text-sm transition ${
-            wishlistActive
-              ? "border-primary bg-primary/5 text-primary"
-              : "border-neutral/15 text-neutral hover:bg-neutral/5"
-          }`}
-        >
+        <button className="flex items-center justify-center gap-2 rounded-md border border-neutral/15 py-3 text-sm text-neutral hover:bg-neutral/5 transition">
           <Heart size={18} />
-          {wishlistActive ? "Saved" : "Wishlist"}
+          Wishlist
         </button>
         <button className="flex items-center justify-center gap-2 rounded-md border border-neutral/15 py-3 text-sm text-neutral hover:bg-neutral/5 transition">
           <Share2 size={18} />
