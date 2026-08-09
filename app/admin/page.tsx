@@ -267,7 +267,7 @@ export default function AdminPage() {
       <div className="relative mx-auto flex min-h-screen max-w-[1800px] lg:gap-6 lg:p-6">
         <aside className="hidden w-72 shrink-0 rounded-4xl border border-white/60 bg-white/90 p-5 shadow-[0_20px_80px_-40px_rgba(59,18,72,0.5)] lg:block">
           <div className="mb-8">
-            <p className="font-serif text-2xl font-bold text-neutral-900">
+            <p className="text-2xl font-bold text-neutral-900">
               Toymak Admin
             </p>
             <p className="text-sm text-neutral-500">Management suite</p>
@@ -317,7 +317,7 @@ export default function AdminPage() {
             >
               <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <p className="font-serif text-2xl font-bold">Toymak Admin</p>
+                  <p className="text-2xl font-bold">Toymak Admin</p>
                   <p className="text-sm text-neutral-500">Management suite</p>
                 </div>
                 <button
@@ -365,7 +365,7 @@ export default function AdminPage() {
                   <p className="text-sm font-medium text-primary">
                     Dashboard Overview
                   </p>
-                  <h1 className="font-serif text-3xl font-bold text-neutral-900">
+                  <h1 className="text-3xl font-bold text-neutral-900">
                     Good morning, Toymak team
                   </h1>
                   <p className="mt-1 text-sm text-neutral-500">
@@ -436,7 +436,7 @@ export default function AdminPage() {
                   <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
                     <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <h2 className="font-serif text-2xl font-bold text-neutral-900">
+                        <h2 className="text-2xl font-bold text-neutral-900">
                           Recent Orders
                         </h2>
                         <p className="text-sm text-neutral-500">
@@ -537,7 +537,7 @@ export default function AdminPage() {
                             <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">
                               Product
                             </p>
-                            <h3 className="mt-1 font-serif text-lg font-bold text-neutral-900">
+                            <h3 className="mt-1 text-lg font-bold text-neutral-900">
                               {product.name}
                             </h3>
                           </div>
@@ -571,7 +571,7 @@ export default function AdminPage() {
                   <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)]">
                     <div className="mb-4 flex items-center justify-between">
                       <div>
-                        <h2 className="font-serif text-2xl font-bold text-neutral-900">
+                        <h2 className="text-2xl font-bold text-neutral-900">
                           Top Selling
                         </h2>
                         <p className="text-sm text-neutral-500">

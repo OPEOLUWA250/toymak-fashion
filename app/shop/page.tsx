@@ -40,7 +40,7 @@ export default function ShopPage() {
       {/* Page Header */}
       <section className="bg-tertiary/50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="font-serif text-3xl md:text-4xl font-bold text-neutral">Shop All Products</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-neutral">Shop All Products</h1>
           <p className="text-neutral/60 mt-2">Browse our complete collection of premium shapewear and fashion</p>
         </div>
       </section>
@@ -132,7 +132,7 @@ export default function ShopPage() {
                         className="w-full h-full object-cover group-hover:scale-110 transition duration-300"
                       />
                     </div>
-                    <h3 className="font-serif text-lg font-bold text-neutral group-hover:text-primary transition">
+                    <h3 className="text-lg font-bold text-neutral group-hover:text-primary transition">
                       {product.name}
                     </h3>
                     <p className="text-neutral/60 text-sm mb-3 line-clamp-2">{product.description}</p>

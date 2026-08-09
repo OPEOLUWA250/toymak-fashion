@@ -18,7 +18,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-6">
-              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-neutral leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral leading-tight">
                 Define Your Silhouette, Reclaim Your Confidence.
               </h1>
               <p className="text-base md:text-lg text-neutral/70 leading-relaxed max-w-lg">
@@ -60,7 +60,7 @@ export default function HomePage() {
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold text-neutral mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
               Featured Collections
             </h2>
             <p className="text-neutral/60 max-w-2xl mx-auto">
@@ -81,7 +81,7 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                  <h3 className="text-2xl font-bold text-white mb-2">
                     Shapewear
                   </h3>
                   <p className="text-white/90 text-sm">
@@ -103,7 +103,7 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                  <h3 className="text-2xl font-bold text-white mb-2">
                     Waist Trainers
                   </h3>
                   <p className="text-white/90 text-sm">
@@ -125,7 +125,7 @@ export default function HomePage() {
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition duration-300 flex items-end p-6">
                 <div>
-                  <h3 className="font-serif text-2xl font-bold text-white mb-2">
+                  <h3 className="text-2xl font-bold text-white mb-2">
                     New Arrivals
                   </h3>
                   <p className="text-white/90 text-sm">
@@ -142,7 +142,7 @@ export default function HomePage() {
       <section className="py-20 md:py-28 bg-tertiary/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold text-neutral mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
               Best Sellers
             </h2>
             <p className="text-neutral/60 max-w-2xl mx-auto">
@@ -167,7 +167,7 @@ export default function HomePage() {
                     Featured
                   </div>
                 </div>
-                <h3 className="font-serif text-lg font-bold text-neutral group-hover:text-primary transition">
+                <h3 className="text-lg font-bold text-neutral group-hover:text-primary transition">
                   {product.name}
                 </h3>
                 <p className="text-neutral/60 text-sm mb-3">

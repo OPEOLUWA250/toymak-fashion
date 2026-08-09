@@ -13,8 +13,7 @@ Toymak is a modern, high-performance e-commerce platform for premium shapewear a
 - **Neutral**: #2B2B2B (Charcoal)
 
 ### Typography
-- **Headlines**: Playfair Display (400, 600, 700)
-- **Body/Labels**: Inter (400, 500, 600)
+- **Font**: DM Sans (400, 500, 600, 700), used across headlines, body, and labels
 - **Style**: Ultra-minimalist, thin aesthetic with generous whitespace
 
 ## Project Structure
@@ -114,7 +113,7 @@ vercel deploy
 - **Styling**: Tailwind CSS 4
 - **State Management**: React Context API
 - **Storage**: localStorage (mock implementation)
-- **Fonts**: Google Fonts (Playfair Display, Inter)
+- **Fonts**: next/font (Google) — DM Sans
 - **Icons**: Lucide React
 
 ## Customization

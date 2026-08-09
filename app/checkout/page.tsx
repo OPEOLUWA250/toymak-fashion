@@ -139,7 +139,7 @@ export default function CheckoutPage() {
       <main className="bg-white">
         <Header />
         <section className="mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 lg:px-8">
-          <h1 className="font-serif text-4xl font-bold text-neutral">
+          <h1 className="text-4xl font-bold text-neutral">
             Checkout is empty
           </h1>
           <p className="mt-4 text-neutral/60">
@@ -166,7 +166,7 @@ export default function CheckoutPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-primary">
             Guest Checkout
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold text-neutral">
+          <h1 className="mt-3 text-4xl font-bold text-neutral">
             Fast, seamless checkout
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral/60">
@@ -183,7 +183,7 @@ export default function CheckoutPage() {
               <div className="mb-6 flex items-center gap-3">
                 <MapPin className="text-primary" size={20} />
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-neutral">
+                  <h2 className="text-2xl font-bold text-neutral">
                     Shipping details
                   </h2>
                   <p className="text-sm text-neutral/60">
@@ -286,7 +286,7 @@ export default function CheckoutPage() {
               <div className="mb-5 flex items-center gap-3">
                 <ShieldCheck className="text-primary" size={20} />
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-neutral">
+                  <h2 className="text-2xl font-bold text-neutral">
                     Payment method
                   </h2>
                   <p className="text-sm text-neutral/60">
@@ -361,7 +361,7 @@ export default function CheckoutPage() {
               <div className="mb-5 flex items-center gap-3">
                 <Truck className="text-primary" size={20} />
                 <div>
-                  <h2 className="font-serif text-2xl font-bold text-neutral">
+                  <h2 className="text-2xl font-bold text-neutral">
                     Order summary
                   </h2>
                   <p className="text-sm text-neutral/60">
@@ -429,7 +429,7 @@ export default function CheckoutPage() {
 
               <div className="flex items-center justify-between border-t border-neutral/10 pt-5">
                 <span className="font-semibold text-neutral">Total</span>
-                <span className="font-serif text-2xl font-bold text-primary">
+                <span className="text-2xl font-bold text-primary">
                   {formatCurrency(total, checkoutCurrency)}
                 </span>
               </div>
@@ -446,7 +446,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm">
-              <h3 className="font-serif text-xl font-bold text-neutral">
+              <h3 className="text-xl font-bold text-neutral">
                 Why this works
               </h3>
               <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral/60">

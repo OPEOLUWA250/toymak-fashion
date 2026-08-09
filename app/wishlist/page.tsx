@@ -22,7 +22,7 @@ export default function WishlistPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-primary">
             Saved Items
           </p>
-          <h1 className="mt-3 font-serif text-4xl font-bold text-neutral">
+          <h1 className="mt-3 text-4xl font-bold text-neutral">
             Wishlist
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral/60">
@@ -38,7 +38,7 @@ export default function WishlistPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Heart size={28} />
             </div>
-            <h2 className="font-serif text-2xl font-bold text-neutral">
+            <h2 className="text-2xl font-bold text-neutral">
               Your wishlist is empty
             </h2>
             <p className="mt-3 text-sm leading-6 text-neutral/60">
@@ -69,7 +69,7 @@ export default function WishlistPage() {
                     <p className="text-xs uppercase tracking-[0.22em] text-primary">
                       {product.category.replace("-", " ")}
                     </p>
-                    <h2 className="mt-1 font-serif text-2xl font-bold text-neutral">
+                    <h2 className="mt-1 text-2xl font-bold text-neutral">
                       {product.name}
                     </h2>
                     <p className="mt-2 text-sm leading-6 text-neutral/60">
@@ -106,7 +106,7 @@ export default function WishlistPage() {
               <p className="text-xs uppercase tracking-[0.24em] text-neutral/50">
                 Wishlist Summary
               </p>
-              <h2 className="mt-2 font-serif text-2xl font-bold text-neutral">
+              <h2 className="mt-2 text-2xl font-bold text-neutral">
                 {products.length} items saved
               </h2>
               <p className="mt-3 text-sm leading-6 text-neutral/60">

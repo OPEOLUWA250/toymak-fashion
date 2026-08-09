@@ -32,7 +32,7 @@ export default function CartPage() {
         <Header />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center space-y-6 max-w-xl mx-auto">
-            <h1 className="font-serif text-3xl font-bold text-neutral">
+            <h1 className="text-3xl font-bold text-neutral">
               Your Cart is Empty
             </h1>
             <p className="text-neutral/70 leading-relaxed">
@@ -56,7 +56,7 @@ export default function CartPage() {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="font-serif text-3xl font-bold text-neutral mb-12">
+        <h1 className="text-3xl font-bold text-neutral mb-12">
           Shopping Cart
         </h1>
 
@@ -74,7 +74,7 @@ export default function CartPage() {
                   className="h-24 w-24 rounded-xl object-cover"
                 />
                 <div className="min-w-0">
-                  <h3 className="font-serif text-lg font-bold text-neutral break-words">
+                  <h3 className="text-lg font-bold text-neutral break-words">
                     {item.product_name}
                   </h3>
                   <p className="mt-1 text-sm text-neutral/70">
@@ -134,7 +134,7 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="bg-[#fafafa] border border-neutral/10 p-6 rounded-2xl h-fit space-y-5 sticky top-28">
-            <h2 className="font-serif text-xl font-bold text-neutral">
+            <h2 className="text-xl font-bold text-neutral">
               Order Summary
             </h2>
 

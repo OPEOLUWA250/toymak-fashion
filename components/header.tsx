@@ -25,7 +25,7 @@ export default function Header() {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="flex-shrink-0">
-              <h1 className="font-serif font-bold text-2xl text-primary">
+              <h1 className="font-bold text-2xl text-primary">
                 TOYMAK
               </h1>
             </Link>

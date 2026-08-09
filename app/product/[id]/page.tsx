@@ -102,7 +102,7 @@ export default async function ProductPage({
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <section className="mt-20 pt-20 border-t">
-            <h2 className="font-serif text-3xl font-bold text-neutral mb-8">
+            <h2 className="text-3xl font-bold text-neutral mb-8">
               You May Also Like
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -119,7 +119,7 @@ export default async function ProductPage({
                       className="w-full h-full object-cover group-hover:scale-110 transition"
                     />
                   </div>
-                  <h3 className="font-serif font-bold text-neutral group-hover:text-primary transition">
+                  <h3 className="font-bold text-neutral group-hover:text-primary transition">
                     {related.name}
                   </h3>
                   <p className="text-sm text-neutral/60 mb-2">

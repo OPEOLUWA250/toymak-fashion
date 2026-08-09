@@ -47,11 +47,11 @@ export default function ProductClient({ product }: { product: Product }) {
         <p className="text-xs uppercase tracking-[0.22em] text-primary font-semibold mb-3">
           {product.category.replace("-", " ")}
         </p>
-        <h1 className="font-serif text-4xl md:text-5xl font-bold text-neutral leading-tight mb-3">
+        <h1 className="text-4xl md:text-5xl font-bold text-neutral leading-tight mb-3">
           {product.name}
         </h1>
         <div className="flex items-center gap-4 mb-5">
-          <span className="font-serif text-3xl md:text-4xl text-primary font-bold">
+          <span className="text-3xl md:text-4xl text-primary font-bold">
             £{product.price_gbp}
           </span>
           <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">

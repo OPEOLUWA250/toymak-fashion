@@ -20,7 +20,7 @@ export default function Footer() {
       <div className="bg-primary py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-md">
-            <h3 className="font-serif text-2xl font-bold mb-4">
+            <h3 className="text-2xl font-bold mb-4">
               Join Our Community
             </h3>
             <p className="text-sm mb-6 text-white/90">
@@ -52,7 +52,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div>
-            <h4 className="font-serif text-lg font-bold mb-6">TOYMAK</h4>
+            <h4 className="text-lg font-bold mb-6">TOYMAK</h4>
             <p className="text-sm text-white/70 mb-6">
               Premium shapewear and fashion for the modern woman. Confidence
               through quality.
