@@ -1,9 +1,13 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { mockProducts } from "@/lib/mock-products";
+import { mockReviews } from "@/lib/mock-reviews";
+import { getProductRating } from "@/lib/mock-reviews";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ProductClient from "./product-client";
+import { ProductGallery } from "@/components/product-gallery";
+import { Star } from "lucide-react";
 import type { Metadata } from "next";
 
 export async function generateStaticParams() {
@@ -49,6 +53,11 @@ export default async function ProductPage({
     notFound();
   }
 
+  const reviews = mockReviews
+    .filter((review) => review.product_id === product.id && review.approved)
+    .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+  const { average, count } = getProductRating(product.id);
+
   return (
     <main className="bg-white">
       <Header />
@@ -67,37 +76,80 @@ export default async function ProductPage({
         </nav>
 
         <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 xl:gap-16 items-start">
-          <div className="space-y-4">
-            <div className="relative bg-[#f7f3f6] rounded-2xl overflow-hidden min-h-[28rem] md:min-h-[40rem] flex items-center justify-center">
-              <img
-                src={product.images[0]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary shadow-sm">
-                {product.featured ? "Best Seller" : "New Arrival"}
-              </div>
-            </div>
-            {product.images.length > 1 && (
-              <div className="grid grid-cols-2 gap-3">
-                {product.images.slice(1).map((image, index) => (
-                  <div
-                    key={image}
-                    className="bg-[#f7f3f6] rounded-xl overflow-hidden h-36 md:h-44"
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} view ${index + 2}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ProductGallery
+            images={product.images}
+            alt={product.name}
+            badge={product.featured ? "Best Seller" : "New Arrival"}
+          />
 
           <ProductClient product={product} />
         </div>
+
+        {/* Reviews */}
+        <section id="reviews" className="mt-20 pt-20 border-t">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-neutral">Customer Reviews</h2>
+              {count > 0 ? (
+                <div className="mt-2 flex items-center gap-2 text-sm text-neutral/60">
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={15}
+                        className={
+                          i < Math.round(average)
+                            ? "fill-amber-400 text-amber-400"
+                            : "fill-neutral/10 text-neutral/10"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <span className="font-semibold text-neutral">{average}</span>
+                  <span>
+                    out of 5 · {count} review{count === 1 ? "" : "s"}
+                  </span>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-neutral/60">No reviews yet for this product.</p>
+              )}
+            </div>
+          </div>
+
+          {reviews.length > 0 && (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="rounded-2xl border border-neutral/10 bg-white p-6 shadow-sm"
+                >
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        className={
+                          i < review.rating
+                            ? "fill-amber-400 text-amber-400"
+                            : "fill-neutral/10 text-neutral/10"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-neutral/75">{review.comment}</p>
+                  <div className="mt-4 flex items-center justify-between border-t border-neutral/10 pt-3">
+                    <span className="text-sm font-semibold text-neutral">
+                      {review.customer_name}
+                    </span>
+                    <span className="text-xs text-neutral/45">
+                      {review.created_at.toLocaleDateString("en-GB", { dateStyle: "medium" })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

@@ -19,7 +19,7 @@ export default function Footer() {
       {/* Newsletter Section */}
       <div className="bg-primary py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md">
+          <div className="max-w-md mx-auto text-center">
             <h3 className="text-2xl font-bold mb-4">
               Join Our Community
             </h3>
@@ -81,7 +81,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/shop/shapewear"
+                  href="/shop?category=shapewear"
                   className="hover:text-primary transition"
                 >
                   Shapewear
@@ -89,7 +89,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/shop/waist-trainer"
+                  href="/shop?category=waist-trainer"
                   className="hover:text-primary transition"
                 >
                   Waist Trainers
@@ -97,7 +97,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/shop/bra"
+                  href="/shop?category=bra"
                   className="hover:text-primary transition"
                 >
                   Bras
@@ -110,6 +110,11 @@ export default function Footer() {
           <div>
             <h5 className="font-medium mb-4">Support</h5>
             <ul className="space-y-2 text-sm text-white/70">
+              <li>
+                <Link href="/our-story" className="hover:text-primary transition">
+                  Our Story
+                </Link>
+              </li>
               <li>
                 <Link href="/faq" className="hover:text-primary transition">
                   FAQ

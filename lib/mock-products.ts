@@ -32,6 +32,7 @@ export const mockProducts: Product[] = [
     longDescription:
       "The Waist Trainer Pro features 3-layer compression technology with steel boning for optimal support. Adjustable straps ensure a perfect fit, and the breathable mesh lining keeps you comfortable throughout the day. Ideal for workouts, posture correction, and everyday wear.",
     price_gbp: 65.0,
+    compare_at_price_gbp: 78.0,
     price_ngn: 32500,
     price_usd: 79.99,
     category: "waist-trainer",
@@ -58,6 +59,7 @@ export const mockProducts: Product[] = [
     longDescription:
       "Our Seamless Bodysuit combines comfort with invisible support. Made from ultra-smooth nylon/spandex blend, it creates a seamless silhouette under your clothing. The open gusset provides convenience, and the breathable fabric keeps you fresh all day.",
     price_gbp: 54.99,
+    compare_at_price_gbp: 64.99,
     price_ngn: 27500,
     price_usd: 67.0,
     category: "shapewear",
@@ -137,6 +139,7 @@ export const mockProducts: Product[] = [
     longDescription:
       "Our High-Waist Control Shorts feature a reinforced waistband that smooths and shapes while the side panels provide targeted compression. The durable, flexible fabric adapts to your body for all-day comfort without rolling or riding up.",
     price_gbp: 49.99,
+    compare_at_price_gbp: 59.99,
     price_ngn: 25000,
     price_usd: 61.0,
     category: "shapewear",
@@ -156,5 +159,28 @@ export const mockProducts: Product[] = [
     featured: false,
     created_at: new Date("2024-01-09"),
     updated_at: new Date("2024-01-09"),
+  },
+  {
+    id: "prod-007",
+    name: "Wider Coverage Back Fat Bra",
+    description: "Extended back panel that smooths and eliminates back bulge",
+    longDescription:
+      "The Wider Coverage Back Fat Bra features an extended back panel engineered to smooth and eliminate back bulge for a clean line under any top. Supportive front cups and a wide underband distribute compression evenly, so you get shaping without digging in. Designed to be worn on its own or layered under fitted clothing.",
+    price_gbp: 22.0,
+    price_ngn: 11000,
+    price_usd: 26.99,
+    category: "bra",
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    colors: [
+      { name: "Black", hex: "#000000", inventory: 45 },
+      { name: "Nude", hex: "#E8C9A0", inventory: 40 },
+    ],
+    stock_qty: 85,
+    low_stock_threshold: 15,
+    sku: "WCBB-001",
+    images: ["/shop-img/imgi_8_shaper.png", "/shop-img/imgi_10_fb_shp.png"],
+    featured: false,
+    created_at: new Date("2024-01-03"),
+    updated_at: new Date("2024-01-03"),
   },
 ];

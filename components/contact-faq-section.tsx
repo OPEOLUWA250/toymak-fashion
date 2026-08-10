@@ -1,0 +1,147 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { ChevronDown, Mail, ArrowRight, Send } from "lucide-react";
+
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+export function ContactFaqSection({ faqs }: { faqs: FaqItem[] }) {
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // TODO: Wire up to a real contact-form email service
+    e.currentTarget.reset();
+    setSubmitted(true);
+  };
+
+  return (
+    <section className="py-20 md:py-28 bg-tertiary/40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-16 lg:grid-cols-2">
+          {/* Contact */}
+          <div>
+            <span className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Contact Us
+            </span>
+            <h2 className="mt-5 text-3xl md:text-4xl font-bold text-neutral">
+              Get in <span className="text-primary">Touch</span> with us
+            </h2>
+            <p className="mt-4 max-w-md text-neutral/60">
+              Questions about sizing, an order, or just want to say hello? Send us a message
+              and our team will get back to you.
+            </p>
+
+            <div className="mt-6 flex items-center gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Mail size={18} />
+              </span>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-neutral/50">Email Us</p>
+                <a
+                  href="mailto:hello@toymak.com"
+                  className="font-medium text-neutral hover:text-primary transition"
+                >
+                  hello@toymak.com
+                </a>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-10 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Your Name"
+                  required
+                  className="w-full rounded-lg border-0 bg-white px-4 py-3 text-sm text-neutral placeholder:text-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="Your Email"
+                  required
+                  className="w-full rounded-lg border-0 bg-white px-4 py-3 text-sm text-neutral placeholder:text-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone Number"
+                className="w-full rounded-lg border-0 bg-white px-4 py-3 text-sm text-neutral placeholder:text-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <input
+                type="text"
+                name="subject"
+                placeholder="Subject"
+                required
+                className="w-full rounded-lg border-0 bg-white px-4 py-3 text-sm text-neutral placeholder:text-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <textarea
+                name="message"
+                placeholder="Your Message..."
+                rows={4}
+                required
+                className="w-full resize-none rounded-lg border-0 bg-white px-4 py-3 text-sm text-neutral placeholder:text-neutral/40 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              <button
+                type="submit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 sm:w-auto"
+              >
+                Send Message
+                <Send size={16} />
+              </button>
+              {submitted && (
+                <p className="text-sm text-primary" role="status">
+                  Thanks — we&apos;ve got your message and will reply soon.
+                </p>
+              )}
+            </form>
+          </div>
+
+          {/* FAQ */}
+          <div>
+            <h3 className="text-2xl font-bold text-neutral mb-2">Frequently Asked Questions</h3>
+            <p className="text-neutral/60 mb-8">Everything you need to know before you shop</p>
+
+            <div className="space-y-3">
+              {faqs.map((item, idx) => (
+                <details
+                  key={idx}
+                  className="group rounded-2xl border border-neutral/10 bg-white hover:shadow-sm transition-shadow"
+                >
+                  <summary className="flex items-center justify-between cursor-pointer px-6 py-5 text-sm font-semibold text-neutral list-none [&::-webkit-details-marker]:hidden">
+                    {item.q}
+                    <ChevronDown
+                      size={16}
+                      className="shrink-0 ml-4 text-neutral/40 transition-transform duration-200 group-open:rotate-180"
+                    />
+                  </summary>
+                  <div className="px-6 pb-5">
+                    <div className="border-t border-neutral/10 pt-4">
+                      <p className="text-sm leading-7 text-neutral/65">{item.a}</p>
+                    </div>
+                  </div>
+                </details>
+              ))}
+            </div>
+
+            <div className="mt-8">
+              <Link
+                href="/faq"
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline underline-offset-4"
+              >
+                View all FAQs
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -1,4 +1,4 @@
-export type ProductCategory = 'shapewear' | 'waist-trainer' | 'bra' | 'accessories'
+export type ProductCategory = 'shapewear' | 'waist-trainer' | 'bra' | 'accessories' | 'tops'
 export type OrderStatus = 'processing' | 'shipped' | 'out-for-delivery' | 'delivered'
 export type Currency = 'GBP' | 'NGN' | 'USD'
 export type PaymentGateway = 'stripe' | 'paystack'
@@ -19,6 +19,7 @@ export interface Product {
   price_gbp: number
   price_ngn: number
   price_usd?: number
+  compare_at_price_gbp?: number
   category: ProductCategory
   sizes: string[]
   colors: Color[]

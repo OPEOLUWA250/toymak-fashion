@@ -1,90 +1,31 @@
-'use client'
+"use client";
 
-import Header from '@/components/header'
-import Footer from '@/components/footer'
-import Link from 'next/link'
-import { useState } from 'react'
-import { Ruler, ArrowRight } from 'lucide-react'
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import Link from "next/link";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Ruler, ArrowRight } from "lucide-react";
+import {
+  sizeChart,
+  categoryLabels,
+  measurementSteps,
+  fitTips,
+  type SizeCategory,
+} from "@/lib/size-guide-data";
 
-const measurementSteps = [
-  {
-    step: 1,
-    title: 'Bust',
-    instruction:
-      'Measure around the fullest part of your bust, keeping the tape level and snug but not tight.',
-  },
-  {
-    step: 2,
-    title: 'Waist',
-    instruction:
-      'Measure around your natural waistline — the narrowest part of your torso, usually just above the navel.',
-  },
-  {
-    step: 3,
-    title: 'Hips',
-    instruction:
-      'Measure around the widest part of your hips and buttocks, keeping the tape parallel to the floor.',
-  },
-]
+const categories = Object.keys(sizeChart) as SizeCategory[];
 
-type Category = 'shapewear' | 'waist-trainers' | 'bras'
-
-const sizeData: Record<
-  Category,
-  { size: string; bust: string; waist: string; hips: string }[]
-> = {
-  shapewear: [
-    { size: 'XS', bust: '30–32" / 76–81cm', waist: '24–26" / 61–66cm', hips: '33–35" / 84–89cm' },
-    { size: 'S', bust: '32–34" / 81–86cm', waist: '26–28" / 66–71cm', hips: '35–37" / 89–94cm' },
-    { size: 'M', bust: '34–36" / 86–91cm', waist: '28–30" / 71–76cm', hips: '37–39" / 94–99cm' },
-    { size: 'L', bust: '36–38" / 91–97cm', waist: '30–32" / 76–81cm', hips: '39–41" / 99–104cm' },
-    { size: 'XL', bust: '38–40" / 97–102cm', waist: '32–34" / 81–86cm', hips: '41–43" / 104–109cm' },
-    { size: 'XXL', bust: '40–42" / 102–107cm', waist: '34–36" / 86–91cm', hips: '43–45" / 109–114cm' },
-  ],
-  'waist-trainers': [
-    { size: 'XS', bust: '—', waist: '22–24" / 56–61cm', hips: '—' },
-    { size: 'S', bust: '—', waist: '24–26" / 61–66cm', hips: '—' },
-    { size: 'M', bust: '—', waist: '26–28" / 66–71cm', hips: '—' },
-    { size: 'L', bust: '—', waist: '28–30" / 71–76cm', hips: '—' },
-    { size: 'XL', bust: '—', waist: '30–32" / 76–81cm', hips: '—' },
-    { size: 'XXL', bust: '—', waist: '32–34" / 81–86cm', hips: '—' },
-  ],
-  bras: [
-    { size: 'XS', bust: '30–32" / 76–81cm', waist: '—', hips: '—' },
-    { size: 'S', bust: '32–34" / 81–86cm', waist: '—', hips: '—' },
-    { size: 'M', bust: '34–36" / 86–91cm', waist: '—', hips: '—' },
-    { size: 'L', bust: '36–38" / 91–97cm', waist: '—', hips: '—' },
-    { size: 'XL', bust: '38–40" / 97–102cm', waist: '—', hips: '—' },
-    { size: 'XXL', bust: '40–42" / 102–107cm', waist: '—', hips: '—' },
-  ],
+function isSizeCategory(value: string | null): value is SizeCategory {
+  return categories.includes(value as SizeCategory);
 }
 
-const categoryLabels: Record<Category, string> = {
-  shapewear: 'Shapewear',
-  'waist-trainers': 'Waist Trainers',
-  bras: 'Bras',
-}
-
-const fitTips = [
-  {
-    title: 'Size up for comfort',
-    description:
-      'Shapewear is designed for compression, so if you\'re between sizes, going up will give you a more comfortable fit without sacrificing support.',
-  },
-  {
-    title: 'Measure over undergarments',
-    description:
-      'For the most accurate results, take measurements wearing the undergarments you\'d normally wear — no padding or push-up.',
-  },
-  {
-    title: 'Check product-specific notes',
-    description:
-      'Some styles run slightly different from our standard chart. Always check the fit notes on individual product pages for the best guidance.',
-  },
-]
-
-export default function SizeGuidePage() {
-  const [activeCategory, setActiveCategory] = useState<Category>('shapewear')
+function SizeGuideInner() {
+  const searchParams = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState<SizeCategory>(() => {
+    const requested = searchParams.get("category");
+    return isSizeCategory(requested) ? requested : "shapewear";
+  });
 
   return (
     <main className="bg-white">
@@ -133,22 +74,22 @@ export default function SizeGuidePage() {
       </section>
 
       {/* Size Chart */}
-      <section className="py-16 md:py-20 bg-tertiary/30">
+      <section id="size-chart" className="py-16 md:py-20 bg-tertiary/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl md:text-3xl font-bold text-neutral text-center mb-10">
             Size Chart
           </h2>
 
           {/* Category Tabs */}
-          <div className="flex justify-center gap-6 mb-8">
-            {(Object.keys(sizeData) as Category[]).map((cat) => (
+          <div className="flex flex-wrap justify-center gap-6 mb-8">
+            {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={`uppercase tracking-[0.16em] text-xs font-semibold pb-2 border-b-2 transition-colors ${
                   activeCategory === cat
-                    ? 'text-primary border-primary'
-                    : 'text-neutral/40 border-transparent hover:text-neutral/60'
+                    ? "text-primary border-primary"
+                    : "text-neutral/40 border-transparent hover:text-neutral/60"
                 }`}
               >
                 {categoryLabels[cat]}
@@ -157,7 +98,7 @@ export default function SizeGuidePage() {
           </div>
 
           {/* Table */}
-          <div className="rounded-2xl border border-neutral/10 overflow-hidden bg-white">
+          <div className="rounded-2xl border border-neutral/10 overflow-hidden bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-neutral text-white">
@@ -176,17 +117,17 @@ export default function SizeGuidePage() {
                 </tr>
               </thead>
               <tbody>
-                {sizeData[activeCategory].map((row, idx) => (
+                {sizeChart[activeCategory].map((row, idx) => (
                   <tr
                     key={row.size}
-                    className={idx % 2 === 0 ? 'bg-white' : 'bg-tertiary/30'}
+                    className={idx % 2 === 0 ? "bg-white" : "bg-tertiary/30"}
                   >
                     <td className="px-6 py-4 font-semibold text-neutral">
                       {row.size}
                     </td>
-                    <td className="px-6 py-4 text-neutral/65">{row.bust}</td>
-                    <td className="px-6 py-4 text-neutral/65">{row.waist}</td>
-                    <td className="px-6 py-4 text-neutral/65">{row.hips}</td>
+                    <td className="px-6 py-4 text-neutral/65">{row.bustLabel}</td>
+                    <td className="px-6 py-4 text-neutral/65">{row.waistLabel}</td>
+                    <td className="px-6 py-4 text-neutral/65">{row.hipsLabel}</td>
                   </tr>
                 ))}
               </tbody>
@@ -252,5 +193,13 @@ export default function SizeGuidePage() {
 
       <Footer />
     </main>
-  )
+  );
+}
+
+export default function SizeGuidePage() {
+  return (
+    <Suspense fallback={null}>
+      <SizeGuideInner />
+    </Suspense>
+  );
 }
