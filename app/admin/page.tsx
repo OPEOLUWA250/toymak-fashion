@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   Bell,
   Boxes,
@@ -9,30 +8,38 @@ import {
   Menu,
   Package,
   PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings as SettingsIcon,
   ShoppingCart,
-  Sparkles,
+  UserCog,
   Users,
   X,
 } from "lucide-react";
 import { mockProducts } from "@/lib/mock-products";
 import { mockOrders } from "@/lib/mock-orders";
 import { deriveCustomers } from "@/lib/admin-data";
+import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
 import { OverviewView } from "@/components/admin/overview-view";
 import { OrdersView } from "@/components/admin/orders-view";
 import { ProductsView } from "@/components/admin/products-view";
 import { CustomersView } from "@/components/admin/customers-view";
 import { InventoryView } from "@/components/admin/inventory-view";
+import { AdminManagementView } from "@/components/admin/admin-management-view";
 import { SettingsView } from "@/components/admin/settings-view";
+import { AdminProfileMenu } from "@/components/admin/admin-profile-menu";
 
-const navItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
+const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
   { view: "overview", label: "Overview", icon: LayoutGrid },
   { view: "orders", label: "Orders", icon: ShoppingCart },
   { view: "products", label: "Products", icon: Package },
   { view: "customers", label: "Customers", icon: Users },
   { view: "inventory", label: "Inventory", icon: Boxes },
+];
+
+const bottomNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
+  { view: "admin", label: "Admin", icon: UserCog },
   { view: "settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -62,6 +69,11 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     title: "Inventory",
     subtitle: "Monitor stock levels and reorder thresholds.",
   },
+  admin: {
+    eyebrow: "Team",
+    title: "Admin Access",
+    subtitle: "Manage who has access to this dashboard.",
+  },
   settings: {
     eyebrow: "Configuration",
     title: "Settings",
@@ -69,12 +81,42 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
   },
 };
 
+function NavButton({
+  item,
+  active,
+  onClick,
+}: {
+  item: { view: AdminView; label: string; icon: typeof LayoutGrid };
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition",
+        active
+          ? "bg-primary text-white shadow-lg shadow-primary/25"
+          : "text-neutral-600 hover:bg-primary/8 hover:text-primary",
+      )}
+    >
+      <item.icon size={16} />
+      {item.label}
+    </button>
+  );
+}
+
 export default function AdminPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeView, setActiveView] = useState<AdminView>("overview");
   const [productSearch, setProductSearch] = useState("");
 
   const customers = useMemo(() => deriveCustomers(mockOrders), []);
+  const lowStockCount = useMemo(
+    () => mockProducts.filter((p) => p.stock_qty <= p.low_stock_threshold).length,
+    [],
+  );
   const copy = viewCopy[activeView];
 
   const handleNavigate = (view: AdminView) => {
@@ -88,169 +130,169 @@ export default function AdminPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f6f1f8] text-neutral-900">
-      <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(230,0,229,0.16),transparent_60%)]" />
-
-      <div className="relative mx-auto flex min-h-screen max-w-[1800px] lg:gap-6 lg:p-6">
-        <aside className="hidden w-72 shrink-0 rounded-4xl border border-white/60 bg-white/90 p-5 shadow-[0_20px_80px_-40px_rgba(59,18,72,0.5)] lg:block">
-          <div className="mb-8">
-            <p className="text-2xl font-bold text-neutral-900">
-              Toymak Admin
-            </p>
-            <p className="text-sm text-neutral-500">Management suite</p>
-          </div>
-
-          <nav className="space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.view}
-                onClick={() => handleNavigate(item.view)}
-                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                  activeView === item.view
-                    ? "bg-primary text-white shadow-lg shadow-primary/25"
-                    : "text-neutral-600 hover:bg-primary/8 hover:text-primary"
-                }`}
-              >
-                <item.icon size={16} />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="mt-8 rounded-3xl bg-linear-to-br from-primary to-fuchsia-500 p-5 text-white">
-            <div className="mb-4 flex items-center gap-3">
-              <Sparkles size={18} />
-              <p className="text-sm font-medium">Pro Access</p>
-            </div>
-            <p className="text-sm/6 text-white/85">
-              Launch new campaigns, review performance, and keep stock moving.
-            </p>
-            <Link
-              href="/"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-primary transition hover:bg-white/90"
-            >
-              View Storefront
-            </Link>
-          </div>
-        </aside>
-
-        {mobileMenuOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <div
-              className="absolute left-0 top-0 h-full w-[85vw] max-w-sm bg-white p-5 shadow-2xl"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <p className="text-2xl font-bold">Toymak Admin</p>
-                  <p className="text-sm text-neutral-500">Management suite</p>
-                </div>
-                <button
-                  className="rounded-full border border-neutral-200 p-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Close navigation"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <nav className="space-y-2">
-                {navItems.map((item) => (
-                  <button
-                    key={item.view}
-                    onClick={() => handleNavigate(item.view)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition ${
-                      activeView === item.view
-                        ? "bg-primary text-white"
-                        : "bg-neutral-50 text-neutral-700"
-                    }`}
-                  >
-                    <item.icon size={16} />
-                    {item.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-          </div>
+    <main className="flex h-screen overflow-hidden bg-[#f6f1f8] text-neutral-900">
+      {/* Sidebar: full 100vh, extreme left */}
+      <aside
+        className={cn(
+          "w-72 shrink-0 flex-col border-r border-neutral-200 bg-white",
+          sidebarCollapsed ? "hidden" : "hidden lg:flex",
         )}
+      >
+        <div className="flex h-16 shrink-0 items-center border-b border-neutral-200 px-5">
+          <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+        </div>
 
-        <section className="min-w-0 flex-1 px-4 pb-10 pt-4 lg:px-0 lg:pt-0">
-          <div className="rounded-4xl border border-white/70 bg-white/80 shadow-[0_20px_80px_-40px_rgba(59,18,72,0.45)] backdrop-blur">
-            <div className="flex flex-col gap-6 border-b border-neutral-200/70 px-5 py-5 lg:px-8 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center justify-between gap-4 xl:justify-start">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-primary">
-                    {copy.eyebrow}
-                  </p>
-                  <h1 className="text-3xl font-bold text-neutral-900">
-                    {copy.title}
-                  </h1>
-                  <p className="mt-1 text-sm text-neutral-500">
-                    {copy.subtitle}
-                  </p>
-                </div>
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+          {mainNavItems.map((item) => (
+            <NavButton
+              key={item.view}
+              item={item}
+              active={activeView === item.view}
+              onClick={() => handleNavigate(item.view)}
+            />
+          ))}
+        </nav>
 
-                <button
-                  className="inline-flex shrink-0 items-center justify-center rounded-2xl border border-neutral-200 bg-white p-3 text-neutral-700 shadow-sm lg:hidden"
-                  onClick={() => setMobileMenuOpen(true)}
-                  aria-label="Open navigation"
-                >
-                  <Menu size={18} />
-                </button>
-              </div>
+        <div className="space-y-1 border-t border-neutral-200 p-4">
+          {bottomNavItems.map((item) => (
+            <NavButton
+              key={item.view}
+              item={item}
+              active={activeView === item.view}
+              onClick={() => handleNavigate(item.view)}
+            />
+          ))}
+        </div>
+      </aside>
 
-              <div className="flex flex-1 flex-col gap-3 xl:max-w-2xl xl:flex-row xl:items-center xl:justify-end">
-                <form
-                  onSubmit={handleTopSearchSubmit}
-                  className="flex flex-1 items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm"
-                >
-                  <Search size={16} className="text-neutral-400" />
-                  <input
-                    type="text"
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    placeholder="Search products by name or SKU"
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
-                  />
-                </form>
-                <div className="flex items-center gap-2 self-end xl:self-auto">
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-neutral-200 bg-white p-3 text-neutral-700 shadow-sm"
-                    aria-label="Notifications"
-                  >
-                    <Bell size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-neutral-200 bg-white p-3 text-neutral-700 shadow-sm"
-                    aria-label="Collapse panel"
-                  >
-                    <PanelLeftClose size={16} />
-                  </button>
-                </div>
-              </div>
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <div
+            className="absolute left-0 top-0 flex h-full w-[85vw] max-w-sm flex-col bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-200 p-5">
+              <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+              <button
+                className="rounded-full border border-neutral-200 p-2"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="px-5 py-6 lg:px-8">
-              {activeView === "overview" && (
-                <OverviewView orders={mockOrders} products={mockProducts} onNavigate={handleNavigate} />
-              )}
-              {activeView === "orders" && <OrdersView orders={mockOrders} />}
-              {activeView === "products" && (
-                <ProductsView
-                  products={mockProducts}
-                  search={productSearch}
-                  onSearchChange={setProductSearch}
+            <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+              {mainNavItems.map((item) => (
+                <NavButton
+                  key={item.view}
+                  item={item}
+                  active={activeView === item.view}
+                  onClick={() => handleNavigate(item.view)}
                 />
-              )}
-              {activeView === "customers" && <CustomersView customers={customers} />}
-              {activeView === "inventory" && <InventoryView products={mockProducts} />}
-              {activeView === "settings" && <SettingsView />}
+              ))}
+            </nav>
+
+            <div className="space-y-1 border-t border-neutral-200 p-4">
+              {bottomNavItems.map((item) => (
+                <NavButton
+                  key={item.view}
+                  item={item}
+                  active={activeView === item.view}
+                  onClick={() => handleNavigate(item.view)}
+                />
+              ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Right column: top bar (starts beside sidebar) + content */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-4 lg:px-6">
+          <div className="flex items-center gap-3 lg:hidden">
+            <button
+              className="rounded-xl p-2 text-neutral-700 transition hover:bg-neutral-100"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={20} />
+            </button>
+            <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+          </div>
+
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => handleNavigate("inventory")}
+              className="relative rounded-xl p-2 text-neutral-700 transition hover:bg-neutral-100"
+              aria-label={
+                lowStockCount > 0 ? `${lowStockCount} products need restocking` : "Notifications"
+              }
+            >
+              <Bell size={18} />
+              {lowStockCount > 0 && (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
+                  {lowStockCount}
+                </span>
+              )}
+            </button>
+            <AdminProfileMenu />
+          </div>
+        </header>
+
+        <section className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 flex-col gap-4 border-b border-neutral-200 bg-white px-5 py-5 lg:px-8 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-primary">{copy.eyebrow}</p>
+              <h1 className="text-3xl font-bold text-neutral-900">{copy.title}</h1>
+              <p className="mt-1 text-sm text-neutral-500">{copy.subtitle}</p>
+            </div>
+
+            <div className="flex items-center gap-3 xl:max-w-xl xl:flex-1 xl:justify-end">
+              <form
+                onSubmit={handleTopSearchSubmit}
+                className="flex flex-1 items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm"
+              >
+                <Search size={16} className="text-neutral-400" />
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  placeholder="Search products by name or SKU"
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-neutral-400"
+                />
+              </form>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+                className="hidden shrink-0 rounded-2xl border border-neutral-200 bg-white p-3 text-neutral-700 shadow-sm transition hover:border-primary hover:text-primary lg:inline-flex"
+                aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
+            {activeView === "overview" && (
+              <OverviewView orders={mockOrders} products={mockProducts} onNavigate={handleNavigate} />
+            )}
+            {activeView === "orders" && <OrdersView orders={mockOrders} />}
+            {activeView === "products" && (
+              <ProductsView
+                products={mockProducts}
+                search={productSearch}
+                onSearchChange={setProductSearch}
+              />
+            )}
+            {activeView === "customers" && <CustomersView customers={customers} />}
+            {activeView === "inventory" && <InventoryView products={mockProducts} />}
+            {activeView === "admin" && <AdminManagementView />}
+            {activeView === "settings" && <SettingsView />}
           </div>
         </section>
       </div>

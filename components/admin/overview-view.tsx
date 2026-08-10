@@ -69,92 +69,56 @@ export function OverviewView({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,0.95fr)]">
-        <div className="space-y-6">
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-neutral-900">Recent Orders</h2>
-                <p className="text-sm text-neutral-500">The most recently placed orders</p>
-              </div>
-              <button
-                onClick={() => onNavigate("orders")}
-                className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:border-primary hover:text-primary"
-              >
-                View all orders
-              </button>
+        <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-neutral-900">Recent Orders</h2>
+              <p className="text-sm text-neutral-500">The most recently placed orders</p>
             </div>
-
-            <div className="overflow-hidden rounded-2xl border border-neutral-200">
-              <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid">
-                <span>Order</span>
-                <span>Customer</span>
-                <span>Total</span>
-                <span>Status</span>
-                <span>Payment</span>
-              </div>
-
-              <div className="divide-y divide-neutral-200 bg-white">
-                {recentOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] sm:items-center"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-neutral-900">{order.tracking_id}</p>
-                      <p className="text-xs text-neutral-500">
-                        {order.created_at.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
-                      <p className="text-xs text-neutral-500">{order.customer_email}</p>
-                    </div>
-                    <p className="text-sm font-semibold text-neutral-900">£{order.total_amount.toFixed(2)}</p>
-                    <StatusBadge status={order.status} />
-                    <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm text-neutral-500">
-              Showing {recentOrders.length} of {orders.length} orders
-            </p>
+            <button
+              onClick={() => onNavigate("orders")}
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:border-primary hover:text-primary"
+            >
+              View all orders
+            </button>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            {insights.featuredProducts.slice(0, 3).map((product, index) => (
-              <article
-                key={product.id}
-                className={`rounded-3xl border p-5 shadow-[0_16px_45px_-35px_rgba(0,0,0,0.3)] ${
-                  index === 0
-                    ? "border-primary/20 bg-linear-to-br from-white to-fuchsia-50"
-                    : "border-neutral-200 bg-white"
-                }`}
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="overflow-hidden rounded-2xl border border-neutral-200">
+            <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid">
+              <span>Order</span>
+              <span>Customer</span>
+              <span>Total</span>
+              <span>Status</span>
+              <span>Payment</span>
+            </div>
+
+            <div className="divide-y divide-neutral-200 bg-white">
+              {recentOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] sm:items-center"
+                >
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">Featured</p>
-                    <h3 className="mt-1 text-lg font-bold text-neutral-900">{product.name}</h3>
+                    <p className="text-sm font-semibold text-neutral-900">{order.tracking_id}</p>
+                    <p className="text-xs text-neutral-500">
+                      {order.created_at.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
                   </div>
-                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                    {product.stock_qty} in stock
-                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
+                    <p className="text-xs text-neutral-500">{order.customer_email}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-neutral-900">£{order.total_amount.toFixed(2)}</p>
+                  <StatusBadge status={order.status} />
+                  <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
                 </div>
-                <p className="text-sm text-neutral-500">{product.description}</p>
-                <div className="mt-4 h-2 overflow-hidden rounded-full bg-neutral-100">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{ width: `${Math.min((product.stock_qty / 200) * 100, 100)}%` }}
-                  />
-                </div>
-                <div className="mt-4 flex items-center justify-between text-sm">
-                  <span className="text-neutral-500">SKU</span>
-                  <span className="font-medium text-neutral-900">{product.sku}</span>
-                </div>
-              </article>
-            ))}
+              ))}
+            </div>
           </div>
+
+          <p className="mt-4 text-sm text-neutral-500">
+            Showing {recentOrders.length} of {orders.length} orders
+          </p>
         </div>
 
         <aside className="space-y-6">

@@ -1,1 +1,8 @@
-export type AdminView = "overview" | "orders" | "products" | "customers" | "inventory" | "settings";
+export type AdminView =
+  | "overview"
+  | "orders"
+  | "products"
+  | "customers"
+  | "inventory"
+  | "admin"
+  | "settings";
