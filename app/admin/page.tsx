@@ -16,9 +16,9 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { mockProducts } from "@/lib/mock-products";
 import { mockOrders } from "@/lib/mock-orders";
 import { deriveCustomers } from "@/lib/admin-data";
+import { useAdminProducts } from "@/lib/use-admin-products";
 import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
 import { OverviewView } from "@/components/admin/overview-view";
@@ -112,10 +112,12 @@ export default function AdminPage() {
   const [activeView, setActiveView] = useState<AdminView>("overview");
   const [productSearch, setProductSearch] = useState("");
 
+  const { products, addProduct, updateProduct, removeProduct } = useAdminProducts();
+
   const customers = useMemo(() => deriveCustomers(mockOrders), []);
   const lowStockCount = useMemo(
-    () => mockProducts.filter((p) => p.stock_qty <= p.low_stock_threshold).length,
-    [],
+    () => products.filter((p) => p.stock_qty <= p.low_stock_threshold).length,
+    [products],
   );
   const copy = viewCopy[activeView];
 
@@ -279,18 +281,21 @@ export default function AdminPage() {
 
           <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
             {activeView === "overview" && (
-              <OverviewView orders={mockOrders} products={mockProducts} onNavigate={handleNavigate} />
+              <OverviewView orders={mockOrders} products={products} onNavigate={handleNavigate} />
             )}
             {activeView === "orders" && <OrdersView orders={mockOrders} />}
             {activeView === "products" && (
               <ProductsView
-                products={mockProducts}
+                products={products}
                 search={productSearch}
                 onSearchChange={setProductSearch}
+                onAddProduct={addProduct}
+                onUpdateProduct={updateProduct}
+                onDeleteProduct={removeProduct}
               />
             )}
             {activeView === "customers" && <CustomersView customers={customers} />}
-            {activeView === "inventory" && <InventoryView products={mockProducts} />}
+            {activeView === "inventory" && <InventoryView products={products} />}
             {activeView === "admin" && <AdminManagementView />}
             {activeView === "settings" && <SettingsView />}
           </div>
