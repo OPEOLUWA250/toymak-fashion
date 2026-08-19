@@ -2,16 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function ScrollCarousel({
   children,
   autoScrollMs = 2600,
+  pingPong = false,
 }: {
   children: React.ReactNode;
   autoScrollMs?: number;
+  /** Auto-scroll smoothly back and forth instead of jumping to the start at the end. */
+  pingPong?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const resumeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const directionRef = useRef<1 | -1>(1);
   const [paused, setPaused] = useState(false);
 
   const scroll = (direction: 1 | -1) => {
@@ -32,8 +37,44 @@ export function ScrollCarousel({
     if (resumeTimeout.current) clearTimeout(resumeTimeout.current);
   }, []);
 
+  // Continuous, frame-by-frame glide back and forth — no stepping or pausing between hops.
   useEffect(() => {
-    if (paused) return;
+    if (!pingPong || paused) return;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const pxPerSecond = 50;
+    let frameId: number;
+    let lastTime: number | null = null;
+
+    const step = (time: number) => {
+      if (lastTime === null) lastTime = time;
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      const max = el.scrollWidth - el.clientWidth;
+      if (max > 0) {
+        let next = el.scrollLeft + directionRef.current * pxPerSecond * dt;
+        if (next >= max) {
+          next = max;
+          directionRef.current = -1;
+        } else if (next <= 0) {
+          next = 0;
+          directionRef.current = 1;
+        }
+        el.scrollLeft = next;
+      }
+
+      frameId = requestAnimationFrame(step);
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [pingPong, paused]);
+
+  // Discrete step-and-pause auto-scroll for the non-pingPong carousels.
+  useEffect(() => {
+    if (pingPong || paused) return;
     const el = scrollRef.current;
     if (!el) return;
 
@@ -47,7 +88,7 @@ export function ScrollCarousel({
     }, autoScrollMs);
 
     return () => clearInterval(id);
-  }, [paused, autoScrollMs]);
+  }, [pingPong, paused, autoScrollMs]);
 
   return (
     <div
@@ -59,7 +100,10 @@ export function ScrollCarousel({
     >
       <div
         ref={scrollRef}
-        className="flex gap-6 overflow-x-auto pb-6 pt-7 scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "flex gap-6 overflow-x-auto pb-6 pt-7 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          !pingPong && "scroll-smooth snap-x snap-mandatory",
+        )}
       >
         {children}
       </div>

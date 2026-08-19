@@ -205,9 +205,8 @@ function ShopPageInner() {
       <Header />
 
       {/* Page Header */}
-      <section className="relative overflow-hidden bg-tertiary/30 py-14 md:py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_top,rgba(230,0,229,0.14),transparent_65%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="bg-primary-light py-14 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="mb-6 text-sm text-neutral/50">
             <Link href="/" className="hover:text-primary transition">
               Home
@@ -232,13 +231,48 @@ function ShopPageInner() {
               {sortedProducts.length} of {mockProducts.length} products
             </p>
           </div>
+
+          {/* Quick category tabs */}
+          <div className="mt-10 -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            <button
+              type="button"
+              onClick={() => setSelectedCategories([])}
+              className={cn(
+                'shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition',
+                selectedCategories.length === 0
+                  ? 'bg-primary text-white shadow-sm shadow-primary/25'
+                  : 'border border-neutral/15 bg-white text-neutral hover:border-primary/40',
+              )}
+            >
+              All
+            </button>
+            {categories.map((cat) => {
+              const active =
+                selectedCategories.length === 1 && selectedCategories[0] === cat.value
+              return (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setSelectedCategories([cat.value])}
+                  className={cn(
+                    'shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition',
+                    active
+                      ? 'bg-primary text-white shadow-sm shadow-primary/25'
+                      : 'border border-neutral/15 bg-white text-neutral hover:border-primary/40',
+                  )}
+                >
+                  {cat.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </section>
 
       {/* Shop Content */}
-      <section className="py-12">
+      <section className="py-14 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
+          <div className="grid gap-10 lg:grid-cols-[260px_1fr]">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block">
               <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-neutral/10 bg-white p-6">
@@ -262,8 +296,8 @@ function ShopPageInner() {
             {/* Products Column */}
             <div>
               {/* Toolbar */}
-              <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-neutral/10 bg-white p-3 shadow-sm">
-                <div className="relative min-w-[180px] flex-1">
+              <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-neutral/10 bg-white p-4 shadow-sm">
+                <div className="relative min-w-45 flex-1">
                   <Search
                     size={16}
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral/40"
@@ -420,8 +454,8 @@ function ShopPageInner() {
               {sortedProducts.length > 0 ? (
                 <div
                   className={cn(
-                    'grid gap-6 sm:grid-cols-2',
-                    density === 'compact' ? 'lg:grid-cols-4' : 'lg:grid-cols-3',
+                    'grid gap-x-6 gap-y-10 sm:grid-cols-2',
+                    density === 'compact' ? 'lg:grid-cols-4 lg:gap-8' : 'lg:grid-cols-3 lg:gap-x-8',
                   )}
                 >
                   {sortedProducts.map((product) => (

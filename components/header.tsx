@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, Search, Heart, ShoppingBag, User, ChevronRight } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import { cn } from "@/lib/utils";
 
 export default function Header({
@@ -18,6 +19,8 @@ export default function Header({
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const { getItemCount } = useCart();
+  const { productIds: wishlistProductIds } = useWishlist();
+  const wishlistCount = wishlistProductIds.length;
 
   const isTransparent = variant === "transparent" && !scrolled;
   const searchRef = useRef<HTMLFormElement>(null);
@@ -184,12 +187,17 @@ export default function Header({
               <Link
                 href="/wishlist"
                 className={cn(
-                  "rounded-full p-2 transition",
+                  "relative rounded-full p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Wishlist"
               >
                 <Heart size={20} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/account"
@@ -211,7 +219,7 @@ export default function Header({
               >
                 <ShoppingBag size={20} />
                 {getItemCount() > 0 && (
-                  <span className="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white">
                     {getItemCount()}
                   </span>
                 )}
@@ -223,12 +231,17 @@ export default function Header({
               <Link
                 href="/wishlist"
                 className={cn(
-                  "rounded-full p-2 transition",
+                  "relative rounded-full p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Wishlist"
               >
                 <Heart size={19} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-white">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/account"
@@ -250,7 +263,7 @@ export default function Header({
               >
                 <ShoppingBag size={19} />
                 {getItemCount() > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white">
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-white">
                     {getItemCount()}
                   </span>
                 )}

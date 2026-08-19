@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  Bell,
   Boxes,
   LayoutGrid,
   Menu,
@@ -12,13 +11,15 @@ import {
   Search,
   Settings as SettingsIcon,
   ShoppingCart,
+  Ticket,
   UserCog,
   Users,
   X,
 } from "lucide-react";
-import { mockOrders } from "@/lib/mock-orders";
 import { deriveCustomers } from "@/lib/admin-data";
 import { useAdminProducts } from "@/lib/use-admin-products";
+import { useOrders } from "@/lib/use-orders";
+import { useSignups } from "@/lib/use-signups";
 import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
 import { OverviewView } from "@/components/admin/overview-view";
@@ -26,9 +27,11 @@ import { OrdersView } from "@/components/admin/orders-view";
 import { ProductsView } from "@/components/admin/products-view";
 import { CustomersView } from "@/components/admin/customers-view";
 import { InventoryView } from "@/components/admin/inventory-view";
+import { SignupsView } from "@/components/admin/signups-view";
 import { AdminManagementView } from "@/components/admin/admin-management-view";
 import { SettingsView } from "@/components/admin/settings-view";
 import { AdminProfileMenu } from "@/components/admin/admin-profile-menu";
+import { NotificationsPanel } from "@/components/admin/notifications-panel";
 
 const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
   { view: "overview", label: "Overview", icon: LayoutGrid },
@@ -36,6 +39,7 @@ const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[
   { view: "products", label: "Products", icon: Package },
   { view: "customers", label: "Customers", icon: Users },
   { view: "inventory", label: "Inventory", icon: Boxes },
+  { view: "signups", label: "Signups", icon: Ticket },
 ];
 
 const bottomNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
@@ -68,6 +72,11 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     eyebrow: "Stock",
     title: "Inventory",
     subtitle: "Monitor stock levels and reorder thresholds.",
+  },
+  signups: {
+    eyebrow: "Growth",
+    title: "First-Order Signups",
+    subtitle: "Everyone who claimed a first-order discount code from the homepage popup.",
   },
   admin: {
     eyebrow: "Team",
@@ -113,11 +122,17 @@ export default function AdminPage() {
   const [productSearch, setProductSearch] = useState("");
 
   const { products, addProduct, updateProduct, removeProduct } = useAdminProducts();
+  const { orders, updateOrderStatus } = useOrders();
+  const { signups } = useSignups();
 
-  const customers = useMemo(() => deriveCustomers(mockOrders), []);
-  const lowStockCount = useMemo(
-    () => products.filter((p) => p.stock_qty <= p.low_stock_threshold).length,
+  const customers = useMemo(() => deriveCustomers(orders), [orders]);
+  const lowStockProducts = useMemo(
+    () => products.filter((p) => p.stock_qty <= p.low_stock_threshold),
     [products],
+  );
+  const unshippedOrders = useMemo(
+    () => orders.filter((o) => o.status === "unshipped").sort((a, b) => a.created_at.getTime() - b.created_at.getTime()),
+    [orders],
   );
   const copy = viewCopy[activeView];
 
@@ -227,21 +242,11 @@ export default function AdminPage() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => handleNavigate("inventory")}
-              className="relative rounded-xl p-2 text-neutral-700 transition hover:bg-neutral-100"
-              aria-label={
-                lowStockCount > 0 ? `${lowStockCount} products need restocking` : "Notifications"
-              }
-            >
-              <Bell size={18} />
-              {lowStockCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold text-white">
-                  {lowStockCount}
-                </span>
-              )}
-            </button>
+            <NotificationsPanel
+              unshippedOrders={unshippedOrders}
+              lowStockProducts={lowStockProducts}
+              onNavigate={handleNavigate}
+            />
             <AdminProfileMenu />
           </div>
         </header>
@@ -281,9 +286,11 @@ export default function AdminPage() {
 
           <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8">
             {activeView === "overview" && (
-              <OverviewView orders={mockOrders} products={products} onNavigate={handleNavigate} />
+              <OverviewView orders={orders} products={products} onNavigate={handleNavigate} />
             )}
-            {activeView === "orders" && <OrdersView orders={mockOrders} />}
+            {activeView === "orders" && (
+              <OrdersView orders={orders} onUpdateStatus={updateOrderStatus} />
+            )}
             {activeView === "products" && (
               <ProductsView
                 products={products}
@@ -296,6 +303,7 @@ export default function AdminPage() {
             )}
             {activeView === "customers" && <CustomersView customers={customers} />}
             {activeView === "inventory" && <InventoryView products={products} />}
+            {activeView === "signups" && <SignupsView signups={signups} />}
             {activeView === "admin" && <AdminManagementView />}
             {activeView === "settings" && <SettingsView />}
           </div>

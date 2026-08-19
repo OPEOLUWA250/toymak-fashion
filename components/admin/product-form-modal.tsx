@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Product, ProductCategory } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const categoryOptions: { value: ProductCategory; label: string }[] = [
   { value: "shapewear", label: "Shapewear" },
@@ -286,7 +287,11 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary"
+        className={cn(
+          "w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary",
+          type === "number" &&
+            "[appearance:textfield] [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none",
+        )}
       />
     </div>
   );

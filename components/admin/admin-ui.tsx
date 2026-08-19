@@ -1,7 +1,7 @@
 import { OrderStatus } from "@/lib/types";
 
 export const statusStyles: Record<OrderStatus, string> = {
-  processing: "bg-fuchsia-100 text-fuchsia-700",
+  unshipped: "bg-neutral-200 text-neutral-700",
   shipped: "bg-amber-100 text-amber-700",
   "out-for-delivery": "bg-blue-100 text-blue-700",
   delivered: "bg-emerald-100 text-emerald-700",
@@ -39,7 +39,7 @@ export function StatCard({
 export function StatusBadge({ status }: { status: OrderStatus }) {
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusStyles[status]}`}
+      className={`inline-flex w-fit items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyles[status]}`}
     >
       {status.replace(/-/g, " ")}
     </span>

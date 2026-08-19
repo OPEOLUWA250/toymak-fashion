@@ -20,11 +20,11 @@ export function OverviewView({
     const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
     const lowStockProducts = products.filter((p) => p.stock_qty <= p.low_stock_threshold);
     const featuredProducts = products.filter((p) => p.featured);
-    const processingOrders = orders.filter((o) => o.status === "processing");
+    const unshippedOrders = orders.filter((o) => o.status === "unshipped");
     const customers = deriveCustomers(orders);
     const repeatCustomers = customers.filter((c) => c.orderCount > 1);
 
-    return { totalRevenue, lowStockProducts, featuredProducts, processingOrders, customers, repeatCustomers };
+    return { totalRevenue, lowStockProducts, featuredProducts, unshippedOrders, customers, repeatCustomers };
   }, [orders, products]);
 
   const recentOrders = [...orders]
@@ -46,7 +46,7 @@ export function OverviewView({
           <StatCard
             title="Orders"
             value={orders.length.toString()}
-            subLabel={`${insights.processingOrders.length} processing`}
+            subLabel={`${insights.unshippedOrders.length} unshipped`}
             icon={ShoppingCart}
           />
         </button>

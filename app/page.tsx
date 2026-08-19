@@ -9,6 +9,7 @@ import { TestimonialCard } from "@/components/testimonial-card";
 import { ProductCard } from "@/components/product-card";
 import { ContactButton } from "@/components/contact-button";
 import { ContactFaqSection } from "@/components/contact-faq-section";
+import { FirstOrderPopup } from "@/components/first-order-popup";
 import { ArrowRight, ArrowUpRight, Play, Ruler } from "lucide-react";
 import { mockProducts } from "@/lib/mock-products";
 import { mockReviews } from "@/lib/mock-reviews";
@@ -333,7 +334,7 @@ export default function HomePage() {
 
           {/* Tablet/desktop: auto-scrolling carousel, every card the same size and aligned */}
           <div className="hidden sm:block">
-            <ScrollCarousel>
+            <ScrollCarousel pingPong>
               {testimonials.map((review, idx) => (
                 <div
                   key={review.id}
@@ -417,6 +418,7 @@ export default function HomePage() {
 
       <Footer />
       <ContactButton />
+      <FirstOrderPopup />
     </main>
   );
 }

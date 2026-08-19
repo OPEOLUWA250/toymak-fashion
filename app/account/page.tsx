@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { mockOrders } from "@/lib/mock-orders";
+import { useOrders } from "@/lib/use-orders";
 import { mockProducts } from "@/lib/mock-products";
 import { useWishlist } from "@/lib/wishlist-context";
-import { cn } from "@/lib/utils";
 import { Order, OrderStatus } from "@/lib/types";
 import {
-  CheckCircle2,
-  Circle,
+  Clock,
+  ExternalLink,
   Heart,
   MapPin,
   Package,
@@ -20,6 +19,7 @@ import {
   ShieldOff,
   ShoppingBag,
   Trash2,
+  Truck,
 } from "lucide-react";
 
 const PROFILE_STORAGE_KEY = "toymak-profile";
@@ -33,36 +33,43 @@ interface SavedProfile {
 
 const emptyProfile: SavedProfile = { fullName: "", email: "", phone: "", address: "" };
 
-const orderSteps: { status: OrderStatus; label: string }[] = [
-  { status: "processing", label: "Processing" },
-  { status: "shipped", label: "Shipped" },
-  { status: "out-for-delivery", label: "Out for Delivery" },
-  { status: "delivered", label: "Delivered" },
-];
+const statusLabels: Record<OrderStatus, string> = {
+  unshipped: "Preparing your order",
+  shipped: "Shipped",
+  "out-for-delivery": "Out for delivery",
+  delivered: "Delivered",
+};
+
+const statusStyles: Record<OrderStatus, string> = {
+  unshipped: "bg-neutral/10 text-neutral/60",
+  shipped: "bg-primary/10 text-primary",
+  "out-for-delivery": "bg-blue-50 text-blue-700",
+  delivered: "bg-emerald-50 text-emerald-700",
+};
 
 export default function AccountPage() {
+  const { orders } = useOrders();
   const { productIds } = useWishlist();
   const wishlistProducts = mockProducts.filter((product) => productIds.includes(product.id));
 
-  // Order lookup
-  const [trackingId, setTrackingId] = useState("");
+  // Order lookup — email alone is enough; tracking ID just narrows results
+  // for anyone who happens to still have it, since most customers won't.
   const [lookupEmail, setLookupEmail] = useState("");
-  const [lookupResult, setLookupResult] = useState<Order | null | "not-found">(null);
+  const [trackingId, setTrackingId] = useState("");
+  const [matchedOrders, setMatchedOrders] = useState<Order[] | null>(null);
 
   const handleTrackOrder = (event: React.FormEvent) => {
     event.preventDefault();
-    const match = mockOrders.find(
-      (order) =>
-        order.tracking_id.trim().toLowerCase() === trackingId.trim().toLowerCase() &&
-        order.customer_email.trim().toLowerCase() === lookupEmail.trim().toLowerCase(),
-    );
-    setLookupResult(match ?? "not-found");
-  };
+    const email = lookupEmail.trim().toLowerCase();
+    const tracking = trackingId.trim().toLowerCase();
 
-  const currentStepIndex = useMemo(() => {
-    if (!lookupResult || lookupResult === "not-found") return -1;
-    return orderSteps.findIndex((step) => step.status === lookupResult.status);
-  }, [lookupResult]);
+    const matches = orders
+      .filter((order) => order.customer_email.trim().toLowerCase() === email)
+      .filter((order) => !tracking || order.tracking_id.trim().toLowerCase() === tracking)
+      .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+
+    setMatchedOrders(matches);
+  };
 
   // Saved details (local device only, no account/password)
   const [profile, setProfile] = useState<SavedProfile>(emptyProfile);
@@ -116,23 +123,12 @@ export default function AccountPage() {
             <div>
               <h2 className="text-2xl font-bold text-neutral">Track an Order</h2>
               <p className="text-sm text-neutral/60">
-                Enter your tracking ID and the email used at checkout.
+                Just the email you used at checkout — no tracking ID needed.
               </p>
             </div>
           </div>
 
           <form onSubmit={handleTrackOrder} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral">Tracking ID</label>
-              <input
-                type="text"
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                placeholder="TMK-9281"
-                required
-                className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-              />
-            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral">Email</label>
               <input
@@ -141,6 +137,18 @@ export default function AccountPage() {
                 onChange={(e) => setLookupEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-neutral">
+                Tracking ID <span className="font-normal text-neutral/40">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={trackingId}
+                onChange={(e) => setTrackingId(e.target.value)}
+                placeholder="Have it? Narrows results"
                 className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
               />
             </div>
@@ -156,17 +164,15 @@ export default function AccountPage() {
           </form>
 
           <p className="mt-4 text-xs text-neutral/45">
-            This is a demo storefront — try tracking ID{" "}
-            <span className="font-medium text-neutral/60">TMK-9281</span> with email{" "}
+            This is a demo storefront — try email{" "}
             <span className="font-medium text-neutral/60">elena@example.com</span> to see it
             in action.
           </p>
 
-          {lookupResult === "not-found" && (
+          {matchedOrders && matchedOrders.length === 0 && (
             <div className="mt-6 flex items-center gap-3 rounded-2xl border border-neutral/10 bg-tertiary/30 px-5 py-4 text-sm text-neutral/70">
               <ShieldOff size={18} className="shrink-0 text-neutral/40" />
-              We couldn&apos;t find an order matching that tracking ID and email. Double-check
-              for typos, or{" "}
+              We couldn&apos;t find any orders for that email. Double-check for typos, or{" "}
               <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
                 email us
               </a>{" "}
@@ -174,79 +180,78 @@ export default function AccountPage() {
             </div>
           )}
 
-          {lookupResult && lookupResult !== "not-found" && (
-            <div className="mt-8 border-t border-neutral/10 pt-8">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-neutral/45">
-                    {lookupResult.tracking_id}
-                  </p>
-                  <p className="mt-1 text-sm text-neutral/60">
-                    Placed{" "}
-                    {lookupResult.created_at.toLocaleDateString("en-GB", {
-                      dateStyle: "long",
-                    })}
-                  </p>
-                </div>
-                <span className="text-2xl font-bold text-primary">
-                  £{lookupResult.total_amount.toFixed(2)}
-                </span>
-              </div>
-
-              {/* Status stepper */}
-              <div className="mt-8 flex items-center">
-                {orderSteps.map((step, idx) => {
-                  const reached = idx <= currentStepIndex;
-                  const isLast = idx === orderSteps.length - 1;
-                  return (
-                    <div key={step.status} className={cn("flex items-center", !isLast && "flex-1")}>
-                      <div className="flex flex-col items-center gap-2">
-                        {reached ? (
-                          <CheckCircle2 size={22} className="text-primary" />
-                        ) : (
-                          <Circle size={22} className="text-neutral/25" />
-                        )}
-                        <span
-                          className={cn(
-                            "text-center text-[11px] font-medium sm:text-xs",
-                            reached ? "text-neutral" : "text-neutral/40",
-                          )}
-                        >
-                          {step.label}
-                        </span>
-                      </div>
-                      {!isLast && (
-                        <div
-                          className={cn(
-                            "mx-2 h-0.5 flex-1 rounded-full",
-                            idx < currentStepIndex ? "bg-primary" : "bg-neutral/15",
-                          )}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Items */}
-              <div className="mt-8 space-y-4">
-                {lookupResult.items.map((item) => (
-                  <div
-                    key={`${item.product_id}-${item.size}-${item.color}`}
-                    className="flex items-center justify-between gap-4 rounded-2xl bg-tertiary/20 px-4 py-3"
-                  >
+          {matchedOrders && matchedOrders.length > 0 && (
+            <div className="mt-8 space-y-6 border-t border-neutral/10 pt-8">
+              {matchedOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-2xl border border-neutral/10 bg-tertiary/10 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-neutral">{item.product_name}</p>
-                      <p className="text-xs text-neutral/55">
-                        Size {item.size} · {item.color} · Qty {item.quantity}
+                      <p className="text-xs uppercase tracking-[0.22em] text-neutral/45">
+                        {order.tracking_id}
+                      </p>
+                      <p className="mt-1 text-sm text-neutral/60">
+                        Placed{" "}
+                        {order.created_at.toLocaleDateString("en-GB", { dateStyle: "long" })}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold text-neutral">
-                      £{item.subtotal.toFixed(2)}
-                    </p>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-xl font-bold text-primary">
+                        £{order.total_amount.toFixed(2)}
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[order.status]}`}
+                      >
+                        {order.status === "unshipped" ? (
+                          <Clock size={12} />
+                        ) : (
+                          <Truck size={12} />
+                        )}
+                        {statusLabels[order.status]}
+                      </span>
+                    </div>
                   </div>
-                ))}
-              </div>
+
+                  {order.status === "unshipped" ? (
+                    <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-neutral/60">
+                      Your order is being prepared. A tracking link will appear here as soon as
+                      it ships.
+                    </p>
+                  ) : order.tracking_link ? (
+                    <a
+                      href={order.tracking_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
+                    >
+                      <Truck size={16} />
+                      Track Package
+                      <ExternalLink size={14} />
+                    </a>
+                  ) : null}
+
+                  <div className="mt-4 space-y-3">
+                    {order.items.map((item) => (
+                      <div
+                        key={`${item.product_id}-${item.size}-${item.color}`}
+                        className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3"
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-neutral">{item.product_name}</p>
+                          <p className="text-xs text-neutral/55">
+                            Size {item.size} · {item.color} · Qty {item.quantity}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-neutral">
+                          £{item.subtotal.toFixed(2)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

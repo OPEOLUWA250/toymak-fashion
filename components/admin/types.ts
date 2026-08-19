@@ -4,5 +4,6 @@ export type AdminView =
   | "products"
   | "customers"
   | "inventory"
+  | "signups"
   | "admin"
   | "settings";

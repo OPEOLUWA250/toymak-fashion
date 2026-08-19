@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { mockProducts } from "@/lib/mock-products";
 import { getPaymentGatewayForCountry } from "@/lib/utils";
-import { Product, Currency } from "@/lib/types";
+import { calculateOrderTotals, getProductPriceForCurrency } from "@/lib/pricing";
+import { Currency } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   CreditCard,
+  Loader2,
   MapPin,
   ShieldCheck,
   Truck,
@@ -43,25 +45,6 @@ const checkoutCurrencyForGateway = (
   gateway: "stripe" | "paystack",
 ): Currency => (gateway === "paystack" ? "NGN" : "GBP");
 
-function getProductPriceForCurrency(
-  product: Product | undefined,
-  currency: Currency,
-) {
-  if (!product) {
-    return 0;
-  }
-
-  if (currency === "NGN") {
-    return product.price_ngn;
-  }
-
-  if (currency === "USD") {
-    return product.price_usd ?? product.price_gbp;
-  }
-
-  return product.price_gbp;
-}
-
 function formatCurrency(amount: number, currency: Currency) {
   return `${currencySymbols[currency]}${amount.toFixed(2)}`;
 }
@@ -77,6 +60,9 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [stateRegion, setStateRegion] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const countryMenuRef = useRef<HTMLDivElement>(null);
 
   const selectedGateway = useMemo(
@@ -119,20 +105,60 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  const subtotal = items.reduce((runningTotal, item) => {
-    const product = productLookup.get(item.product_id);
-    const unitPrice = getProductPriceForCurrency(product, checkoutCurrency);
+  const { subtotal, shipping, tax, total } = calculateOrderTotals(
+    items,
+    checkoutCurrency,
+    country,
+  );
 
-    return runningTotal + unitPrice * item.quantity;
-  }, 0);
+  const handlePaystackCheckout = async () => {
+    setFormError(null);
+    setPaymentError(null);
 
-  const shippingThreshold = checkoutCurrency === "NGN" ? 50000 : 50;
-  const shippingBase = checkoutCurrency === "NGN" ? 7999 : 7.99;
-  const shipping = subtotal > shippingThreshold ? 0 : shippingBase;
-  const tax = country.toLowerCase().includes("nigeria")
-    ? subtotal * 0.075
-    : subtotal * 0.2;
-  const total = subtotal + shipping + tax;
+    if (!fullName || !email || !phone || !street || !city || !postalCode) {
+      setFormError(
+        "Fill in your name, email, phone, and address above before continuing.",
+      );
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setFormError("Enter a valid email address.");
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      const response = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          country,
+          items: items.map((item) => ({
+            product_id: item.product_id,
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color,
+          })),
+          customer: { fullName, phone },
+          shipping: { street, city, state: stateRegion, postalCode, country },
+          callback_url: `${window.location.origin}/checkout/success`,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Could not start Paystack checkout.");
+      }
+
+      window.location.href = data.authorization_url;
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+      setIsPaying(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -434,15 +460,38 @@ export default function CheckoutPage() {
                 </span>
               </div>
 
-              <button className="mt-6 w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition hover:bg-opacity-90">
-                Continue to{" "}
-                {selectedGateway === "paystack" ? "Paystack" : "Stripe"}
+              <button
+                type="button"
+                onClick={
+                  selectedGateway === "paystack" ? handlePaystackCheckout : undefined
+                }
+                disabled={selectedGateway !== "paystack" || isPaying}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPaying && <Loader2 size={16} className="animate-spin" />}
+                {isPaying
+                  ? "Redirecting to Paystack…"
+                  : `Continue to ${selectedGateway === "paystack" ? "Paystack" : "Stripe"}`}
               </button>
 
-              <p className="mt-3 text-center text-xs text-neutral/50">
-                Payment buttons will be wired in the next pass. The selected
-                gateway is already determined.
-              </p>
+              {selectedGateway === "paystack" ? (
+                <p className="mt-3 text-center text-xs text-neutral/50">
+                  You&apos;ll be redirected to Paystack to pay securely, then brought
+                  back here to confirm.
+                </p>
+              ) : (
+                <p className="mt-3 text-center text-xs text-neutral/50">
+                  Stripe checkout isn&apos;t wired up yet — switch the country above
+                  to Nigeria to test the live Paystack flow.
+                </p>
+              )}
+
+              {formError && (
+                <p className="mt-2 text-center text-xs text-red-600">{formError}</p>
+              )}
+              {paymentError && (
+                <p className="mt-2 text-center text-xs text-red-600">{paymentError}</p>
+              )}
             </div>
 
             <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm">

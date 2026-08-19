@@ -1,5 +1,5 @@
 export type ProductCategory = 'shapewear' | 'waist-trainer' | 'bra' | 'accessories' | 'tops'
-export type OrderStatus = 'processing' | 'shipped' | 'out-for-delivery' | 'delivered'
+export type OrderStatus = 'unshipped' | 'shipped' | 'out-for-delivery' | 'delivered'
 export type Currency = 'GBP' | 'NGN' | 'USD'
 export type PaymentGateway = 'stripe' | 'paystack'
 export type DiscountType = 'percentage' | 'fixed'
@@ -71,6 +71,8 @@ export interface Order {
   customer_phone: string
   shipping_address: Address
   status: OrderStatus
+  /** Third-party carrier tracking URL, added by admin when marking an order as shipped. */
+  tracking_link?: string
   currency: Currency
   payment_gateway: PaymentGateway
   payment_reference: string
@@ -105,6 +107,15 @@ export interface DiscountCode {
   usage_limit: number
   times_used: number
   active: boolean
+  created_at: Date
+}
+
+export interface NewsletterSignup {
+  id: string
+  first_name: string
+  last_name: string
+  email: string
+  coupon_code: string
   created_at: Date
 }
 

@@ -1,48 +1,29 @@
-"use client";
-
 import Link from "next/link";
-import { Mail, MapPin, Phone, Heart, Share2, Clock } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Mail, MapPin, Phone, Heart, Share2, Clock } from "lucide-react";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
   const currentYear = new Date().getFullYear();
-
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Integrate Resend email service
-    setEmail("");
-  };
 
   return (
     <footer className="bg-neutral text-white">
-      {/* Newsletter Section */}
+      {/* Shop CTA Section */}
       <div className="bg-primary py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-md mx-auto text-center">
             <h3 className="text-2xl font-bold mb-4">
-              Join Our Community
+              Ready to Find Your Fit?
             </h3>
             <p className="text-sm mb-6 text-white/90">
-              Get exclusive offers, new arrivals, and styling tips delivered to
-              your inbox.
+              Premium shapewear, waist trainers, and essentials — designed for
+              confidence at every curve.
             </p>
-            <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="flex-1 px-4 py-2 bg-white text-neutral rounded-sm text-sm focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="px-6 py-2 bg-white text-primary font-medium text-sm rounded-sm hover:bg-opacity-90 transition"
-              >
-                Subscribe
-              </button>
-            </form>
+            <Link
+              href="/shop"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-white text-primary font-medium text-sm rounded-sm hover:bg-opacity-90 transition"
+            >
+              Shop Now
+              <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </div>
