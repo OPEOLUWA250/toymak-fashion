@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useOrders } from "@/lib/use-orders";
+import { formatCurrency } from "@/lib/pricing";
+import { normalizeExternalUrl } from "@/lib/utils";
 import { mockProducts } from "@/lib/mock-products";
 import { useWishlist } from "@/lib/wishlist-context";
 import { Order, OrderStatus } from "@/lib/types";
 import {
-  Clock,
   ExternalLink,
   Heart,
   MapPin,
@@ -20,6 +22,7 @@ import {
   ShoppingBag,
   Trash2,
   Truck,
+  type LucideIcon,
 } from "lucide-react";
 
 const PROFILE_STORAGE_KEY = "toymak-profile";
@@ -36,21 +39,90 @@ const emptyProfile: SavedProfile = { fullName: "", email: "", phone: "", address
 const statusLabels: Record<OrderStatus, string> = {
   unshipped: "Preparing your order",
   shipped: "Shipped",
-  "out-for-delivery": "Out for delivery",
-  delivered: "Delivered",
 };
 
-const statusStyles: Record<OrderStatus, string> = {
-  unshipped: "bg-neutral/10 text-neutral/60",
-  shipped: "bg-primary/10 text-primary",
-  "out-for-delivery": "bg-blue-50 text-blue-700",
-  delivered: "bg-emerald-50 text-emerald-700",
-};
+// Only "Preparing" and "Shipped" happen on our side — once an order ships,
+// the courier's own tracking link (order.tracking_link) is the source of
+// truth for out-for-delivery/delivered, so the stepper ends with a muted
+// "With Courier" handoff node instead of stages we can't actually track.
+const orderStages: { status: OrderStatus; label: string; icon: LucideIcon }[] = [
+  { status: "unshipped", label: "Preparing", icon: Package },
+  { status: "shipped", label: "Shipped", icon: Truck },
+];
 
-export default function AccountPage() {
+function OrderProgress({ status }: { status: OrderStatus }) {
+  const currentIndex = orderStages.findIndex((stage) => stage.status === status);
+  const handedToCourier = currentIndex === orderStages.length - 1;
+
+  return (
+    <div className="flex items-start">
+      {orderStages.map((stage, index) => {
+        const Icon = stage.icon;
+        const isComplete = index < currentIndex;
+        const isCurrent = index === currentIndex;
+        const isActive = isComplete || isCurrent;
+        const isLastRealStage = index === orderStages.length - 1;
+        const connectorFilled = isLastRealStage ? isActive : isComplete;
+
+        return (
+          <div key={stage.status} className="flex flex-1 flex-col items-center">
+            <div className="flex w-full items-center">
+              <span
+                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
+                  isActive
+                    ? "border-primary bg-primary text-white shadow-[0_6px_16px_-6px_rgba(230,0,229,0.6)]"
+                    : "border-neutral/15 bg-white text-neutral/25"
+                }`}
+              >
+                <Icon size={15} strokeWidth={isCurrent ? 2.5 : 2} />
+              </span>
+              <span
+                className={`mx-1 h-px flex-1 transition ${
+                  connectorFilled ? "bg-primary" : "bg-neutral/10"
+                }`}
+              />
+            </div>
+            <span
+              className={`mt-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                isActive ? "text-neutral" : "text-neutral/35"
+              }`}
+            >
+              {stage.label}
+            </span>
+          </div>
+        );
+      })}
+
+      {/* Handoff marker — we stop tracking here; the courier's link picks up the rest */}
+      <div className="flex flex-col items-center">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dashed transition ${
+            handedToCourier ? "border-primary/50 text-primary/60" : "border-neutral/15 text-neutral/25"
+          }`}
+        >
+          <ExternalLink size={14} />
+        </span>
+        <span
+          className={`mt-2.5 text-center text-[10px] font-semibold uppercase tracking-[0.14em] ${
+            handedToCourier ? "text-neutral/60" : "text-neutral/35"
+          }`}
+        >
+          With Courier
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function AccountContent() {
   const { orders } = useOrders();
   const { productIds } = useWishlist();
   const wishlistProducts = mockProducts.filter((product) => productIds.includes(product.id));
+  const searchParams = useSearchParams();
+  const productLookup = useMemo(
+    () => new Map(mockProducts.map((product) => [product.id, product])),
+    [],
+  );
 
   // Order lookup — email alone is enough; tracking ID just narrows results
   // for anyone who happens to still have it, since most customers won't.
@@ -58,18 +130,39 @@ export default function AccountPage() {
   const [trackingId, setTrackingId] = useState("");
   const [matchedOrders, setMatchedOrders] = useState<Order[] | null>(null);
 
-  const handleTrackOrder = (event: React.FormEvent) => {
-    event.preventDefault();
-    const email = lookupEmail.trim().toLowerCase();
-    const tracking = trackingId.trim().toLowerCase();
+  const runLookup = (email: string, tracking: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedTracking = tracking.trim().toLowerCase();
 
     const matches = orders
-      .filter((order) => order.customer_email.trim().toLowerCase() === email)
-      .filter((order) => !tracking || order.tracking_id.trim().toLowerCase() === tracking)
+      .filter((order) => order.customer_email.trim().toLowerCase() === normalizedEmail)
+      .filter(
+        (order) => !normalizedTracking || order.tracking_id.trim().toLowerCase() === normalizedTracking,
+      )
       .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
 
     setMatchedOrders(matches);
   };
+
+  const handleTrackOrder = (event: React.FormEvent) => {
+    event.preventDefault();
+    runLookup(lookupEmail, trackingId);
+  };
+
+  // Arriving from checkout/success with ?email=...&auto=1 — prefill and run
+  // the lookup automatically instead of leaving the customer to type their
+  // own email back in right after they just gave it to us at checkout.
+  // Depends on `orders` too, since useOrders() starts from the mock seed and
+  // only picks up the just-placed order once localStorage hydration lands.
+  useEffect(() => {
+    const emailParam = searchParams.get("email");
+    const autoParam = searchParams.get("auto");
+    if (emailParam && autoParam) {
+      setLookupEmail(emailParam);
+      runLookup(emailParam, "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, orders]);
 
   // Saved details (local device only, no account/password)
   const [profile, setProfile] = useState<SavedProfile>(emptyProfile);
@@ -181,74 +274,127 @@ export default function AccountPage() {
           )}
 
           {matchedOrders && matchedOrders.length > 0 && (
-            <div className="mt-8 space-y-6 border-t border-neutral/10 pt-8">
+            <div className="mt-8 space-y-8 border-t border-neutral/10 pt-8">
               {matchedOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-2xl border border-neutral/10 bg-tertiary/10 p-5"
+                  className="overflow-hidden rounded-[1.75rem] border border-neutral/10 bg-white shadow-[0_24px_60px_-42px_rgba(0,0,0,0.4)]"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  {/* Header */}
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral/10 bg-tertiary/15 px-6 py-5 sm:px-8">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.22em] text-neutral/45">
-                        {order.tracking_id}
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
+                        Order {order.tracking_id}
                       </p>
-                      <p className="mt-1 text-sm text-neutral/60">
+                      <p className="mt-1.5 text-sm text-neutral/50">
                         Placed{" "}
                         {order.created_at.toLocaleDateString("en-GB", { dateStyle: "long" })}
                       </p>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="text-xl font-bold text-primary">
-                        £{order.total_amount.toFixed(2)}
-                      </span>
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[order.status]}`}
-                      >
-                        {order.status === "unshipped" ? (
-                          <Clock size={12} />
-                        ) : (
-                          <Truck size={12} />
-                        )}
-                        {statusLabels[order.status]}
-                      </span>
+                    <div className="text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-neutral/35">
+                        Total
+                      </p>
+                      <p className="mt-1.5 text-2xl font-bold text-primary">
+                        {formatCurrency(order.total_amount, order.currency)}
+                      </p>
                     </div>
                   </div>
 
-                  {order.status === "unshipped" ? (
-                    <p className="mt-4 rounded-xl bg-white px-4 py-3 text-sm text-neutral/60">
-                      Your order is being prepared. A tracking link will appear here as soon as
-                      it ships.
+                  {/* Progress */}
+                  <div className="px-6 py-7 sm:px-10">
+                    <p className="mb-6 text-sm font-semibold text-neutral">
+                      {statusLabels[order.status]}
                     </p>
-                  ) : order.tracking_link ? (
-                    <a
-                      href={order.tracking_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
-                    >
-                      <Truck size={16} />
-                      Track Package
-                      <ExternalLink size={14} />
-                    </a>
-                  ) : null}
+                    <OrderProgress status={order.status} />
 
-                  <div className="mt-4 space-y-3">
-                    {order.items.map((item) => (
-                      <div
-                        key={`${item.product_id}-${item.size}-${item.color}`}
-                        className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-neutral">{item.product_name}</p>
-                          <p className="text-xs text-neutral/55">
-                            Size {item.size} · {item.color} · Qty {item.quantity}
-                          </p>
-                        </div>
-                        <p className="text-sm font-semibold text-neutral">
-                          £{item.subtotal.toFixed(2)}
+                    {order.status === "unshipped" ? (
+                      <p className="mt-7 rounded-xl bg-tertiary/25 px-4 py-3 text-sm text-neutral/60">
+                        Your order is being prepared. A tracking link will appear here as soon
+                        as it ships.
+                      </p>
+                    ) : order.tracking_link ? (
+                      <div className="mt-7 space-y-2">
+                        <a
+                          href={normalizeExternalUrl(order.tracking_link)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
+                        >
+                          <Truck size={16} />
+                          Track Package
+                          <ExternalLink size={14} />
+                        </a>
+                        <p className="text-xs text-neutral/45">
+                          Your order has shipped — follow it out for delivery with our courier
+                          partner above.
                         </p>
                       </div>
-                    ))}
+                    ) : null}
+                  </div>
+
+                  {/* Items */}
+                  <div className="space-y-4 border-t border-neutral/10 px-6 py-6 sm:px-8">
+                    {order.items.map((item) => {
+                      const product = productLookup.get(item.product_id);
+                      return (
+                        <div
+                          key={`${item.product_id}-${item.size}-${item.color}`}
+                          className="flex items-center gap-4"
+                        >
+                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-tertiary/40">
+                            {product?.images?.[0] && (
+                              <img
+                                src={product.images[0]}
+                                alt={item.product_name}
+                                className="h-full w-full object-cover"
+                              />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-neutral">
+                              {item.product_name}
+                            </p>
+                            <p className="mt-0.5 text-xs text-neutral/50">
+                              Size {item.size} · {item.color} · Qty {item.quantity}
+                            </p>
+                          </div>
+                          <p className="shrink-0 text-sm font-semibold text-neutral">
+                            {formatCurrency(item.subtotal, order.currency)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Totals */}
+                  <div className="space-y-2 border-t border-neutral/10 bg-tertiary/15 px-6 py-5 text-sm sm:px-8">
+                    <div className="flex items-center justify-between text-neutral/60">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(order.subtotal, order.currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-neutral/60">
+                      <span>Shipping</span>
+                      <span>
+                        {order.shipping_cost === 0
+                          ? "Free"
+                          : formatCurrency(order.shipping_cost, order.currency)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-neutral/60">
+                      <span>Tax</span>
+                      <span>{formatCurrency(order.tax, order.currency)}</span>
+                    </div>
+                    {order.discount_applied > 0 && (
+                      <div className="flex items-center justify-between text-primary">
+                        <span>Discount</span>
+                        <span>-{formatCurrency(order.discount_applied, order.currency)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between border-t border-neutral/10 pt-3 text-base font-bold text-neutral">
+                      <span>Total</span>
+                      <span>{formatCurrency(order.total_amount, order.currency)}</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -387,5 +533,13 @@ export default function AccountPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountContent />
+    </Suspense>
   );
 }

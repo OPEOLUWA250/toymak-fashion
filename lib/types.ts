@@ -1,5 +1,7 @@
 export type ProductCategory = 'shapewear' | 'waist-trainer' | 'bra' | 'accessories' | 'tops'
-export type OrderStatus = 'unshipped' | 'shipped' | 'out-for-delivery' | 'delivered'
+// Only tracks up to "shipped" — once an order ships, the carrier's own
+// tracking link (order.tracking_link) covers out-for-delivery/delivered.
+export type OrderStatus = 'unshipped' | 'shipped'
 export type Currency = 'GBP' | 'NGN' | 'USD'
 export type PaymentGateway = 'stripe' | 'paystack'
 export type DiscountType = 'percentage' | 'fixed'
@@ -110,12 +112,24 @@ export interface DiscountCode {
   created_at: Date
 }
 
+export interface ContactMessage {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  subject: string
+  message: string
+  status: 'new' | 'read'
+  created_at: Date
+}
+
 export interface NewsletterSignup {
   id: string
   first_name: string
   last_name: string
   email: string
   coupon_code: string
+  email_sent: boolean
   created_at: Date
 }
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, Mail, ArrowRight, Send } from "lucide-react";
+import { ChevronDown, Mail, ArrowRight, Loader2, Send } from "lucide-react";
 
 interface FaqItem {
   q: string;
@@ -10,17 +10,36 @@ interface FaqItem {
 }
 
 export function ContactFaqSection({ faqs }: { faqs: FaqItem[] }) {
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Wire up to a real contact-form email service
-    e.currentTarget.reset();
-    setSubmitted(true);
+    const form = e.currentTarget;
+    const data = new FormData(form);
+
+    setStatus("sending");
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("name"),
+          email: data.get("email"),
+          phone: data.get("phone"),
+          subject: data.get("subject"),
+          message: data.get("message"),
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to send");
+      form.reset();
+      setStatus("sent");
+    } catch {
+      setStatus("failed");
+    }
   };
 
   return (
-    <section className="py-20 md:py-28 bg-tertiary/40">
+    <section id="contact" className="py-20 md:py-28 bg-tertiary/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid gap-16 lg:grid-cols-2">
           {/* Contact */}
@@ -90,14 +109,25 @@ export function ContactFaqSection({ faqs }: { faqs: FaqItem[] }) {
               />
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 sm:w-auto"
+                disabled={status === "sending"}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                Send Message
-                <Send size={16} />
+                {status === "sending" ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Send size={16} />
+                )}
+                {status === "sending" ? "Sending…" : "Send Message"}
               </button>
-              {submitted && (
+              {status === "sent" && (
                 <p className="text-sm text-primary" role="status">
                   Thanks — we&apos;ve got your message and will reply soon.
+                </p>
+              )}
+              {status === "failed" && (
+                <p className="text-sm text-red-600" role="status">
+                  Something went wrong sending that — please try again, or email us directly
+                  at hello@toymak.com.
                 </p>
               )}
             </form>

@@ -1,24 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Sparkles, X } from "lucide-react";
+import { Loader2, Sparkles, X } from "lucide-react";
 import { useSignups } from "@/lib/use-signups";
+import { NewsletterSignup } from "@/lib/types";
 
 const DISMISSED_KEY = "toymak-popup-dismissed";
 const SHOW_DELAY_MS = 4000;
 
-// Placeholder — swap in the real offer once it's decided. Nothing else needs
-// to change, this is the only line that drives the headline copy below.
-const DISCOUNT_LABEL = "15% Off";
+// Placeholder — swap in the real number once it's decided. The badge,
+// headline, and body copy all derive from this single value.
+const DISCOUNT_PERCENT = "15";
+const DISCOUNT_LABEL = `${DISCOUNT_PERCENT}% off`;
+
+type EmailStatus = "idle" | "sending" | "sent" | "failed" | "duplicate";
 
 export function FirstOrderPopup() {
-  const { addSignup } = useSignups();
+  const { addSignup, markEmailSent } = useSignups();
   const [visible, setVisible] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [couponCode, setCouponCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [signup, setSignup] = useState<NewsletterSignup | null>(null);
+  const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
 
   useEffect(() => {
     if (localStorage.getItem(DISMISSED_KEY)) return;
@@ -29,164 +34,235 @@ export function FirstOrderPopup() {
 
   useEffect(() => {
     if (!visible) return;
+    const frame = requestAnimationFrame(() => setEntered(true));
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") dismiss();
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const dismiss = () => {
+    setEntered(false);
     localStorage.setItem(DISMISSED_KEY, "true");
-    setVisible(false);
+    setTimeout(() => setVisible(false), 200);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  // The code only ever appears in the email — never on screen — so sending
+  // has to be able to fail without stranding the customer. This is used
+  // both for the initial send and the "Try again" / "Resend" retry.
+  const sendCouponEmail = async (target: NewsletterSignup) => {
+    setEmailStatus("sending");
+    try {
+      const response = await fetch("/api/signups/send-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: target.first_name,
+          email: target.email,
+          couponCode: target.coupon_code,
+          discountLabel: DISCOUNT_LABEL,
+        }),
+      });
+      if (!response.ok) throw new Error("Email send failed");
+      markEmailSent(target.id);
+      setEmailStatus("sent");
+    } catch {
+      setEmailStatus("failed");
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const signup = addSignup(firstName, lastName, email);
-    setCouponCode(signup.coupon_code);
+    const { signup: newSignup, isNew } = addSignup(firstName, lastName, email);
+    setSignup(newSignup);
     localStorage.setItem(DISMISSED_KEY, "true");
-  };
 
-  const handleCopyCode = () => {
-    if (!couponCode) return;
-    navigator.clipboard.writeText(couponCode).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    });
+    if (!isNew) {
+      // Same email submitting again — don't mint a new code or fire off
+      // another email automatically; let them explicitly ask for a resend.
+      setEmailStatus("duplicate");
+      return;
+    }
+
+    await sendCouponEmail(newSignup);
   };
 
   if (!visible) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-neutral/60 p-4 backdrop-blur-sm transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}`}
       onClick={dismiss}
       role="dialog"
       aria-modal="true"
       aria-label="First order discount offer"
     >
       <div
-        className="relative flex w-full max-w-3xl overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+        className={`relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 ease-out ${
+          entered ? "scale-100 translate-y-0 opacity-100" : "scale-95 translate-y-3 opacity-0"
+        }`}
         onClick={(event) => event.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Close"
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-neutral shadow-md backdrop-blur transition hover:bg-white hover:text-primary"
-        >
-          <X size={18} />
-        </button>
-
-        {/* Image panel */}
-        <div className="relative hidden w-2/5 shrink-0 sm:block">
+        <div className="relative flex min-h-[560px] flex-col justify-end sm:min-h-[600px]">
           <img
             src="/shop-img/imgi_85_img_7941.jpg"
             alt="Toymak shapewear, on model"
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-        </div>
+          {/* Same bottom-anchored scrim used on the New Arrivals feature tile
+              and Find Your Fit section, just extended for a taller content zone. */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-        {/* Content panel */}
-        <div className="flex-1 p-8 sm:p-10">
-          {couponCode ? (
-            <div className="flex h-full flex-col items-center justify-center py-6 text-center">
-              <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Sparkles size={26} />
-              </span>
-              <h2 className="text-2xl font-bold text-neutral">You&apos;re in!</h2>
-              <p className="mt-2 max-w-xs text-sm leading-6 text-neutral/60">
-                Copy your code below and enter it at checkout to claim {DISCOUNT_LABEL} your
-                first order.
-              </p>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Close"
+            className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-neutral shadow-md backdrop-blur transition hover:bg-white hover:text-primary"
+          >
+            <X size={18} />
+          </button>
 
-              <button
-                type="button"
-                onClick={handleCopyCode}
-                className="mt-6 flex items-center gap-3 rounded-2xl border-2 border-dashed border-primary/40 bg-primary/5 px-6 py-4 transition hover:border-primary/70"
-              >
-                <span className="text-xl font-bold tracking-[0.1em] text-primary">
-                  {couponCode}
-                </span>
-                {copied ? (
-                  <Check size={18} className="text-primary" />
-                ) : (
-                  <Copy size={18} className="text-primary/60" />
-                )}
-              </button>
-              <span className="mt-2 text-xs text-neutral/40">
-                {copied ? "Copied!" : "Tap to copy"}
-              </span>
-
-              <button
-                type="button"
-                onClick={dismiss}
-                className="mt-8 text-sm font-semibold text-primary hover:underline"
-              >
-                Continue shopping
-              </button>
-            </div>
-          ) : (
-            <>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                First Order Offer
-              </p>
-              <h2 className="mt-3 text-3xl font-bold leading-tight text-neutral sm:text-4xl">
-                Join Us &amp; Get {DISCOUNT_LABEL} Your First Order!
-              </h2>
-              <p className="mt-4 text-sm leading-6 text-neutral/60">
-                Sign up for early access to new drops, styling tips, and a code for{" "}
-                {DISCOUNT_LABEL.toLowerCase()} waiting in your account the moment you join.
-              </p>
-
-              <form onSubmit={handleSubmit} className="mt-7 space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First Name"
-                    required
-                    className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-                  />
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last Name"
-                    required
-                    className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-                  />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  required
-                  className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-                />
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-white transition hover:bg-primary/90"
-                >
-                  Claim My Code
-                </button>
-              </form>
-
-              <button
-                type="button"
-                onClick={dismiss}
-                className="mt-4 w-full text-center text-xs text-neutral/45 underline underline-offset-2 hover:text-neutral/70"
-              >
-                No thanks, I&apos;ll pay full price
-              </button>
-            </>
+          {!signup && (
+            <span className="absolute left-5 top-5 z-10 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              {DISCOUNT_PERCENT}% Off
+            </span>
           )}
+
+          <div className="relative z-10 p-6 sm:p-8">
+            {signup ? (
+              <div className="text-center">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white">
+                  <Sparkles size={22} />
+                </span>
+                <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">
+                  {emailStatus === "duplicate" ? "Welcome back!" : "You're in!"}
+                </h2>
+                <p className="mx-auto mt-2 max-w-[24rem] text-sm leading-6 text-white/80">
+                  {emailStatus === "sent" && (
+                    <>
+                      We&apos;ve emailed your {DISCOUNT_LABEL} code to{" "}
+                      <span className="font-semibold text-white">{signup.email}</span>. Check
+                      your inbox (and spam folder) — it&apos;s on its way.
+                    </>
+                  )}
+                  {emailStatus === "sending" && <>Sending your code to {signup.email}…</>}
+                  {emailStatus === "duplicate" && (
+                    <>
+                      This email already claimed a code — we&apos;ve sent it before, so check
+                      your inbox (and spam folder). Didn&apos;t get it?
+                    </>
+                  )}
+                  {emailStatus === "failed" && (
+                    <>
+                      We couldn&apos;t send your code just now. Try again below, or reach us
+                      at{" "}
+                      <a href="mailto:hello@toymak.com" className="text-white underline">
+                        hello@toymak.com
+                      </a>
+                      .
+                    </>
+                  )}
+                </p>
+
+                {emailStatus === "sent" ? (
+                  <button
+                    type="button"
+                    onClick={dismiss}
+                    className="mx-auto mt-7 inline-flex items-center justify-center rounded-md bg-white px-6 py-2.5 text-sm font-semibold text-neutral transition hover:bg-white/90"
+                  >
+                    Continue Shopping
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => sendCouponEmail(signup)}
+                      disabled={emailStatus === "sending"}
+                      className="mx-auto mt-6 inline-flex items-center justify-center gap-2 rounded-md bg-white px-6 py-2.5 text-sm font-semibold text-neutral transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {emailStatus === "sending" && (
+                        <Loader2 size={14} className="animate-spin" />
+                      )}
+                      {emailStatus === "sending"
+                        ? "Sending…"
+                        : emailStatus === "failed"
+                          ? "Try again"
+                          : "Resend email"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={dismiss}
+                      className="mt-4 block w-full text-center text-xs text-white/60 underline underline-offset-2 hover:text-white/85"
+                    >
+                      Continue Shopping
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
+                  Just for you
+                </p>
+                <h2 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  {DISCOUNT_LABEL} your first order
+                </h2>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-white/80">
+                  Sign up for early access to new drops, styling tips, and a code
+                  waiting for you the moment you join.
+                </p>
+
+                <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="First Name"
+                      required
+                      className="w-full rounded-xl border border-white/50 bg-white px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 transition focus:border-primary"
+                    />
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Last Name"
+                      required
+                      className="w-full rounded-xl border border-white/50 bg-white px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 transition focus:border-primary"
+                    />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    required
+                    className="w-full rounded-xl border border-white/50 bg-white px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 transition focus:border-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition hover:bg-opacity-90"
+                  >
+                    Claim My Code
+                  </button>
+                </form>
+
+                <button
+                  type="button"
+                  onClick={dismiss}
+                  className="mt-4 w-full text-center text-xs text-white/60 underline underline-offset-2 hover:text-white/85"
+                >
+                  No thanks, I&apos;ll pay full price
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

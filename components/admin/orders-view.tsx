@@ -3,21 +3,19 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ExternalLink, Link2, Search } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
+import { formatCurrency } from "@/lib/pricing";
+import { normalizeExternalUrl } from "@/lib/utils";
 import { StatusBadge } from "./admin-ui";
 
 const statusFilters: { label: string; value: OrderStatus | "all" }[] = [
   { label: "All", value: "all" },
   { label: "Unshipped", value: "unshipped" },
   { label: "Shipped", value: "shipped" },
-  { label: "Out for delivery", value: "out-for-delivery" },
-  { label: "Delivered", value: "delivered" },
 ]
 
 const statusOptions: { label: string; value: OrderStatus }[] = [
   { label: "Unshipped", value: "unshipped" },
   { label: "Shipped", value: "shipped" },
-  { label: "Out for delivery", value: "out-for-delivery" },
-  { label: "Delivered", value: "delivered" },
 ]
 
 const requiresTrackingLink = (status: OrderStatus) => status !== "unshipped"
@@ -114,7 +112,9 @@ export function OrdersView({
                     <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
                     <p className="text-xs text-neutral-500">{order.customer_email}</p>
                   </div>
-                  <p className="text-sm font-semibold text-neutral-900">£{order.total_amount.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-neutral-900">
+                    {formatCurrency(order.total_amount, order.currency)}
+                  </p>
                   <StatusBadge status={order.status} />
                   <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
                   <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
@@ -140,13 +140,17 @@ export function OrdersView({
                               Size {item.size} · {item.color} · Qty {item.quantity}
                             </p>
                           </div>
-                          <p className="font-semibold text-neutral-900">£{item.subtotal.toFixed(2)}</p>
+                          <p className="font-semibold text-neutral-900">
+                            {formatCurrency(item.subtotal, order.currency)}
+                          </p>
                         </div>
                       ))}
                       <div className="flex items-center justify-between px-4 pt-1 text-xs text-neutral-500">
-                        <span>Shipping: £{order.shipping_cost.toFixed(2)}</span>
-                        <span>Tax: £{order.tax.toFixed(2)}</span>
-                        {order.discount_applied > 0 && <span>Discount: £{order.discount_applied.toFixed(2)}</span>}
+                        <span>Shipping: {formatCurrency(order.shipping_cost, order.currency)}</span>
+                        <span>Tax: {formatCurrency(order.tax, order.currency)}</span>
+                        {order.discount_applied > 0 && (
+                          <span>Discount: {formatCurrency(order.discount_applied, order.currency)}</span>
+                        )}
                       </div>
                     </div>
 
@@ -193,7 +197,9 @@ function OrderTrackingEditor({
       return
     }
     setError(null)
-    onUpdateStatus(order.id, draftStatus, draftLink.trim() || undefined)
+    const normalizedLink = draftLink.trim() ? normalizeExternalUrl(draftLink) : undefined
+    setDraftLink(normalizedLink ?? "")
+    onUpdateStatus(order.id, draftStatus, normalizedLink)
     setJustSaved(true)
     setTimeout(() => setJustSaved(false), 2000)
   }
@@ -259,7 +265,7 @@ function OrderTrackingEditor({
         )}
         {order.tracking_link && (
           <a
-            href={order.tracking_link}
+            href={normalizeExternalUrl(order.tracking_link)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 hover:text-primary"

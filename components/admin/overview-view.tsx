@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { CircleAlert, ShoppingCart, Store, TrendingUp, Users } from "lucide-react";
 import { Order, Product } from "@/lib/types";
 import { deriveCustomers } from "@/lib/admin-data";
+import { formatCurrency } from "@/lib/pricing";
 import { StatCard, StatusBadge } from "./admin-ui";
 import type { AdminView } from "./types";
 
@@ -108,7 +109,9 @@ export function OverviewView({
                     <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
                     <p className="text-xs text-neutral-500">{order.customer_email}</p>
                   </div>
-                  <p className="text-sm font-semibold text-neutral-900">£{order.total_amount.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-neutral-900">
+                    {formatCurrency(order.total_amount, order.currency)}
+                  </p>
                   <StatusBadge status={order.status} />
                   <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
                 </div>

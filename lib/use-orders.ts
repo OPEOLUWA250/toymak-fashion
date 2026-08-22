@@ -43,6 +43,31 @@ export function useOrders() {
     }
   }, [orders, isHydrated]);
 
+  // Pull in anything a webhook recorded server-side that this browser
+  // hasn't seen yet — covers a customer who closed the tab before the
+  // client-side verify-on-success path could run.
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    fetch("/api/orders")
+      .then((response) => response.json())
+      .then((data: { orders: Order[] }) => {
+        const serverOrders = reviveDates(data.orders ?? []);
+        if (serverOrders.length === 0) return;
+
+        setOrders((current) => {
+          const existingRefs = new Set(current.map((order) => order.payment_reference));
+          const newOnes = serverOrders.filter(
+            (order) => !existingRefs.has(order.payment_reference),
+          );
+          return newOnes.length === 0 ? current : [...newOnes, ...current];
+        });
+      })
+      .catch(() => {
+        // best-effort merge — ignore network errors (e.g. offline)
+      });
+  }, [isHydrated]);
+
   const actions = useMemo(
     () => ({
       addOrder: (order: Order) => {

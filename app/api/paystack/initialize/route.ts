@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockProducts } from "@/lib/mock-products";
-import { calculateOrderTotals, getProductPriceForCurrency } from "@/lib/pricing";
-import { Address, OrderItem } from "@/lib/types";
+import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
+import { Address } from "@/lib/types";
 
 const PAYSTACK_API = "https://api.paystack.co";
 
@@ -38,20 +37,7 @@ export async function POST(request: NextRequest) {
 
   // Currency is always NGN for Paystack — recompute everything server-side
   // from the mock catalog so nothing charged is trusted from the client.
-  const productLookup = new Map(mockProducts.map((product) => [product.id, product]));
-  const orderItems: OrderItem[] = items.map((item) => {
-    const product = productLookup.get(item.product_id);
-    const unitPrice = getProductPriceForCurrency(product, "NGN");
-    return {
-      product_id: item.product_id,
-      product_name: product?.name ?? "Unknown product",
-      quantity: item.quantity,
-      size: item.size,
-      color: item.color,
-      unit_price: unitPrice,
-      subtotal: unitPrice * item.quantity,
-    };
-  });
+  const orderItems = buildOrderItems(items, "NGN");
 
   const { subtotal, shipping: shippingCost, tax, total } = calculateOrderTotals(
     items,

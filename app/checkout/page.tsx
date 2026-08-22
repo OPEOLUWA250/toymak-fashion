@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { mockProducts } from "@/lib/mock-products";
 import { getPaymentGatewayForCountry } from "@/lib/utils";
-import { calculateOrderTotals, getProductPriceForCurrency } from "@/lib/pricing";
+import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { Currency } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -35,19 +35,10 @@ const paymentOptions = [
 ] as const;
 
 const countryPresets = ["United Kingdom", "Nigeria", "United States", "Ghana"];
-const currencySymbols: Record<Currency, string> = {
-  GBP: "£",
-  NGN: "₦",
-  USD: "$",
-};
 
 const checkoutCurrencyForGateway = (
   gateway: "stripe" | "paystack",
 ): Currency => (gateway === "paystack" ? "NGN" : "GBP");
-
-function formatCurrency(amount: number, currency: Currency) {
-  return `${currencySymbols[currency]}${amount.toFixed(2)}`;
-}
 
 export default function CheckoutPage() {
   const { items, getTotal } = useCart();
@@ -73,12 +64,6 @@ export default function CheckoutPage() {
   const productLookup = useMemo(() => {
     return new Map(mockProducts.map((product) => [product.id, product]));
   }, []);
-
-  useEffect(() => {
-    if (selectedGateway === "paystack") {
-      return;
-    }
-  }, [selectedGateway]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -111,7 +96,7 @@ export default function CheckoutPage() {
     country,
   );
 
-  const handlePaystackCheckout = async () => {
+  const validateCheckoutForm = () => {
     setFormError(null);
     setPaymentError(null);
 
@@ -119,12 +104,25 @@ export default function CheckoutPage() {
       setFormError(
         "Fill in your name, email, phone, and address above before continuing.",
       );
-      return;
+      return false;
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       setFormError("Enter a valid email address.");
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const cartItemsPayload = () =>
+    items.map((item) => ({
+      product_id: item.product_id,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+    }));
+
+  const handlePaystackCheckout = async () => {
+    if (!validateCheckoutForm()) return;
 
     setIsPaying(true);
     try {
@@ -134,15 +132,10 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           email,
           country,
-          items: items.map((item) => ({
-            product_id: item.product_id,
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color,
-          })),
+          items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
-          callback_url: `${window.location.origin}/checkout/success`,
+          callback_url: `${window.location.origin}/checkout/success?gateway=paystack`,
         }),
       });
 
@@ -159,6 +152,41 @@ export default function CheckoutPage() {
       setIsPaying(false);
     }
   };
+
+  const handleStripeCheckout = async () => {
+    if (!validateCheckoutForm()) return;
+
+    setIsPaying(true);
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          country,
+          items: cartItemsPayload(),
+          customer: { fullName, phone },
+          shipping: { street, city, state: stateRegion, postalCode, country },
+          success_url: `${window.location.origin}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/checkout`,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Could not start Stripe checkout.");
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+      setIsPaying(false);
+    }
+  };
+
+  const handleCheckout = selectedGateway === "paystack" ? handlePaystackCheckout : handleStripeCheckout;
 
   if (items.length === 0) {
     return (
@@ -356,7 +384,7 @@ export default function CheckoutPage() {
                           </div>
                           <p className="mt-4 text-sm leading-6 text-neutral/60">
                             {active
-                              ? "Selected automatically from your shipping country. Payment buttons will be connected next."
+                              ? "Selected automatically from your shipping country."
                               : "Visible for clarity, but the country-based gateway decides which one is active."}
                           </p>
                         </div>
@@ -462,29 +490,20 @@ export default function CheckoutPage() {
 
               <button
                 type="button"
-                onClick={
-                  selectedGateway === "paystack" ? handlePaystackCheckout : undefined
-                }
-                disabled={selectedGateway !== "paystack" || isPaying}
+                onClick={handleCheckout}
+                disabled={isPaying}
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-primary py-3 text-sm font-semibold text-white transition hover:bg-opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPaying && <Loader2 size={16} className="animate-spin" />}
                 {isPaying
-                  ? "Redirecting to Paystack…"
+                  ? `Redirecting to ${selectedGateway === "paystack" ? "Paystack" : "Stripe"}…`
                   : `Continue to ${selectedGateway === "paystack" ? "Paystack" : "Stripe"}`}
               </button>
 
-              {selectedGateway === "paystack" ? (
-                <p className="mt-3 text-center text-xs text-neutral/50">
-                  You&apos;ll be redirected to Paystack to pay securely, then brought
-                  back here to confirm.
-                </p>
-              ) : (
-                <p className="mt-3 text-center text-xs text-neutral/50">
-                  Stripe checkout isn&apos;t wired up yet — switch the country above
-                  to Nigeria to test the live Paystack flow.
-                </p>
-              )}
+              <p className="mt-3 text-center text-xs text-neutral/50">
+                You&apos;ll be redirected to {selectedGateway === "paystack" ? "Paystack" : "Stripe"}{" "}
+                to pay securely, then brought back here to confirm.
+              </p>
 
               {formError && (
                 <p className="mt-2 text-center text-xs text-red-600">{formError}</p>

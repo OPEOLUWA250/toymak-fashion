@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Ticket } from "lucide-react";
+import { Check, Copy, Mail, MailX, Ticket } from "lucide-react";
 import { NewsletterSignup } from "@/lib/types";
 
 export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
@@ -35,8 +35,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
           <h2 className="text-2xl font-bold text-neutral-900">Signups</h2>
           <p className="text-sm text-neutral-500">
             Everyone who claimed a discount code from the homepage popup, with the code
-            generated for each — the same one shown to them and (once email sending is wired
-            up) sent to their inbox.
+            generated for each — the same one shown to them and emailed to their inbox.
           </p>
         </div>
 
@@ -53,6 +52,9 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                   </th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
                     Coupon code
+                  </th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
+                    Email status
                   </th>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
                     Date
@@ -77,6 +79,19 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                         {signup.coupon_code}
                         {copiedId === signup.id ? <Check size={12} /> : <Copy size={12} />}
                       </button>
+                    </td>
+                    <td className="px-4 py-4 align-middle">
+                      {signup.email_sent ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          <Mail size={12} />
+                          Emailed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-medium text-neutral-500">
+                          <MailX size={12} />
+                          Not sent
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-4 align-middle text-sm text-neutral-600">
                       {signup.created_at.toLocaleDateString("en-GB", { dateStyle: "medium" })}

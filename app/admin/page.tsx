@@ -5,6 +5,7 @@ import {
   Boxes,
   LayoutGrid,
   Menu,
+  MessageSquare,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -19,11 +20,15 @@ import {
 import { deriveCustomers } from "@/lib/admin-data";
 import { useAdminProducts } from "@/lib/use-admin-products";
 import { useOrders } from "@/lib/use-orders";
+import { useStockSync } from "@/lib/use-stock-sync";
 import { useSignups } from "@/lib/use-signups";
+import { useContactMessages } from "@/lib/use-contact-messages";
+import { useAdminLiveEvents } from "@/lib/use-admin-live-events";
 import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
 import { OverviewView } from "@/components/admin/overview-view";
 import { OrdersView } from "@/components/admin/orders-view";
+import { MessagesView } from "@/components/admin/messages-view";
 import { ProductsView } from "@/components/admin/products-view";
 import { CustomersView } from "@/components/admin/customers-view";
 import { InventoryView } from "@/components/admin/inventory-view";
@@ -36,6 +41,7 @@ import { NotificationsPanel } from "@/components/admin/notifications-panel";
 const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
   { view: "overview", label: "Overview", icon: LayoutGrid },
   { view: "orders", label: "Orders", icon: ShoppingCart },
+  { view: "messages", label: "Messages", icon: MessageSquare },
   { view: "products", label: "Products", icon: Package },
   { view: "customers", label: "Customers", icon: Users },
   { view: "inventory", label: "Inventory", icon: Boxes },
@@ -57,6 +63,11 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     eyebrow: "Fulfillment",
     title: "Orders",
     subtitle: "Track every order placed on the storefront.",
+  },
+  messages: {
+    eyebrow: "Support",
+    title: "Messages",
+    subtitle: "Everyone who's written in through the homepage contact form.",
   },
   products: {
     eyebrow: "Catalog",
@@ -93,10 +104,12 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
 function NavButton({
   item,
   active,
+  badge,
   onClick,
 }: {
   item: { view: AdminView; label: string; icon: typeof LayoutGrid };
   active: boolean;
+  badge?: number;
   onClick: () => void;
 }) {
   return (
@@ -110,7 +123,17 @@ function NavButton({
       )}
     >
       <item.icon size={16} />
-      {item.label}
+      <span className="flex-1 text-left">{item.label}</span>
+      {!!badge && (
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+            active ? "bg-white/20 text-white" : "bg-primary/10 text-primary",
+          )}
+        >
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -122,8 +145,21 @@ export default function AdminPage() {
   const [productSearch, setProductSearch] = useState("");
 
   const { products, addProduct, updateProduct, removeProduct } = useAdminProducts();
-  const { orders, updateOrderStatus } = useOrders();
+  const { orders, addOrder, updateOrderStatus } = useOrders();
   const { signups } = useSignups();
+  const {
+    messages,
+    isLoading: messagesLoading,
+    refresh: refreshMessages,
+    markAsRead: markMessageAsRead,
+    receiveMessage,
+  } = useContactMessages();
+  // Catches orders that only ever arrived via webhook (customer closed the
+  // tab before /checkout/success could run) so stock still gets depleted.
+  useStockSync();
+  // Real-time push: new orders and contact messages land here the instant
+  // they're confirmed/submitted elsewhere, no refresh needed.
+  useAdminLiveEvents({ onOrder: addOrder, onContactMessage: receiveMessage });
 
   const customers = useMemo(() => deriveCustomers(orders), [orders]);
   const lowStockProducts = useMemo(
@@ -134,6 +170,8 @@ export default function AdminPage() {
     () => orders.filter((o) => o.status === "unshipped").sort((a, b) => a.created_at.getTime() - b.created_at.getTime()),
     [orders],
   );
+  const unreadMessages = useMemo(() => messages.filter((m) => m.status === "new"), [messages]);
+  const navBadges: Partial<Record<AdminView, number>> = { messages: unreadMessages.length };
   const copy = viewCopy[activeView];
 
   const handleNavigate = (view: AdminView) => {
@@ -165,6 +203,7 @@ export default function AdminPage() {
               key={item.view}
               item={item}
               active={activeView === item.view}
+              badge={navBadges[item.view]}
               onClick={() => handleNavigate(item.view)}
             />
           ))}
@@ -245,6 +284,7 @@ export default function AdminPage() {
             <NotificationsPanel
               unshippedOrders={unshippedOrders}
               lowStockProducts={lowStockProducts}
+              unreadMessages={unreadMessages}
               onNavigate={handleNavigate}
             />
             <AdminProfileMenu />
@@ -290,6 +330,14 @@ export default function AdminPage() {
             )}
             {activeView === "orders" && (
               <OrdersView orders={orders} onUpdateStatus={updateOrderStatus} />
+            )}
+            {activeView === "messages" && (
+              <MessagesView
+                messages={messages}
+                isLoading={messagesLoading}
+                onRefresh={refreshMessages}
+                onMarkAsRead={markMessageAsRead}
+              />
             )}
             {activeView === "products" && (
               <ProductsView

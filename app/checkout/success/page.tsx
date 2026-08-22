@@ -7,23 +7,34 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useCart } from "@/lib/cart-context";
 import { useOrders } from "@/lib/use-orders";
-import { Order, OrderItem } from "@/lib/types";
+import { useStockSync } from "@/lib/use-stock-sync";
+import { formatCurrency } from "@/lib/pricing";
+import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
+import { Order, PaymentGateway } from "@/lib/types";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 type VerifyState = "loading" | "success" | "failed" | "error";
 
+const gatewayLabels: Record<PaymentGateway, string> = {
+  paystack: "Paystack",
+  stripe: "Stripe",
+};
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const reference = searchParams.get("reference");
+  const gateway: PaymentGateway = searchParams.get("gateway") === "stripe" ? "stripe" : "paystack";
+  const paymentId =
+    gateway === "stripe" ? searchParams.get("session_id") : searchParams.get("reference");
   const { clearCart } = useCart();
   const { orders, addOrder } = useOrders();
+  useStockSync();
   const [state, setState] = useState<VerifyState>("loading");
   const [order, setOrder] = useState<Order | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    if (!reference) {
+    if (!paymentId) {
       setState("error");
       setErrorMessage("No payment reference was found in the URL.");
       return;
@@ -32,18 +43,23 @@ function CheckoutSuccessContent() {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    const existing = orders.find((o) => o.payment_reference === reference);
+    const existing = orders.find((o) => o.payment_reference === paymentId);
     if (existing) {
       setOrder(existing);
       setState("success");
       return;
     }
 
-    fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
+    const verifyUrl =
+      gateway === "stripe"
+        ? `/api/stripe/verify?session_id=${encodeURIComponent(paymentId)}`
+        : `/api/paystack/verify?reference=${encodeURIComponent(paymentId)}`;
+
+    fetch(verifyUrl)
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Verification failed.");
-        return data;
+        return data as { status: "success" | "failed" } & Partial<PaymentVerification>;
       })
       .then((data) => {
         if (data.status !== "success") {
@@ -51,41 +67,38 @@ function CheckoutSuccessContent() {
           return;
         }
 
-        const metadata = data.metadata ?? {};
-        const shortRef = reference.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
-
-        const newOrder: Order = {
-          id: `ord-${shortRef}`,
-          tracking_id: `TMK-${shortRef}`,
-          customer_name: metadata.customer_name ?? "Guest",
-          customer_email: data.customer?.email ?? "",
-          customer_phone: metadata.customer_phone ?? "",
-          shipping_address: metadata.shipping_address,
-          status: "unshipped",
-          currency: "NGN",
-          payment_gateway: "paystack",
-          payment_reference: reference,
-          items: (metadata.order_items ?? []) as OrderItem[],
-          subtotal: metadata.subtotal ?? 0,
-          shipping_cost: metadata.shipping_cost ?? 0,
-          tax: metadata.tax ?? 0,
-          discount_applied: 0,
-          total_amount: metadata.total ?? data.amount / 100,
-          created_at: new Date(),
-          updated_at: new Date(),
-        };
+        const newOrder = buildOrderFromVerification(
+          paymentId,
+          gateway,
+          gateway === "stripe" ? "GBP" : "NGN",
+          data as PaymentVerification,
+        );
 
         addOrder(newOrder);
         clearCart();
         setOrder(newOrder);
         setState("success");
+
+        // Report to the server so it lands in the durable store and the
+        // admin dashboard finds out in real time — fire-and-forget, since
+        // the customer's own confirmation above doesn't depend on this.
+        // keepalive lets the request survive even if the tab closes right
+        // after this line runs, same as a customer would in real usage.
+        fetch("/api/orders/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gateway, paymentId }),
+          keepalive: true,
+        }).catch(() => {
+          // webhook (once configured) remains the fallback for this order
+        });
       })
       .catch((error) => {
         setErrorMessage(error instanceof Error ? error.message : "Something went wrong.");
         setState("error");
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reference]);
+  }, [paymentId, gateway]);
 
   return (
     <main className="bg-white">
@@ -98,7 +111,8 @@ function CheckoutSuccessContent() {
               Confirming your payment…
             </h1>
             <p className="mt-2 text-sm text-neutral/60">
-              Hang tight, we&apos;re checking with Paystack. Don&apos;t close this tab.
+              Hang tight, we&apos;re checking with {gatewayLabels[gateway]}. Don&apos;t close
+              this tab.
             </p>
           </>
         )}
@@ -119,13 +133,16 @@ function CheckoutSuccessContent() {
             <div className="mt-8 w-full rounded-2xl border border-neutral/10 bg-[#fafafa] p-6 text-left text-sm">
               <Row label="Order ID" value={order.id} />
               <Row label="Tracking ID" value={order.tracking_id} />
-              <Row label="Amount paid" value={`₦${order.total_amount.toFixed(2)}`} />
+              <Row
+                label="Amount paid"
+                value={formatCurrency(order.total_amount, order.currency)}
+              />
               <Row label="Payment reference" value={order.payment_reference} mono />
             </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/account"
+                href={`/account?email=${encodeURIComponent(order.customer_email)}&auto=1`}
                 className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-opacity-90"
               >
                 Track my order
@@ -149,8 +166,8 @@ function CheckoutSuccessContent() {
               Payment wasn&apos;t completed
             </h1>
             <p className="mt-2 max-w-md text-sm leading-6 text-neutral/60">
-              Paystack reported this transaction as unsuccessful. You haven&apos;t been
-              charged, and your cart is exactly as you left it.
+              {gatewayLabels[gateway]} reported this transaction as unsuccessful. You
+              haven&apos;t been charged, and your cart is exactly as you left it.
             </p>
             <Link
               href="/checkout"

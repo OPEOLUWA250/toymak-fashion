@@ -1,5 +1,21 @@
 import { mockProducts } from "./mock-products";
-import { Currency, Product } from "./types";
+import { Currency, OrderItem, Product } from "./types";
+
+const productLookup = new Map(mockProducts.map((product) => [product.id, product]));
+
+export const currencySymbols: Record<Currency, string> = {
+  GBP: "£",
+  NGN: "₦",
+  USD: "$",
+};
+
+export function formatCurrency(amount: number, currency: Currency) {
+  const formatted = amount.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${currencySymbols[currency]}${formatted}`;
+}
 
 export function getProductPriceForCurrency(
   product: Product | undefined,
@@ -38,8 +54,6 @@ export function calculateOrderTotals(
   currency: Currency,
   country: string,
 ): OrderTotals {
-  const productLookup = new Map(mockProducts.map((product) => [product.id, product]));
-
   const subtotal = items.reduce((runningTotal, item) => {
     const product = productLookup.get(item.product_id);
     return runningTotal + getProductPriceForCurrency(product, currency) * item.quantity;
@@ -54,4 +68,33 @@ export function calculateOrderTotals(
   const total = subtotal + shipping + tax;
 
   return { subtotal, shipping, tax, total };
+}
+
+export interface OrderItemInput {
+  product_id: string;
+  quantity: number;
+  size: string;
+  color: string;
+}
+
+/**
+ * Turns client-sent {product_id, quantity, size, color} into full priced
+ * OrderItem records, looking up name/price from the mock catalog rather than
+ * trusting anything the client claims — used by both gateways' initialize
+ * and verify routes so a placed order's line items are always server-derived.
+ */
+export function buildOrderItems(items: OrderItemInput[], currency: Currency): OrderItem[] {
+  return items.map((item) => {
+    const product = productLookup.get(item.product_id);
+    const unitPrice = getProductPriceForCurrency(product, currency);
+    return {
+      product_id: item.product_id,
+      product_name: product?.name ?? "Unknown product",
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+      unit_price: unitPrice,
+      subtotal: unitPrice * item.quantity,
+    };
+  });
 }

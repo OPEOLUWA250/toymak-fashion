@@ -19,7 +19,7 @@ export default function FAQPage() {
           </h1>
           <p className="text-neutral/60 mt-4 max-w-lg mx-auto">
             Everything you need to know. Can&apos;t find your answer?{' '}
-            <Link href="/contact" className="text-primary hover:underline">
+            <Link href="/#contact" className="text-primary hover:underline">
               Get in touch
             </Link>
           </p>

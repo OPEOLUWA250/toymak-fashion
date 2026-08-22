@@ -49,6 +49,22 @@ export function useAdminProducts() {
       removeProduct: (productId: string) => {
         setProducts((current) => current.filter((p) => p.id !== productId));
       },
+      // Called once per newly-confirmed order (see useStockSync) so a
+      // purchase actually depletes stock instead of low-stock alerts being
+      // purely manual admin bookkeeping.
+      decrementStock: (items: { product_id: string; quantity: number }[]) => {
+        setProducts((current) =>
+          current.map((product) => {
+            const purchased = items.find((item) => item.product_id === product.id);
+            if (!purchased) return product;
+            return {
+              ...product,
+              stock_qty: Math.max(0, product.stock_qty - purchased.quantity),
+              updated_at: new Date(),
+            };
+          }),
+        );
+      },
     }),
     [],
   );
