@@ -31,7 +31,7 @@ export function AdminManagementView() {
         </p>
       </div>
 
-      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-neutral-900">Admin Accounts</h2>
           <p className="text-sm text-neutral-500">Who currently has access to this dashboard</p>

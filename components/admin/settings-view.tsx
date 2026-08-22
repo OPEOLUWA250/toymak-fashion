@@ -13,7 +13,7 @@ export function SettingsView() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+        <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <CreditCard size={18} />
@@ -29,7 +29,7 @@ export function SettingsView() {
                 <WalletCards size={15} />
                 Nigeria
               </span>
-              <span className="rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-semibold text-fuchsia-700">
+              <span className="bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
                 Paystack · NGN
               </span>
             </div>
@@ -45,7 +45,7 @@ export function SettingsView() {
           </div>
         </div>
 
-        <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+        <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Truck size={18} />
@@ -71,7 +71,7 @@ export function SettingsView() {
           </div>
         </div>
 
-        <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6 lg:col-span-2">
+        <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6 lg:col-span-2">
           <div className="mb-5 flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Globe size={18} />

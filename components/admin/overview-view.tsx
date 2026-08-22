@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { CircleAlert, ShoppingCart, Store, TrendingUp, Users } from "lucide-react";
-import { Order, Product } from "@/lib/types";
+import { Currency, Order, Product } from "@/lib/types";
 import { deriveCustomers } from "@/lib/admin-data";
 import { formatCurrency } from "@/lib/pricing";
 import { StatCard, StatusBadge } from "./admin-ui";
@@ -18,14 +18,27 @@ export function OverviewView({
   onNavigate: (view: AdminView) => void;
 }) {
   const insights = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
+    // Orders are placed in whichever currency their gateway settled in
+    // (Paystack -> NGN, Stripe -> GBP/USD) — there's no real exchange rate
+    // in this mock app to convert between them, so revenue is kept broken
+    // out by currency rather than summed into one misleading number.
+    const revenueByCurrency = orders.reduce<Partial<Record<Currency, number>>>((sums, order) => {
+      sums[order.currency] = (sums[order.currency] ?? 0) + order.total_amount;
+      return sums;
+    }, {});
+    const currencyOrder: Currency[] = ["GBP", "USD", "NGN"];
+    const totalRevenueDisplay =
+      currencyOrder
+        .filter((currency) => revenueByCurrency[currency] !== undefined)
+        .map((currency) => formatCurrency(revenueByCurrency[currency]!, currency))
+        .join(" + ") || formatCurrency(0, "GBP");
     const lowStockProducts = products.filter((p) => p.stock_qty <= p.low_stock_threshold);
     const featuredProducts = products.filter((p) => p.featured);
     const unshippedOrders = orders.filter((o) => o.status === "unshipped");
     const customers = deriveCustomers(orders);
     const repeatCustomers = customers.filter((c) => c.orderCount > 1);
 
-    return { totalRevenue, lowStockProducts, featuredProducts, unshippedOrders, customers, repeatCustomers };
+    return { totalRevenueDisplay, lowStockProducts, featuredProducts, unshippedOrders, customers, repeatCustomers };
   }, [orders, products]);
 
   const recentOrders = [...orders]
@@ -38,7 +51,7 @@ export function OverviewView({
         <button onClick={() => onNavigate("orders")} className="text-left">
           <StatCard
             title="Total Sales"
-            value={`£${insights.totalRevenue.toFixed(2)}`}
+            value={insights.totalRevenueDisplay}
             subLabel={`${orders.length} order${orders.length === 1 ? "" : "s"}`}
             icon={TrendingUp}
           />
@@ -70,7 +83,7 @@ export function OverviewView({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(320px,0.95fr)]">
-        <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+        <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold text-neutral-900">Recent Orders</h2>
@@ -125,7 +138,7 @@ export function OverviewView({
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)]">
+          <div className="rounded-none border border-neutral-200 bg-white p-5">
             <div className="mb-4">
               <h2 className="text-2xl font-bold text-neutral-900">Featured Products</h2>
               <p className="text-sm text-neutral-500">Flagged as featured on the storefront</p>
@@ -158,7 +171,7 @@ export function OverviewView({
             </div>
           </div>
 
-          <div className="rounded-[1.75rem] border border-amber-200 bg-amber-50 p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.22)]">
+          <div className="rounded-none border border-amber-200 bg-amber-50 p-5">
             <div className="mb-3 flex items-center gap-2 text-amber-700">
               <CircleAlert size={16} />
               <p className="text-sm font-semibold">Insight</p>
@@ -170,7 +183,7 @@ export function OverviewView({
             </p>
           </div>
 
-          <div className="rounded-[1.75rem] border border-neutral-200 bg-neutral-950 p-5 text-white shadow-[0_18px_50px_-35px_rgba(0,0,0,0.35)]">
+          <div className="rounded-none border border-neutral-200 bg-neutral-950 p-5 text-white">
             <div className="mb-4 flex items-center gap-2">
               <Store size={16} />
               <p className="text-sm font-semibold">Storefront Snapshot</p>

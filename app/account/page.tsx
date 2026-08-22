@@ -70,7 +70,7 @@ function OrderProgress({ status }: { status: OrderStatus }) {
               <span
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
                   isActive
-                    ? "border-primary bg-primary text-white shadow-[0_6px_16px_-6px_rgba(230,0,229,0.6)]"
+                    ? "border-primary bg-primary text-white"
                     : "border-neutral/15 bg-white text-neutral/25"
                 }`}
               >
@@ -278,7 +278,7 @@ function AccountContent() {
               {matchedOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="overflow-hidden rounded-[1.75rem] border border-neutral/10 bg-white shadow-[0_24px_60px_-42px_rgba(0,0,0,0.4)]"
+                  className="overflow-hidden rounded-none border border-neutral/10 bg-white"
                 >
                   {/* Header */}
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-neutral/10 bg-tertiary/15 px-6 py-5 sm:px-8">

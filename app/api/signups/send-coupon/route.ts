@@ -37,19 +37,19 @@ function buildCouponEmailHtml({
 
   return `
   <div style="background:#f3f3f3;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;overflow:hidden;">
       <tr>
         <td style="padding:32px 32px 8px;text-align:center;">
-          <span style="font-size:20px;font-weight:800;letter-spacing:0.02em;color:#E600E5;">TOYMAK</span>
+          <span style="font-size:20px;font-weight:800;letter-spacing:0.02em;color:#101820;">TOYMAK</span>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 32px 0;text-align:center;">
-          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#E600E5;">Just For You</p>
-          <h1 style="margin:12px 0 0;font-size:26px;line-height:1.25;font-weight:700;color:#2B2B2B;">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#101820;">Just For You</p>
+          <h1 style="margin:12px 0 0;font-size:26px;line-height:1.25;font-weight:700;color:#101820;">
             ${discountLabelSafe} your first order
           </h1>
-          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:rgba(43,43,43,0.65);">
+          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:rgba(16,24,32,0.65);">
             Hi ${firstNameSafe}, thanks for joining the list. Here's your code — enter it at checkout
             to claim your discount.
           </p>
@@ -57,24 +57,24 @@ function buildCouponEmailHtml({
       </tr>
       <tr>
         <td style="padding:24px 32px 8px;text-align:center;">
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;border:2px dashed rgba(230,0,229,0.4);border-radius:14px;background:rgba(230,0,229,0.05);">
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;border:2px dashed rgba(16,24,32,0.35);background:rgba(16,24,32,0.04);">
             <tr>
               <td style="padding:18px 32px;">
-                <span style="font-size:22px;font-weight:700;letter-spacing:0.1em;color:#E600E5;user-select:all;">${couponCodeSafe}</span>
+                <span style="font-size:22px;font-weight:700;letter-spacing:0.1em;color:#101820;user-select:all;">${couponCodeSafe}</span>
               </td>
             </tr>
           </table>
-          <p style="margin:8px 0 0;font-size:11px;color:rgba(43,43,43,0.4);">
+          <p style="margin:8px 0 0;font-size:11px;color:rgba(16,24,32,0.4);">
             Tap and hold (or double-click) the code to select and copy it
           </p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 32px 32px;text-align:center;">
-          <a href="${origin}/shop" style="display:inline-block;background:#E600E5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;border-radius:6px;">
+          <a href="${origin}/shop" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
             Shop Now
           </a>
-          <p style="margin:20px 0 0;font-size:12px;color:rgba(43,43,43,0.4);">
+          <p style="margin:20px 0 0;font-size:12px;color:rgba(16,24,32,0.4);">
             One use per customer. Toymak — premium shapewear for the modern woman.
           </p>
         </td>

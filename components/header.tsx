@@ -133,7 +133,7 @@ export default function Header({
                   ref={searchRef}
                   onSubmit={handleSearchSubmit}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition",
+                    "flex items-center gap-1.5  border px-3 py-1.5 transition",
                     isTransparent
                       ? "border-white/40 bg-white/10"
                       : "border-neutral-200 bg-white",
@@ -164,7 +164,7 @@ export default function Header({
                     }}
                     aria-label="Close search"
                     className={cn(
-                      "rounded-full p-0.5 transition",
+                      " p-0.5 transition",
                       isTransparent ? "hover:bg-white/10" : "hover:bg-neutral/5",
                     )}
                   >
@@ -176,7 +176,7 @@ export default function Header({
                   type="button"
                   onClick={() => setSearchOpen(true)}
                   className={cn(
-                    "rounded-full p-2 transition",
+                    " p-2 transition",
                     isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                   )}
                   aria-label="Search"
@@ -187,14 +187,14 @@ export default function Header({
               <Link
                 href="/wishlist"
                 className={cn(
-                  "relative rounded-full p-2 transition",
+                  "relative  p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Wishlist"
               >
                 <Heart size={20} />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center  bg-primary text-[10px] font-medium text-white">
                     {wishlistCount}
                   </span>
                 )}
@@ -202,7 +202,7 @@ export default function Header({
               <Link
                 href="/account"
                 className={cn(
-                  "rounded-full p-2 transition",
+                  " p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Account"
@@ -212,14 +212,14 @@ export default function Header({
               <Link
                 href="/cart"
                 className={cn(
-                  "relative rounded-full p-2 transition",
+                  "relative  p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Cart"
               >
                 <ShoppingBag size={20} />
                 {getItemCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center  bg-primary text-[10px] font-medium text-white">
                     {getItemCount()}
                   </span>
                 )}
@@ -231,14 +231,14 @@ export default function Header({
               <Link
                 href="/wishlist"
                 className={cn(
-                  "relative rounded-full p-2 transition",
+                  "relative  p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Wishlist"
               >
                 <Heart size={19} />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-white">
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center  bg-primary text-[9px] font-medium text-white">
                     {wishlistCount}
                   </span>
                 )}
@@ -246,7 +246,7 @@ export default function Header({
               <Link
                 href="/account"
                 className={cn(
-                  "rounded-full p-2 transition",
+                  " p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Account"
@@ -256,14 +256,14 @@ export default function Header({
               <Link
                 href="/cart"
                 className={cn(
-                  "relative rounded-full p-2 transition",
+                  "relative  p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
                 aria-label="Cart"
               >
                 <ShoppingBag size={19} />
                 {getItemCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-white">
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center  bg-primary text-[9px] font-medium text-white">
                     {getItemCount()}
                   </span>
                 )}
@@ -293,7 +293,7 @@ export default function Header({
         <nav className="flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-6">
           <form
             onSubmit={handleSearchSubmit}
-            className="flex items-center gap-2 rounded-full border border-neutral-200 px-4 py-3"
+            className="flex items-center gap-2  border border-neutral-200 px-4 py-3"
           >
             <Search size={16} className="text-neutral/50 flex-shrink-0" />
             <input

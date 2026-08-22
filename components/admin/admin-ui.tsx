@@ -17,7 +17,7 @@ export function StatCard({
   icon: React.ComponentType<{ size?: number }>;
 }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)]">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <div className="rounded-xl bg-primary/10 p-3 text-primary">
           <Icon size={18} />

@@ -65,7 +65,7 @@ export function ProductsView({
   };
 
   return (
-    <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+    <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
       <div className="mb-5 flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

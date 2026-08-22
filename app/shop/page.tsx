@@ -238,7 +238,7 @@ function ShopPageInner() {
               type="button"
               onClick={() => setSelectedCategories([])}
               className={cn(
-                'shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition',
+                'shrink-0 px-5 py-2.5 text-sm font-semibold transition',
                 selectedCategories.length === 0
                   ? 'bg-primary text-white shadow-sm shadow-primary/25'
                   : 'border border-neutral/15 bg-white text-neutral hover:border-primary/40',
@@ -255,7 +255,7 @@ function ShopPageInner() {
                   type="button"
                   onClick={() => setSelectedCategories([cat.value])}
                   className={cn(
-                    'shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition',
+                    'shrink-0 px-5 py-2.5 text-sm font-semibold transition',
                     active
                       ? 'bg-primary text-white shadow-sm shadow-primary/25'
                       : 'border border-neutral/15 bg-white text-neutral hover:border-primary/40',
@@ -499,7 +499,7 @@ function ShopPageInner() {
               <button
                 onClick={() => setMobileFiltersOpen(false)}
                 aria-label="Close filters"
-                className="rounded-full p-2 hover:bg-neutral/5 transition"
+                className="p-2 hover:bg-neutral/5 transition"
               >
                 <X size={18} />
               </button>
@@ -696,13 +696,13 @@ function FilterContent({
 
 function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-medium capitalize text-primary">
+    <span className="inline-flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 text-xs font-medium capitalize text-primary">
       {label}
       <button
         type="button"
         onClick={onRemove}
         aria-label={`Remove ${label} filter`}
-        className="rounded-full p-0.5 hover:bg-primary/20 transition"
+        className="p-0.5 hover:bg-primary/20 transition"
       >
         <X size={12} />
       </button>

@@ -16,7 +16,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)]">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-primary/10 p-3 text-primary">
             <Ticket size={18} />
@@ -30,7 +30,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
         </div>
       </div>
 
-      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-neutral-900">Signups</h2>
           <p className="text-sm text-neutral-500">

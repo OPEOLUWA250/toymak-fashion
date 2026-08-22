@@ -2,15 +2,12 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { HeroCarousel } from "@/components/hero-carousel";
-import { TrendingCarousel } from "@/components/trending-carousel";
 import { ScrollCarousel } from "@/components/scroll-carousel";
 import { TestimonialStack } from "@/components/testimonial-stack";
 import { TestimonialCard } from "@/components/testimonial-card";
-import { ProductCard } from "@/components/product-card";
-import { ContactButton } from "@/components/contact-button";
 import { ContactFaqSection } from "@/components/contact-faq-section";
 import { FirstOrderPopup } from "@/components/first-order-popup";
-import { ArrowRight, ArrowUpRight, Play, Ruler } from "lucide-react";
+import { ArrowRight, Play, Ruler } from "lucide-react";
 import { mockProducts } from "@/lib/mock-products";
 import { mockReviews } from "@/lib/mock-reviews";
 import { faqSections } from "@/lib/faq-data";
@@ -19,7 +16,7 @@ const newestProducts = [...mockProducts].sort(
   (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
 );
 const newestFeature = newestProducts[0];
-const newestGrid = newestProducts.slice(1, 5);
+const newestGrid = newestProducts.slice(1, 3);
 
 const heroSlides = [
   {
@@ -113,55 +110,73 @@ export default function HomePage() {
       <HeroCarousel images={heroSlides} scrollTargetId="new-arrivals" />
 
       {/* New Arrivals */}
-      <section id="new-arrivals" className="py-20 md:py-28">
+      <section id="new-arrivals" className="py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-12">
+          <div className="mb-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-primary font-semibold mb-3">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary">
                 Just Landed
               </p>
-              <h2 className="text-3xl md:text-4xl font-bold text-neutral">New Arrivals</h2>
-              <p className="text-neutral/60 mt-3 max-w-lg">
+              <h2 className="text-3xl font-bold text-neutral md:text-4xl">New Arrivals</h2>
+              <p className="mt-3 max-w-lg text-neutral/60">
                 The latest additions to the collection, fresh off the production line.
               </p>
             </div>
             <Link
               href="/shop?sort=newest"
-              className="inline-flex items-center justify-center px-6 py-3 bg-primary text-white font-medium rounded-sm hover:bg-opacity-90 transition whitespace-nowrap"
+              className="inline-flex items-center gap-2 border-b-2 border-primary pb-1 font-semibold text-neutral transition hover:text-primary"
             >
               Shop New Arrivals
-              <ArrowRight className="ml-2" size={18} />
+              <ArrowRight size={18} />
             </Link>
           </div>
 
-          <div className="grid lg:grid-cols-[1.2fr_1fr] gap-6">
+          <div className="grid gap-px bg-neutral/10 lg:grid-cols-[1.3fr_1fr]">
             {/* Newest product, editorial feature tile */}
             <Link
               href={`/product/${newestFeature.id}`}
-              className="group relative min-h-[420px] overflow-hidden rounded-2xl bg-tertiary/40 lg:h-full"
+              className="group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
             >
               <img
                 src={newestFeature.images[0]}
                 alt={newestFeature.name}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              <span className="absolute left-5 top-5 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+              <span className="absolute left-6 top-6 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
                 New
               </span>
-              <div className="absolute inset-x-5 bottom-5">
+              <div className="absolute inset-x-6 bottom-6">
                 <h3 className="mb-1 text-2xl font-bold text-white">{newestFeature.name}</h3>
-                <p className="mb-3 text-sm text-white/80">{newestFeature.description}</p>
-                <span className="text-lg font-bold text-white">
+                <p className="mb-4 max-w-sm text-sm text-white/75">{newestFeature.description}</p>
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
                   £{newestFeature.price_gbp.toFixed(2)}
+                  <ArrowRight size={14} className="transition group-hover:translate-x-1" />
                 </span>
               </div>
             </Link>
 
-            {/* Next newest, compact grid */}
-            <div className="grid grid-cols-2 gap-6">
+            {/* Next newest, stacked in the same editorial treatment as the feature tile */}
+            <div className="grid grid-rows-2 gap-px">
               {newestGrid.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <Link
+                  key={product.id}
+                  href={`/product/${product.id}`}
+                  className="group relative min-h-[220px] overflow-hidden bg-tertiary/40 lg:min-h-0"
+                >
+                  <img
+                    src={product.images[0]}
+                    alt={product.name}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
+                  <div className="absolute inset-x-5 bottom-5">
+                    <h3 className="mb-1 text-lg font-bold text-white">{product.name}</h3>
+                    <span className="text-sm font-semibold text-white">
+                      £{product.price_gbp.toFixed(2)}
+                    </span>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -230,44 +245,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Items */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
-              Featured Items
-            </h2>
-            <p className="text-neutral/60 max-w-2xl mx-auto">
-              Everything Toymak makes, at a glance — shapewear, waist training, bras, tops,
-              and accessories
-            </p>
-          </div>
-
-          <ScrollCarousel>
-            {shopByCategory.map((cat) => (
-              <Link
-                key={cat.label}
-                href={cat.href}
-                className="group relative h-80 w-64 shrink-0 snap-start overflow-hidden rounded-2xl bg-tertiary/40 sm:w-72"
-              >
-                <img
-                  src={cat.image}
-                  alt={cat.label}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
-                <div className="absolute inset-x-4 bottom-4 flex items-end justify-between">
-                  <h3 className="text-xl font-bold text-white">{cat.label}</h3>
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-neutral transition group-hover:bg-primary group-hover:text-white">
-                    <ArrowUpRight size={16} />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </ScrollCarousel>
-        </div>
-      </section>
-
       {/* Video Guides */}
       <section className="py-20 md:py-28 bg-tertiary/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -295,7 +272,7 @@ export default function HomePage() {
                     className="h-full w-full object-cover opacity-70 transition duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-black/20" />
-                  <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-neutral">
+                  <span className="absolute left-4 top-4 bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-neutral">
                     Coming Soon
                   </span>
                   <span className="absolute inset-0 flex items-center justify-center">
@@ -348,41 +325,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Best Sellers */}
-      <section className="py-20 md:py-28 bg-tertiary/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">
-                Best Sellers
-              </h2>
-              <p className="text-neutral/60 max-w-2xl">
-                Customer favorites that deliver results
-              </p>
-            </div>
-            <Link
-              href="/shop"
-              className="hidden sm:inline-flex items-center px-6 py-3 border-2 border-primary text-primary font-medium rounded-sm hover:bg-primary hover:text-white transition whitespace-nowrap"
-            >
-              View All
-              <ArrowRight className="ml-2" size={18} />
-            </Link>
-          </div>
-
-          <TrendingCarousel products={mockProducts} />
-
-          <div className="text-center mt-12 sm:hidden">
-            <Link
-              href="/shop"
-              className="inline-flex items-center px-8 py-3 border-2 border-primary text-primary font-medium rounded-sm hover:bg-primary hover:text-white transition"
-            >
-              View All Products
-              <ArrowRight className="ml-2" size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Find Your Fit */}
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -417,7 +359,6 @@ export default function HomePage() {
       <ContactFaqSection faqs={homepageFaqs} />
 
       <Footer />
-      <ContactButton />
       <FirstOrderPopup />
     </main>
   );

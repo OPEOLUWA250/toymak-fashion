@@ -29,7 +29,7 @@ export function MessagesView({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex-1 rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)]">
+        <div className="flex-1 rounded-2xl border border-neutral-200 bg-white p-5">
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-primary/10 p-3 text-primary">
               <MessageSquare size={18} />
@@ -53,14 +53,14 @@ export function MessagesView({
           type="button"
           onClick={onRefresh}
           disabled={isLoading}
-          className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-600 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.35)] transition hover:border-primary hover:text-primary disabled:opacity-50"
+          className="flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-medium text-neutral-600 transition hover:border-primary hover:text-primary disabled:opacity-50"
         >
           <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
 
-      <div className="rounded-[1.75rem] border border-neutral-200 bg-white p-5 shadow-[0_18px_50px_-35px_rgba(0,0,0,0.28)] lg:p-6">
+      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-neutral-900">Messages</h2>
           <p className="text-sm text-neutral-500">
