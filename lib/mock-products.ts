@@ -100,7 +100,7 @@ export const mockProducts: Product[] = [
     sku: "ST-001",
     images: [
       "/shop-img/imgi_16_nu_amanda.png",
-      "/shop-img/imgi_96_img_2830.jpg",
+      "/shop-img/imgi_14_nu_bella.png",
     ],
     featured: false,
     created_at: new Date("2024-01-08"),
@@ -153,8 +153,8 @@ export const mockProducts: Product[] = [
     low_stock_threshold: 25,
     sku: "HWCS-001",
     images: [
-      "/shop-img/imgi_96_img_2830.jpg",
       "/shop-img/imgi_85_img_7941.jpg",
+      "/shop-img/imgi_24_img_8677-1.jpg",
     ],
     featured: false,
     created_at: new Date("2024-01-09"),

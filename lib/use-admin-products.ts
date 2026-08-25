@@ -2,9 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Product } from "./types";
-import { mockProducts } from "./mock-products";
-
-const STORAGE_KEY = "toymak-admin-products";
 
 function reviveDates(products: Product[]): Product[] {
   return products.map((product) => ({
@@ -14,60 +11,60 @@ function reviveDates(products: Product[]): Product[] {
   }));
 }
 
+/**
+ * Admin-facing product catalog — backed by the same GET /api/products the
+ * storefront reads, plus /api/admin/products for mutations. Stock
+ * decrement is no longer handled here: it happens server-side, exactly
+ * once per confirmed order, inside appendServerOrder (see
+ * lib/server/order-store.ts) — regardless of which browser tab (if any)
+ * is open when the order lands.
+ */
 export function useAdminProducts() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setProducts(reviveDates(JSON.parse(saved)));
-      } catch {
-        // ignore corrupt local data, fall back to mock seed
-      }
-    }
-    setIsHydrated(true);
+    fetch("/api/products")
+      .then((response) => response.json())
+      .then((data: { products?: Product[] }) => {
+        setProducts(reviveDates(data.products ?? []));
+      })
+      .finally(() => setIsLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
-    }
-  }, [products, isHydrated]);
 
   const actions = useMemo(
     () => ({
-      addProduct: (product: Product) => {
-        setProducts((current) => [product, ...current]);
+      addProduct: async (product: Product) => {
+        const response = await fetch("/api/admin/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(product),
+        });
+        const data = (await response.json()) as { product?: Product };
+        if (data.product) {
+          const created = reviveDates([data.product])[0];
+          setProducts((current) => [created, ...current]);
+        }
       },
-      updateProduct: (product: Product) => {
-        setProducts((current) =>
-          current.map((p) => (p.id === product.id ? { ...product, updated_at: new Date() } : p)),
-        );
+      updateProduct: async (product: Product) => {
+        const response = await fetch(`/api/admin/products/${product.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(product),
+        });
+        const data = (await response.json()) as { product?: Product };
+        if (data.product) {
+          const updated = reviveDates([data.product])[0];
+          setProducts((current) => current.map((p) => (p.id === updated.id ? updated : p)));
+        }
       },
-      removeProduct: (productId: string) => {
+      removeProduct: async (productId: string) => {
+        await fetch(`/api/admin/products/${productId}`, { method: "DELETE" });
         setProducts((current) => current.filter((p) => p.id !== productId));
-      },
-      // Called once per newly-confirmed order (see useStockSync) so a
-      // purchase actually depletes stock instead of low-stock alerts being
-      // purely manual admin bookkeeping.
-      decrementStock: (items: { product_id: string; quantity: number }[]) => {
-        setProducts((current) =>
-          current.map((product) => {
-            const purchased = items.find((item) => item.product_id === product.id);
-            if (!purchased) return product;
-            return {
-              ...product,
-              stock_qty: Math.max(0, product.stock_qty - purchased.quantity),
-              updated_at: new Date(),
-            };
-          }),
-        );
       },
     }),
     [],
   );
 
-  return { products, ...actions };
+  return { products, isLoading, ...actions };
 }

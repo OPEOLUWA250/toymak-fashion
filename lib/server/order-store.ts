@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { Order } from "@/lib/types";
 import { eventBus } from "./event-bus";
+import { decrementProductStock } from "./products";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILE_PATH = path.join(DATA_DIR, "server-orders.json");
@@ -55,10 +56,14 @@ function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
 
 /**
  * Idempotent on payment_reference — Stripe and Paystack both retry webhook
- * delivery, so the same event can arrive more than once.
+ * delivery, so the same event can arrive more than once. Stock is only
+ * decremented the first time an order's reference is actually added here —
+ * this is the single write path every confirmation route (both webhooks
+ * and the client-triggered /api/orders/confirm) funnels through, so it's
+ * the one safe place to do it exactly once per real order.
  */
 export async function appendServerOrder(order: Order): Promise<{ added: boolean }> {
-  return withWriteLock(async () => {
+  const { added } = await withWriteLock(async () => {
     await ensureFile();
     const orders = await getServerOrders();
     if (orders.some((existing) => existing.payment_reference === order.payment_reference)) {
@@ -69,4 +74,10 @@ export async function appendServerOrder(order: Order): Promise<{ added: boolean 
     eventBus.emit("order", order);
     return { added: true };
   });
+
+  if (added) {
+    await decrementProductStock(order.items);
+  }
+
+  return { added };
 }

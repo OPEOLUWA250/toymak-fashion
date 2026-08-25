@@ -1,7 +1,4 @@
-import { mockProducts } from "./mock-products";
 import { Currency, OrderItem, Product } from "./types";
-
-const productLookup = new Map(mockProducts.map((product) => [product.id, product]));
 
 export const currencySymbols: Record<Currency, string> = {
   GBP: "£",
@@ -47,13 +44,21 @@ export interface OrderTotals {
  * Shared by the checkout page (for display) and the Paystack initialize route
  * (to compute the amount actually charged) so the two can never drift apart —
  * a client can't tamper with the total since the server recomputes it from
- * product_id/quantity against the mock catalog, not from a client-sent price.
+ * product_id/quantity against the real catalog, not from a client-sent price.
+ *
+ * Takes `products` as a parameter rather than looking them up internally so
+ * this stays a plain, synchronous function usable from both server code
+ * (which fetches products from Supabase) and client code (which fetches the
+ * same catalog via GET /api/products) — it doesn't need to know or care
+ * where the list came from.
  */
 export function calculateOrderTotals(
   items: { product_id: string; quantity: number }[],
   currency: Currency,
   country: string,
+  products: Product[],
 ): OrderTotals {
+  const productLookup = new Map(products.map((product) => [product.id, product]));
   const subtotal = items.reduce((runningTotal, item) => {
     const product = productLookup.get(item.product_id);
     return runningTotal + getProductPriceForCurrency(product, currency) * item.quantity;
@@ -79,11 +84,16 @@ export interface OrderItemInput {
 
 /**
  * Turns client-sent {product_id, quantity, size, color} into full priced
- * OrderItem records, looking up name/price from the mock catalog rather than
+ * OrderItem records, looking up name/price from the real catalog rather than
  * trusting anything the client claims — used by both gateways' initialize
  * and verify routes so a placed order's line items are always server-derived.
  */
-export function buildOrderItems(items: OrderItemInput[], currency: Currency): OrderItem[] {
+export function buildOrderItems(
+  items: OrderItemInput[],
+  currency: Currency,
+  products: Product[],
+): OrderItem[] {
+  const productLookup = new Map(products.map((product) => [product.id, product]));
   return items.map((item) => {
     const product = productLookup.get(item.product_id);
     const unitPrice = getProductPriceForCurrency(product, currency);

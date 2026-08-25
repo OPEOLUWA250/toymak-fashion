@@ -34,7 +34,7 @@ export function TestimonialCard({
 }) {
   return (
     <div
-      className={`group relative flex h-full flex-col rounded-3xl border border-neutral/8 bg-white p-7 pt-8 shadow-[0_20px_45px_-30px_rgba(43,43,43,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_55px_-25px_rgba(230,0,229,0.3)] ${className}`}
+      className={`group relative flex h-full flex-col rounded-3xl border border-neutral/8 bg-white p-7 pt-8 shadow-[0_20px_45px_-30px_rgba(43,43,43,0.35)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_55px_-25px_rgba(16,24,32,0.3)] ${className}`}
     >
       <span className="absolute -top-5 left-7 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/30">
         <Quote size={18} fill="currentColor" strokeWidth={0} />

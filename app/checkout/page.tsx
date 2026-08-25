@@ -4,7 +4,7 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
-import { mockProducts } from "@/lib/mock-products";
+import { useProducts } from "@/lib/use-products";
 import { getPaymentGatewayForCountry } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { Currency } from "@/lib/types";
@@ -61,9 +61,10 @@ export default function CheckoutPage() {
     [country],
   );
   const checkoutCurrency = checkoutCurrencyForGateway(selectedGateway);
+  const { products } = useProducts();
   const productLookup = useMemo(() => {
-    return new Map(mockProducts.map((product) => [product.id, product]));
-  }, []);
+    return new Map(products.map((product) => [product.id, product]));
+  }, [products]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -94,6 +95,7 @@ export default function CheckoutPage() {
     items,
     checkoutCurrency,
     country,
+    products,
   );
 
   const validateCheckoutForm = () => {
@@ -361,7 +363,7 @@ export default function CheckoutPage() {
                       type="button"
                       className={`rounded-2xl border p-5 text-left transition ${
                         active
-                          ? "border-primary bg-primary/5 shadow-[0_16px_40px_-30px_rgba(230,0,229,0.5)]"
+                          ? "border-primary bg-primary/5 shadow-[0_16px_40px_-30px_rgba(16,24,32,0.5)]"
                           : "border-neutral/15 bg-white hover:border-primary/30"
                       }`}
                     >

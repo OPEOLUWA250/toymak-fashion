@@ -112,7 +112,7 @@ export function ScrollCarousel({
         type="button"
         onClick={() => scroll(-1)}
         aria-label="Scroll left"
-        className="absolute -left-4 top-[38%] hidden -translate-y-1/2 rounded-full border border-neutral/10 bg-white p-2.5 text-neutral shadow-lg transition hover:text-primary lg:flex"
+        className="absolute -left-4 top-[38%] hidden -translate-y-1/2 border border-neutral/10 bg-white p-2.5 text-neutral shadow-lg transition hover:text-primary lg:flex"
       >
         <ChevronLeft size={18} />
       </button>
@@ -120,7 +120,7 @@ export function ScrollCarousel({
         type="button"
         onClick={() => scroll(1)}
         aria-label="Scroll right"
-        className="absolute -right-4 top-[38%] hidden -translate-y-1/2 rounded-full border border-neutral/10 bg-white p-2.5 text-neutral shadow-lg transition hover:text-primary lg:flex"
+        className="absolute -right-4 top-[38%] hidden -translate-y-1/2 border border-neutral/10 bg-white p-2.5 text-neutral shadow-lg transition hover:text-primary lg:flex"
       >
         <ChevronRight size={18} />
       </button>

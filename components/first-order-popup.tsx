@@ -123,7 +123,7 @@ export function FirstOrderPopup() {
             type="button"
             onClick={dismiss}
             aria-label="Close"
-            className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-neutral shadow-md backdrop-blur transition hover:bg-white hover:text-primary"
+            className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center bg-white/90 text-neutral shadow-md backdrop-blur transition hover:bg-white hover:text-primary"
           >
             <X size={18} />
           </button>

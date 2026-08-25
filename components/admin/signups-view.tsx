@@ -74,7 +74,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                       <button
                         type="button"
                         onClick={() => handleCopy(signup)}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition hover:bg-primary/20"
+                        className="inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary transition hover:bg-primary/20"
                       >
                         {signup.coupon_code}
                         {copiedId === signup.id ? <Check size={12} /> : <Copy size={12} />}

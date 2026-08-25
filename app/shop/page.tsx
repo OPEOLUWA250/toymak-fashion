@@ -4,7 +4,7 @@ import Header from '@/components/header'
 import Footer from '@/components/footer'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { mockProducts } from '@/lib/mock-products'
+import { useProducts } from '@/lib/use-products'
 import { cn } from '@/lib/utils'
 import { ProductCard } from '@/components/product-card'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
@@ -52,36 +52,39 @@ export default function ShopPage() {
 
 function ShopPageInner() {
   const searchParams = useSearchParams()
+  const { products } = useProducts()
 
+  // Falls back to a sane default range while products are still loading
+  // (an empty array would otherwise give Math.min/max of Infinity/-Infinity).
   const priceFloor = useMemo(
-    () => Math.floor(Math.min(...mockProducts.map((p) => p.price_gbp))),
-    [],
+    () => (products.length ? Math.floor(Math.min(...products.map((p) => p.price_gbp))) : 0),
+    [products],
   )
   const priceCeil = useMemo(
-    () => Math.ceil(Math.max(...mockProducts.map((p) => p.price_gbp))),
-    [],
+    () => (products.length ? Math.ceil(Math.max(...products.map((p) => p.price_gbp))) : 100),
+    [products],
   )
 
   const categories = useMemo(
     () =>
       CATEGORY_DEFS.map((cat) => ({
         ...cat,
-        count: mockProducts.filter((p) => p.category === cat.value).length,
+        count: products.filter((p) => p.category === cat.value).length,
       })).filter((cat) => cat.count > 0),
-    [],
+    [products],
   )
 
   const allColors = useMemo(() => {
     const map = new Map<string, string>()
-    mockProducts.forEach((p) => p.colors.forEach((c) => {
+    products.forEach((p) => p.colors.forEach((c) => {
       if (!map.has(c.name)) map.set(c.name, c.hex)
     }))
     return Array.from(map.entries()).map(([name, hex]) => ({ name, hex }))
-  }, [])
+  }, [products])
 
   const allSizes = useMemo(
-    () => SIZE_ORDER.filter((size) => mockProducts.some((p) => p.sizes.includes(size))),
-    [],
+    () => SIZE_ORDER.filter((size) => products.some((p) => p.sizes.includes(size))),
+    [products],
   )
 
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '')
@@ -101,8 +104,16 @@ function ShopPageInner() {
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
   const [sortOpen, setSortOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [priceTouched, setPriceTouched] = useState(false)
 
   const sortMenuRef = useRef<HTMLDivElement>(null)
+
+  // maxPrice's initial value comes from priceCeil, but products (and so
+  // priceCeil) load asynchronously — once the real ceiling arrives, adopt it,
+  // unless the visitor has already dragged the slider themselves.
+  useEffect(() => {
+    if (!priceTouched) setMaxPrice(priceCeil)
+  }, [priceCeil, priceTouched])
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -126,6 +137,7 @@ function ShopPageInner() {
     setSelectedColors([])
     setSelectedSizes([])
     setMaxPrice(priceCeil)
+    setPriceTouched(false)
     setInStockOnly(false)
     setSearchQuery('')
   }
@@ -141,7 +153,7 @@ function ShopPageInner() {
   const sortedProducts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
-    const filtered = mockProducts.filter((product) => {
+    const filtered = products.filter((product) => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(product.category)) {
         return false
       }
@@ -180,7 +192,7 @@ function ShopPageInner() {
           return Number(b.featured) - Number(a.featured)
       }
     })
-  }, [selectedCategories, maxPrice, selectedColors, selectedSizes, inStockOnly, searchQuery, sortBy])
+  }, [products, selectedCategories, maxPrice, selectedColors, selectedSizes, inStockOnly, searchQuery, sortBy])
 
   const filterProps: FilterContentProps = {
     categories,
@@ -195,7 +207,10 @@ function ShopPageInner() {
     priceFloor,
     priceCeil,
     maxPrice,
-    onMaxPriceChange: setMaxPrice,
+    onMaxPriceChange: (value) => {
+      setPriceTouched(true)
+      setMaxPrice(value)
+    },
     inStockOnly,
     onInStockChange: setInStockOnly,
   }
@@ -228,7 +243,7 @@ function ShopPageInner() {
               </p>
             </div>
             <p className="text-sm text-neutral/50">
-              {sortedProducts.length} of {mockProducts.length} products
+              {sortedProducts.length} of {products.length} products
             </p>
           </div>
 

@@ -7,7 +7,6 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useCart } from "@/lib/cart-context";
 import { useOrders } from "@/lib/use-orders";
-import { useStockSync } from "@/lib/use-stock-sync";
 import { formatCurrency } from "@/lib/pricing";
 import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
 import { Order, PaymentGateway } from "@/lib/types";
@@ -27,7 +26,6 @@ function CheckoutSuccessContent() {
     gateway === "stripe" ? searchParams.get("session_id") : searchParams.get("reference");
   const { clearCart } = useCart();
   const { orders, addOrder } = useOrders();
-  useStockSync();
   const [state, setState] = useState<VerifyState>("loading");
   const [order, setOrder] = useState<Order | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

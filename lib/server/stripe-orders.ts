@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
+import { getAllProducts } from "@/lib/server/products";
 import { PaymentVerification } from "@/lib/order-builder";
 import { Address } from "@/lib/types";
 
@@ -53,11 +54,13 @@ export async function verifyStripeSession(sessionId: string): Promise<PaymentVer
     color: item.c,
   }));
 
-  const orderItems = buildOrderItems(itemInputs, "GBP");
+  const products = await getAllProducts();
+  const orderItems = buildOrderItems(itemInputs, "GBP", products);
   const { subtotal, shipping: shippingCost, tax, total } = calculateOrderTotals(
     itemInputs,
     "GBP",
     country,
+    products,
   );
 
   const shippingAddress: Address = {

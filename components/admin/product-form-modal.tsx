@@ -101,7 +101,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-neutral-500 transition hover:bg-neutral-100"
+            className="p-2 text-neutral-500 transition hover:bg-neutral-100"
             aria-label="Close"
           >
             <X size={18} />

@@ -8,15 +8,14 @@ import { TestimonialCard } from "@/components/testimonial-card";
 import { ContactFaqSection } from "@/components/contact-faq-section";
 import { FirstOrderPopup } from "@/components/first-order-popup";
 import { ArrowRight, Play, Ruler } from "lucide-react";
-import { mockProducts } from "@/lib/mock-products";
+import { getAllProducts } from "@/lib/server/products";
 import { mockReviews } from "@/lib/mock-reviews";
 import { faqSections } from "@/lib/faq-data";
 
-const newestProducts = [...mockProducts].sort(
-  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-);
-const newestFeature = newestProducts[0];
-const newestGrid = newestProducts.slice(1, 3);
+// Otherwise Next.js bakes this page (including product data) at build time
+// and it goes stale until the next deploy — a sold-out product could still
+// show as available. Re-fetches from Supabase at most once a minute.
+export const revalidate = 60;
 
 const heroSlides = [
   {
@@ -47,7 +46,7 @@ const shopByCategory = [
     image: "/shop-img/imgi_13_waist_wrp.png",
   },
   { label: "Bras", href: "/shop?category=bra", image: "/shop-img/imgi_8_shaper.png" },
-  { label: "Tops", href: "/shop?category=tops", image: "/shop-img/imgi_96_img_2830.jpg" },
+  { label: "Tops", href: "/shop?category=tops", image: "/shop-img/imgi_16_nu_amanda.png" },
   {
     label: "Accessories",
     href: "/shop?category=accessories",
@@ -78,7 +77,7 @@ const videoGuides = [
   {
     title: "Care & Washing Guide",
     blurb: "Keep your shapewear firm and lasting longer.",
-    image: "/shop-img/imgi_96_img_2830.jpg",
+    image: "/shop-img/imgi_24_img_8677-1.jpg",
   },
   {
     title: "Styling Shapewear Under Outfits",
@@ -90,18 +89,27 @@ const videoGuides = [
 // Highest-rated real review per product, so testimonials reflect actual
 // stored review data rather than newly invented quotes.
 const testimonialProductIds = ["prod-001", "prod-002", "prod-003", "prod-004", "prod-005", "prod-006"];
-const testimonials = testimonialProductIds
-  .map((productId) => {
-    const product = mockProducts.find((p) => p.id === productId);
-    const bestReview = [...mockReviews]
-      .filter((review) => review.product_id === productId && review.approved)
-      .sort((a, b) => b.rating - a.rating || b.created_at.getTime() - a.created_at.getTime())[0];
-    if (!product || !bestReview) return null;
-    return { ...bestReview, productName: product.name };
-  })
-  .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await getAllProducts();
+
+  const newestProducts = [...products].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+  const newestFeature = newestProducts[0];
+  const newestGrid = newestProducts.slice(1, 3);
+
+  const testimonials = testimonialProductIds
+    .map((productId) => {
+      const product = products.find((p) => p.id === productId);
+      const bestReview = [...mockReviews]
+        .filter((review) => review.product_id === productId && review.approved)
+        .sort((a, b) => b.rating - a.rating || b.created_at.getTime() - a.created_at.getTime())[0];
+      if (!product || !bestReview) return null;
+      return { ...bestReview, productName: product.name };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
   return (
     <main className="bg-white">
       <Header variant="transparent" />
@@ -135,7 +143,7 @@ export default function HomePage() {
             {/* Newest product, editorial feature tile */}
             <Link
               href={`/product/${newestFeature.id}`}
-              className="group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
+              className="product-photo group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
             >
               <img
                 src={newestFeature.images[0]}
@@ -162,7 +170,7 @@ export default function HomePage() {
                 <Link
                   key={product.id}
                   href={`/product/${product.id}`}
-                  className="group relative min-h-[220px] overflow-hidden bg-tertiary/40 lg:min-h-0"
+                  className="product-photo group relative min-h-[220px] overflow-hidden bg-tertiary/40 lg:min-h-0"
                 >
                   <img
                     src={product.images[0]}
@@ -193,7 +201,7 @@ export default function HomePage() {
                 href={cat.href}
                 className="group flex w-20 flex-col items-center gap-3 sm:w-24"
               >
-                <div className="h-20 w-20 overflow-hidden rounded-full bg-tertiary/40 ring-1 ring-neutral/10 transition group-hover:ring-primary/40 sm:h-24 sm:w-24">
+                <div className="product-photo h-20 w-20 overflow-hidden rounded-full bg-tertiary/40 ring-1 ring-neutral/10 transition group-hover:ring-primary/40 sm:h-24 sm:w-24">
                   <img
                     src={cat.image}
                     alt={cat.label}
@@ -205,6 +213,15 @@ export default function HomePage() {
                 </span>
               </Link>
             ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              href="/shop"
+              className="inline-flex items-center gap-2 border-b-2 border-primary pb-1 font-semibold text-neutral transition hover:text-primary"
+            >
+              Browse the full collection
+              <ArrowRight size={18} />
+            </Link>
           </div>
         </div>
       </section>
@@ -330,7 +347,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-2xl bg-neutral">
             <img
-              src="/shop-img/imgi_96_img_2830.jpg"
+              src="/shop-img/imgi_85_img_7941.jpg"
               alt="Find your fit"
               className="absolute inset-0 h-full w-full object-cover opacity-50"
             />

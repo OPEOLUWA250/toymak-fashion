@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
+import { getAllProducts } from "@/lib/server/products";
 import { Address } from "@/lib/types";
 
 interface CheckoutRequestBody {
@@ -36,9 +37,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Currency is always GBP for Stripe here — recompute everything server-side
-  // from the mock catalog so nothing charged is trusted from the client.
-  const orderItems = buildOrderItems(items, "GBP");
-  const { shipping: shippingCost, tax } = calculateOrderTotals(items, "GBP", country);
+  // from the real catalog so nothing charged is trusted from the client.
+  const products = await getAllProducts();
+  const orderItems = buildOrderItems(items, "GBP", products);
+  const { shipping: shippingCost, tax } = calculateOrderTotals(items, "GBP", country, products);
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map((item) => ({
     price_data: {

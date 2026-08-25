@@ -20,7 +20,6 @@ import {
 import { deriveCustomers } from "@/lib/admin-data";
 import { useAdminProducts } from "@/lib/use-admin-products";
 import { useOrders } from "@/lib/use-orders";
-import { useStockSync } from "@/lib/use-stock-sync";
 import { useSignups } from "@/lib/use-signups";
 import { useContactMessages } from "@/lib/use-contact-messages";
 import { useAdminLiveEvents } from "@/lib/use-admin-live-events";
@@ -154,9 +153,6 @@ export default function AdminPage() {
     markAsRead: markMessageAsRead,
     receiveMessage,
   } = useContactMessages();
-  // Catches orders that only ever arrived via webhook (customer closed the
-  // tab before /checkout/success could run) so stock still gets depleted.
-  useStockSync();
   // Real-time push: new orders and contact messages land here the instant
   // they're confirmed/submitted elsewhere, no refresh needed.
   useAdminLiveEvents({ onOrder: addOrder, onContactMessage: receiveMessage });
@@ -233,7 +229,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between border-b border-neutral-200 p-5">
               <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
               <button
-                className="rounded-full border border-neutral-200 p-2"
+                className="border border-neutral-200 p-2"
                 onClick={() => setMobileMenuOpen(false)}
                 aria-label="Close navigation"
               >

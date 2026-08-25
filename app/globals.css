@@ -183,3 +183,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* Product photos come from mixed sources with mismatched backdrops (cool
+     grey, warm yellow, near-white) and different exposure. A uniform filter
+     plus a low-opacity warm-neutral wash (multiply darkens whites toward the
+     wash color, leaves already-dark garment areas mostly untouched) pulls
+     every photo toward one consistent tone without touching the source
+     files — a stopgap for visual consistency, not a substitute for a real
+     reshoot on one backdrop. */
+  .product-photo {
+    position: relative;
+    isolation: isolate;
+  }
+  .product-photo img {
+    filter: saturate(0.94) contrast(1.06) brightness(1.02);
+  }
+  .product-photo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--color-secondary);
+    opacity: 0.12;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+}

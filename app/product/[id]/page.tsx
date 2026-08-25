@@ -1,6 +1,6 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { mockProducts } from "@/lib/mock-products";
+import { getAllProducts, getProductById } from "@/lib/server/products";
 import { mockReviews } from "@/lib/mock-reviews";
 import { getProductRating } from "@/lib/mock-reviews";
 import { notFound } from "next/navigation";
@@ -10,8 +10,14 @@ import { ProductGallery } from "@/components/product-gallery";
 import { Star } from "lucide-react";
 import type { Metadata } from "next";
 
+// Same reasoning as app/page.tsx — without this, price/stock/description
+// edits made in the admin dashboard wouldn't show up on the live product
+// page until the next deploy.
+export const revalidate = 60;
+
 export async function generateStaticParams() {
-  return mockProducts.map((product) => ({
+  const products = await getAllProducts();
+  return products.map((product) => ({
     id: product.id,
   }));
 }
@@ -22,7 +28,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = mockProducts.find((p) => p.id === id);
+  const product = await getProductById(id);
 
   if (!product) {
     return {
@@ -42,16 +48,16 @@ export default async function ProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = mockProducts.find((p) => p.id === id);
-  const relatedProducts = product
-    ? mockProducts
-        .filter((p) => p.category === product.category && p.id !== product.id)
-        .slice(0, 4)
-    : [];
+  const product = await getProductById(id);
 
   if (!product) {
     notFound();
   }
+
+  const allProducts = await getAllProducts();
+  const relatedProducts = allProducts
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 4);
 
   const reviews = mockReviews
     .filter((review) => review.product_id === product.id && review.approved)

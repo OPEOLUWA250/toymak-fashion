@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
+import { getAllProducts } from "@/lib/server/products";
 import { Address } from "@/lib/types";
 
 const PAYSTACK_API = "https://api.paystack.co";
@@ -36,13 +37,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Currency is always NGN for Paystack — recompute everything server-side
-  // from the mock catalog so nothing charged is trusted from the client.
-  const orderItems = buildOrderItems(items, "NGN");
+  // from the real catalog so nothing charged is trusted from the client.
+  const products = await getAllProducts();
+  const orderItems = buildOrderItems(items, "NGN", products);
 
   const { subtotal, shipping: shippingCost, tax, total } = calculateOrderTotals(
     items,
     "NGN",
     country,
+    products,
   );
 
   const reference = `tmk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

@@ -81,7 +81,7 @@ export function HeroCarousel({
             type="button"
             onClick={prev}
             aria-label="Previous slide"
-            className="absolute left-4 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/15 p-2.5 text-white opacity-0 backdrop-blur transition duration-300 hover:bg-white/25 group-hover:opacity-100 md:flex"
+            className="absolute left-4 top-1/2 hidden -translate-y-1/2 bg-white/15 p-2.5 text-white opacity-0 backdrop-blur transition duration-300 hover:bg-white/25 group-hover:opacity-100 md:flex"
           >
             <ChevronLeft size={20} />
           </button>
@@ -89,7 +89,7 @@ export function HeroCarousel({
             type="button"
             onClick={next}
             aria-label="Next slide"
-            className="absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/15 p-2.5 text-white opacity-0 backdrop-blur transition duration-300 hover:bg-white/25 group-hover:opacity-100 md:flex"
+            className="absolute right-4 top-1/2 hidden -translate-y-1/2 bg-white/15 p-2.5 text-white opacity-0 backdrop-blur transition duration-300 hover:bg-white/25 group-hover:opacity-100 md:flex"
           >
             <ChevronRight size={20} />
           </button>

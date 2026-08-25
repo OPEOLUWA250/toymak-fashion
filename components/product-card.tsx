@@ -29,7 +29,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/product/${product.id}`} className="group block">
-      <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40">
+      <div className="product-photo relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40">
         <img
           src={product.images[0]}
           alt={product.name}
@@ -78,7 +78,7 @@ export function ProductCard({ product }: { product: Product }) {
             isWishlisted ? removeFromWishlist(product.id) : addToWishlist(product.id);
           }}
           aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-neutral shadow-sm backdrop-blur transition hover:text-primary"
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-white/90 text-neutral shadow-sm backdrop-blur transition hover:text-primary"
         >
           <Heart size={16} className={isWishlisted ? "fill-primary text-primary" : ""} />
         </button>

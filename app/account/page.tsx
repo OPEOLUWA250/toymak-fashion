@@ -8,7 +8,7 @@ import Footer from "@/components/footer";
 import { useOrders } from "@/lib/use-orders";
 import { formatCurrency } from "@/lib/pricing";
 import { normalizeExternalUrl } from "@/lib/utils";
-import { mockProducts } from "@/lib/mock-products";
+import { useProducts } from "@/lib/use-products";
 import { useWishlist } from "@/lib/wishlist-context";
 import { Order, OrderStatus } from "@/lib/types";
 import {
@@ -117,11 +117,12 @@ function OrderProgress({ status }: { status: OrderStatus }) {
 function AccountContent() {
   const { orders } = useOrders();
   const { productIds } = useWishlist();
-  const wishlistProducts = mockProducts.filter((product) => productIds.includes(product.id));
+  const { products } = useProducts();
+  const wishlistProducts = products.filter((product) => productIds.includes(product.id));
   const searchParams = useSearchParams();
   const productLookup = useMemo(
-    () => new Map(mockProducts.map((product) => [product.id, product])),
-    [],
+    () => new Map(products.map((product) => [product.id, product])),
+    [products],
   );
 
   // Order lookup — email alone is enough; tracking ID just narrows results

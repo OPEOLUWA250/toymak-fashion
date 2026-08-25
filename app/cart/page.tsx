@@ -122,7 +122,7 @@ export default function CartPage() {
                     onClick={() =>
                       removeItem(item.product_id, item.size, item.color)
                     }
-                    className="rounded-full p-2 text-neutral/60 hover:bg-primary/5 hover:text-primary transition"
+                    className="p-2 text-neutral/60 hover:bg-primary/5 hover:text-primary transition"
                     aria-label={`Remove ${item.product_name}`}
                   >
                     <Trash2 size={18} />

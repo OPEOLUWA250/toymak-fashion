@@ -3,13 +3,14 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
-import { mockProducts } from "@/lib/mock-products";
+import { useProducts } from "@/lib/use-products";
 import { useWishlist } from "@/lib/wishlist-context";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 
 export default function WishlistPage() {
   const { productIds, removeFromWishlist, clearWishlist } = useWishlist();
-  const products = mockProducts.filter((product) =>
+  const { products: allProducts } = useProducts();
+  const products = allProducts.filter((product) =>
     productIds.includes(product.id),
   );
 
@@ -85,14 +86,14 @@ export default function WishlistPage() {
                   <div className="flex flex-col items-start justify-between gap-3 sm:items-end">
                     <button
                       onClick={() => removeFromWishlist(product.id)}
-                      className="inline-flex items-center gap-2 rounded-full border border-neutral/15 px-4 py-2 text-sm text-neutral hover:border-primary hover:text-primary transition"
+                      className="inline-flex items-center gap-2 border border-neutral/15 px-4 py-2 text-sm text-neutral hover:border-primary hover:text-primary transition"
                     >
                       <Trash2 size={16} />
                       Remove
                     </button>
                     <Link
                       href={`/product/${product.id}`}
-                      className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-opacity-90"
+                      className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-opacity-90"
                     >
                       <ShoppingBag size={16} />
                       View Product
