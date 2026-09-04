@@ -72,7 +72,7 @@ export function FitFinder({
   }
 
   return (
-    <div className="rounded-2xl border border-primary/10 bg-[#fbf6f9] p-5">
+    <div className="rounded-2xl border border-primary/10 bg-neutral-100 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-semibold text-neutral">Fit Finder</h3>
         <button

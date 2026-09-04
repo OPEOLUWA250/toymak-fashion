@@ -5,12 +5,16 @@ import { Heart, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/types";
 import { useWishlist } from "@/lib/wishlist-context";
-import { getProductRating } from "@/lib/mock-reviews";
+import { useProductRatings } from "@/lib/use-reviews";
+import { useRegion } from "@/lib/region-context";
+import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 
 export function ProductCard({ product }: { product: Product }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
-  const { average, count } = getProductRating(product.id);
+  const ratings = useProductRatings();
+  const { average, count } = ratings[product.id] ?? { average: 0, count: 0 };
+  const { currency } = useRegion();
 
   const outOfStock = product.stock_qty <= 0;
   const lowStock = !outOfStock && product.stock_qty <= product.low_stock_threshold;
@@ -26,6 +30,15 @@ export function ProductCard({ product }: { product: Product }) {
           100,
       )
     : 0;
+
+  // The sale badge/compare-at price are only ever set in GBP in the admin
+  // (compare_at_price_gbp), so the strike-through price converts along with
+  // the currency switcher using the same discount percent it represents.
+  const displayPrice = getProductPriceForCurrency(product, currency);
+  const displayComparePrice =
+    onSale && product.compare_at_price_gbp !== undefined
+      ? displayPrice / (1 - discountPercent / 100)
+      : undefined;
 
   return (
     <Link href={`/product/${product.id}`} className="group block">
@@ -103,14 +116,14 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-y-1.5">
         <div className="flex items-baseline gap-2">
           <span className="text-base font-bold text-primary">
-            £{product.price_gbp.toFixed(2)}
+            {formatCurrency(displayPrice, currency)}
           </span>
-          {onSale && (
+          {onSale && displayComparePrice !== undefined && (
             <span className="text-sm text-neutral/40 line-through">
-              £{product.compare_at_price_gbp!.toFixed(2)}
+              {formatCurrency(displayComparePrice, currency)}
             </span>
           )}
         </div>

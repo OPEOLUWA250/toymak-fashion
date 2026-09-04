@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
+  BarChart3,
   Boxes,
   LayoutGrid,
   Menu,
   MessageSquare,
+  MessageSquareText,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,15 +25,18 @@ import { useOrders } from "@/lib/use-orders";
 import { useSignups } from "@/lib/use-signups";
 import { useContactMessages } from "@/lib/use-contact-messages";
 import { useAdminLiveEvents } from "@/lib/use-admin-live-events";
+import { useAdminReviews } from "@/lib/use-admin-reviews";
 import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
 import { OverviewView } from "@/components/admin/overview-view";
+import { AnalyticsView } from "@/components/admin/analytics-view";
 import { OrdersView } from "@/components/admin/orders-view";
 import { MessagesView } from "@/components/admin/messages-view";
 import { ProductsView } from "@/components/admin/products-view";
 import { CustomersView } from "@/components/admin/customers-view";
 import { InventoryView } from "@/components/admin/inventory-view";
 import { SignupsView } from "@/components/admin/signups-view";
+import { ReviewsView } from "@/components/admin/reviews-view";
 import { AdminManagementView } from "@/components/admin/admin-management-view";
 import { SettingsView } from "@/components/admin/settings-view";
 import { AdminProfileMenu } from "@/components/admin/admin-profile-menu";
@@ -39,12 +44,14 @@ import { NotificationsPanel } from "@/components/admin/notifications-panel";
 
 const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
   { view: "overview", label: "Overview", icon: LayoutGrid },
+  { view: "analytics", label: "Analytics", icon: BarChart3 },
   { view: "orders", label: "Orders", icon: ShoppingCart },
   { view: "messages", label: "Messages", icon: MessageSquare },
   { view: "products", label: "Products", icon: Package },
   { view: "customers", label: "Customers", icon: Users },
   { view: "inventory", label: "Inventory", icon: Boxes },
   { view: "signups", label: "Signups", icon: Ticket },
+  { view: "reviews", label: "Reviews", icon: MessageSquareText },
 ];
 
 const bottomNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
@@ -57,6 +64,11 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     eyebrow: "Dashboard Overview",
     title: "Good morning, Toymak team",
     subtitle: "A responsive control center for sales, stock, and fulfillment.",
+  },
+  analytics: {
+    eyebrow: "Trends",
+    title: "Analytics",
+    subtitle: "Orders and revenue over time, broken out by currency.",
   },
   orders: {
     eyebrow: "Fulfillment",
@@ -87,6 +99,11 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     eyebrow: "Growth",
     title: "First-Order Signups",
     subtitle: "Everyone who claimed a first-order discount code from the homepage popup.",
+  },
+  reviews: {
+    eyebrow: "Storefront",
+    title: "Reviews",
+    subtitle: "Moderate customer-submitted reviews before they go live on product pages.",
   },
   admin: {
     eyebrow: "Team",
@@ -146,6 +163,7 @@ export default function AdminPage() {
   const { products, addProduct, updateProduct, removeProduct } = useAdminProducts();
   const { orders, addOrder, updateOrderStatus } = useOrders();
   const { signups } = useSignups();
+  const { reviews: allReviews, setApproval: setReviewApproval, removeReview } = useAdminReviews();
   const {
     messages,
     isLoading: messagesLoading,
@@ -167,7 +185,11 @@ export default function AdminPage() {
     [orders],
   );
   const unreadMessages = useMemo(() => messages.filter((m) => m.status === "new"), [messages]);
-  const navBadges: Partial<Record<AdminView, number>> = { messages: unreadMessages.length };
+  const pendingReviews = useMemo(() => allReviews.filter((r) => !r.approved), [allReviews]);
+  const navBadges: Partial<Record<AdminView, number>> = {
+    messages: unreadMessages.length,
+    reviews: pendingReviews.length,
+  };
   const copy = viewCopy[activeView];
 
   const handleNavigate = (view: AdminView) => {
@@ -181,7 +203,7 @@ export default function AdminPage() {
   };
 
   return (
-    <main className="flex h-screen overflow-hidden bg-[#f6f1f8] text-neutral-900">
+    <main className="flex h-screen overflow-hidden bg-neutral-100 text-neutral-900">
       {/* Sidebar: full 100vh, extreme left */}
       <aside
         className={cn(
@@ -324,6 +346,7 @@ export default function AdminPage() {
             {activeView === "overview" && (
               <OverviewView orders={orders} products={products} onNavigate={handleNavigate} />
             )}
+            {activeView === "analytics" && <AnalyticsView orders={orders} />}
             {activeView === "orders" && (
               <OrdersView orders={orders} onUpdateStatus={updateOrderStatus} />
             )}
@@ -348,6 +371,14 @@ export default function AdminPage() {
             {activeView === "customers" && <CustomersView customers={customers} />}
             {activeView === "inventory" && <InventoryView products={products} />}
             {activeView === "signups" && <SignupsView signups={signups} />}
+            {activeView === "reviews" && (
+              <ReviewsView
+                reviews={allReviews}
+                onApprove={(id) => setReviewApproval(id, true)}
+                onReject={(id) => setReviewApproval(id, false)}
+                onDelete={removeReview}
+              />
+            )}
             {activeView === "admin" && <AdminManagementView />}
             {activeView === "settings" && <SettingsView />}
           </div>

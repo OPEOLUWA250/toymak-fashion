@@ -3,10 +3,19 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, X, Search, Heart, ShoppingBag, User, ChevronRight } from "lucide-react";
+import { Menu, X, Search, Heart, ShoppingBag, User, ChevronRight, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { useRegion } from "@/lib/region-context";
+import { currencySymbols } from "@/lib/pricing";
+import { Currency } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const currencyOptions: { value: Currency; label: string }[] = [
+  { value: "GBP", label: "GBP — UK" },
+  { value: "NGN", label: "NGN — Nigeria" },
+  { value: "USD", label: "USD — US" },
+];
 
 export default function Header({
   variant = "solid",
@@ -18,12 +27,15 @@ export default function Header({
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [currencyOpen, setCurrencyOpen] = useState(false);
   const { getItemCount } = useCart();
   const { productIds: wishlistProductIds } = useWishlist();
   const wishlistCount = wishlistProductIds.length;
+  const { currency, setCurrency } = useRegion();
 
   const isTransparent = variant === "transparent" && !scrolled;
   const searchRef = useRef<HTMLFormElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (variant !== "transparent") return;
@@ -63,6 +75,26 @@ export default function Header({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!currencyOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (currencyRef.current && !currencyRef.current.contains(event.target as Node)) {
+        setCurrencyOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCurrencyOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [currencyOpen]);
 
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -128,6 +160,43 @@ export default function Header({
 
             {/* Desktop Icons */}
             <div className="hidden md:flex items-center space-x-3">
+              <div className="relative" ref={currencyRef}>
+                <button
+                  type="button"
+                  onClick={() => setCurrencyOpen((open) => !open)}
+                  aria-haspopup="listbox"
+                  aria-expanded={currencyOpen}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-2 text-sm font-medium transition",
+                    isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
+                  )}
+                >
+                  {currencySymbols[currency]} {currency}
+                  <ChevronDown size={14} className={cn("transition", currencyOpen && "rotate-180")} />
+                </button>
+                {currencyOpen && (
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-44 rounded-xl border border-neutral-200 bg-white p-1 text-neutral shadow-2xl">
+                    {currencyOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="option"
+                        aria-selected={option.value === currency}
+                        onClick={() => {
+                          setCurrency(option.value);
+                          setCurrencyOpen(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition",
+                          option.value === currency ? "bg-primary/10 text-primary" : "hover:bg-neutral-100",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               {searchOpen ? (
                 <form
                   ref={searchRef}
@@ -321,6 +390,28 @@ export default function Header({
                 {item.label}
                 <ChevronRight size={16} className="text-neutral/30" />
               </Link>
+            ))}
+          </div>
+
+          <p className="mb-2 mt-8 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-neutral/40">
+            Display currency
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {currencyOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setCurrency(option.value)}
+                tabIndex={mobileMenuOpen ? 0 : -1}
+                className={cn(
+                  "border px-2 py-2.5 text-center text-sm font-semibold transition",
+                  option.value === currency
+                    ? "border-primary bg-primary/5 text-primary"
+                    : "border-neutral-200 text-neutral hover:border-primary/40",
+                )}
+              >
+                {currencySymbols[option.value]} {option.value}
+              </button>
             ))}
           </div>
         </nav>

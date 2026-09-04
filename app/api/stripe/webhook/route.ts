@@ -47,8 +47,11 @@ export async function POST(request: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const verification = await verifyStripeSession(session.id);
       if (verification) {
-        const order = buildOrderFromVerification(session.id, "stripe", "GBP", verification);
-        await appendServerOrder(order);
+        const order = buildOrderFromVerification(session.id, "stripe", verification);
+        await appendServerOrder(order, {
+          origin: request.nextUrl.origin,
+          discountCode: verification.discountCode,
+        });
       }
     }
 

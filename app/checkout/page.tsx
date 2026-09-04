@@ -5,18 +5,22 @@ import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useProducts } from "@/lib/use-products";
-import { getPaymentGatewayForCountry } from "@/lib/utils";
+import { useSettings } from "@/lib/use-settings";
+import { useRegion } from "@/lib/region-context";
+import { getCheckoutCurrency, getPaymentGatewayForCountry } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
-import { Currency } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Check,
   ChevronDown,
   CreditCard,
   Loader2,
   MapPin,
   ShieldCheck,
+  Tag,
   Truck,
   WalletCards,
+  X,
 } from "lucide-react";
 
 const paymentOptions = [
@@ -29,21 +33,35 @@ const paymentOptions = [
   {
     id: "stripe",
     title: "Stripe",
-    description: "Best for UK customers",
+    description: "For UK and US customers",
     icon: CreditCard,
   },
 ] as const;
 
-const countryPresets = ["United Kingdom", "Nigeria", "United States", "Ghana"];
+const countryPresets = ["United Kingdom", "Nigeria", "United States"];
 
-const checkoutCurrencyForGateway = (
-  gateway: "stripe" | "paystack",
-): Currency => (gateway === "paystack" ? "NGN" : "GBP");
+const defaultCountryForCurrency: Record<string, string> = {
+  GBP: "United Kingdom",
+  NGN: "Nigeria",
+  USD: "United States",
+};
 
 export default function CheckoutPage() {
   const { items, getTotal } = useCart();
+  const { currency: displayCurrency } = useRegion();
   const [country, setCountry] = useState("United Kingdom");
   const [countryOpen, setCountryOpen] = useState(false);
+  const countryTouched = useRef(false);
+
+  // Pre-filled from the browsing currency picked in the header (read from
+  // localStorage after mount, hence the effect rather than a lazy useState
+  // initializer) — but only a starting point, never re-applied once the
+  // customer has actually chosen a country themselves. It's the country
+  // picked below, not the display currency, that decides what's charged.
+  useEffect(() => {
+    if (countryTouched.current) return;
+    setCountry(defaultCountryForCurrency[displayCurrency] ?? "United Kingdom");
+  }, [displayCurrency]);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -56,12 +74,18 @@ export default function CheckoutPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const countryMenuRef = useRef<HTMLDivElement>(null);
 
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
+  const [couponStatus, setCouponStatus] = useState<"idle" | "checking" | "error">("idle");
+  const [couponError, setCouponError] = useState<string | null>(null);
+
   const selectedGateway = useMemo(
     () => getPaymentGatewayForCountry(country),
     [country],
   );
-  const checkoutCurrency = checkoutCurrencyForGateway(selectedGateway);
+  const checkoutCurrency = getCheckoutCurrency(country);
   const { products } = useProducts();
+  const { settings } = useSettings();
   const productLookup = useMemo(() => {
     return new Map(products.map((product) => [product.id, product]));
   }, [products]);
@@ -91,12 +115,46 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  const { subtotal, shipping, tax, total } = calculateOrderTotals(
+  const { subtotal, shipping, tax, total, discount } = calculateOrderTotals(
     items,
     checkoutCurrency,
-    country,
     products,
+    settings,
+    appliedCoupon?.discountPercent ?? 0,
   );
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+
+    setCouponStatus("checking");
+    setCouponError(null);
+    try {
+      const response = await fetch("/api/checkout/validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.valid) {
+        setCouponStatus("error");
+        setCouponError(data.error || "That code isn't valid.");
+        return;
+      }
+      setAppliedCoupon({ code: code.toUpperCase(), discountPercent: data.discountPercent });
+      setCouponStatus("idle");
+      setCouponInput("");
+    } catch {
+      setCouponStatus("error");
+      setCouponError("Something went wrong checking that code.");
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponStatus("idle");
+    setCouponError(null);
+  };
 
   const validateCheckoutForm = () => {
     setFormError(null);
@@ -137,6 +195,7 @@ export default function CheckoutPage() {
           items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
+          discountCode: appliedCoupon?.code,
           callback_url: `${window.location.origin}/checkout/success?gateway=paystack`,
         }),
       });
@@ -169,6 +228,7 @@ export default function CheckoutPage() {
           items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
+          discountCode: appliedCoupon?.code,
           success_url: `${window.location.origin}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${window.location.origin}/checkout`,
         }),
@@ -295,6 +355,7 @@ export default function CheckoutPage() {
                             role="option"
                             aria-selected={option === country}
                             onClick={() => {
+                              countryTouched.current = true;
                               setCountry(option);
                               setCountryOpen(false);
                             }}
@@ -401,7 +462,7 @@ export default function CheckoutPage() {
                 })}
               </div>
 
-              <div className="mt-5 rounded-2xl bg-[#fbf6f9] p-4 text-sm text-neutral/70">
+              <div className="mt-5 rounded-2xl bg-neutral-100 p-4 text-sm text-neutral/70">
                 <p className="font-semibold text-neutral">Gateway rule</p>
                 <p className="mt-1 leading-6">
                   {selectedGateway === "paystack"
@@ -461,8 +522,15 @@ export default function CheckoutPage() {
               <div className="space-y-3 py-5 text-sm text-neutral">
                 <Row
                   label="Subtotal"
-                  value={formatCurrency(subtotal, checkoutCurrency)}
+                  value={formatCurrency(subtotal + discount, checkoutCurrency)}
                 />
+                {discount > 0 && (
+                  <Row
+                    label={`Discount (${appliedCoupon?.code})`}
+                    value={`-${formatCurrency(discount, checkoutCurrency)}`}
+                    accent
+                  />
+                )}
                 <Row
                   label="Shipping"
                   value={
@@ -481,6 +549,51 @@ export default function CheckoutPage() {
                   value={selectedGateway === "paystack" ? "Paystack" : "Stripe"}
                   accent
                 />
+              </div>
+
+              <div className="space-y-2 border-t border-neutral/10 py-5">
+                <label className="text-sm font-medium text-neutral">Discount code</label>
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+                    <span className="flex items-center gap-2 text-sm font-semibold text-primary">
+                      <Check size={14} />
+                      {appliedCoupon.code} applied
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      aria-label="Remove discount code"
+                      className="text-neutral/50 transition hover:text-primary"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-neutral/15 px-3 py-2.5">
+                      <Tag size={14} className="text-neutral/40" />
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value);
+                          if (couponStatus === "error") setCouponStatus("idle");
+                        }}
+                        placeholder="Enter code"
+                        className="w-full bg-transparent text-sm text-black outline-none placeholder:text-black/40"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      disabled={couponStatus === "checking" || !couponInput.trim()}
+                      className="flex items-center justify-center rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {couponStatus === "checking" ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {couponError && <p className="text-xs text-red-600">{couponError}</p>}
               </div>
 
               <div className="flex items-center justify-between border-t border-neutral/10 pt-5">
@@ -513,21 +626,6 @@ export default function CheckoutPage() {
               {paymentError && (
                 <p className="mt-2 text-center text-xs text-red-600">{paymentError}</p>
               )}
-            </div>
-
-            <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-bold text-neutral">
-                Why this works
-              </h3>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-neutral/60">
-                <li>• UK customers are mapped to Stripe automatically.</li>
-                <li>
-                  • Nigerian customers are mapped to Paystack automatically.
-                </li>
-                <li>
-                  • The UI still shows both options so the flow is transparent.
-                </li>
-              </ul>
             </div>
           </aside>
         </div>

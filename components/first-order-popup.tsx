@@ -2,21 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
-import { useSignups } from "@/lib/use-signups";
 import { NewsletterSignup } from "@/lib/types";
+import { useSettings } from "@/lib/use-settings";
 
 const DISMISSED_KEY = "toymak-popup-dismissed";
 const SHOW_DELAY_MS = 4000;
 
-// Placeholder — swap in the real number once it's decided. The badge,
-// headline, and body copy all derive from this single value.
-const DISCOUNT_PERCENT = "15";
-const DISCOUNT_LABEL = `${DISCOUNT_PERCENT}% off`;
-
 type EmailStatus = "idle" | "sending" | "sent" | "failed" | "duplicate";
 
 export function FirstOrderPopup() {
-  const { addSignup, markEmailSent } = useSignups();
+  const { settings } = useSettings();
+  // Reads the same admin-editable rate the coupon actually applies at
+  // checkout (Settings -> Coupons), so this copy can never promise a
+  // different number than what's really honored.
+  const discountPercent = settings.welcomeDiscountPercent;
+  const discountLabel = `${discountPercent}% off`;
+
   const [visible, setVisible] = useState(false);
   const [entered, setEntered] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -63,14 +64,14 @@ export function FirstOrderPopup() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          signupId: target.id,
           firstName: target.first_name,
           email: target.email,
           couponCode: target.coupon_code,
-          discountLabel: DISCOUNT_LABEL,
+          discountLabel,
         }),
       });
       if (!response.ok) throw new Error("Email send failed");
-      markEmailSent(target.id);
       setEmailStatus("sent");
     } catch {
       setEmailStatus("failed");
@@ -79,7 +80,25 @@ export function FirstOrderPopup() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const { signup: newSignup, isNew } = addSignup(firstName, lastName, email);
+    setEmailStatus("sending");
+
+    let newSignup: NewsletterSignup;
+    let isNew: boolean;
+    try {
+      const response = await fetch("/api/signups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firstName, lastName, email }),
+      });
+      const data = (await response.json()) as { signup?: NewsletterSignup; isNew?: boolean; error?: string };
+      if (!response.ok || !data.signup) throw new Error(data.error ?? "Signup failed");
+      newSignup = data.signup;
+      isNew = data.isNew ?? false;
+    } catch {
+      setEmailStatus("failed");
+      return;
+    }
+
     setSignup(newSignup);
     localStorage.setItem(DISMISSED_KEY, "true");
 
@@ -130,7 +149,7 @@ export function FirstOrderPopup() {
 
           {!signup && (
             <span className="absolute left-5 top-5 z-10 rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-              {DISCOUNT_PERCENT}% Off
+              {discountPercent}% Off
             </span>
           )}
 
@@ -146,7 +165,7 @@ export function FirstOrderPopup() {
                 <p className="mx-auto mt-2 max-w-[24rem] text-sm leading-6 text-white/80">
                   {emailStatus === "sent" && (
                     <>
-                      We&apos;ve emailed your {DISCOUNT_LABEL} code to{" "}
+                      We&apos;ve emailed your {discountLabel} code to{" "}
                       <span className="font-semibold text-white">{signup.email}</span>. Check
                       your inbox (and spam folder) — it&apos;s on its way.
                     </>
@@ -211,7 +230,7 @@ export function FirstOrderPopup() {
                   Just for you
                 </p>
                 <h2 className="mt-3 text-3xl font-bold leading-tight text-white sm:text-4xl">
-                  {DISCOUNT_LABEL} your first order
+                  {discountLabel} your first order
                 </h2>
                 <p className="mt-3 max-w-sm text-sm leading-6 text-white/80">
                   Sign up for early access to new drops, styling tips, and a code

@@ -1,6 +1,8 @@
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
 import { getAllProducts } from "@/lib/server/products";
+import { getStoreSettings } from "@/lib/server/settings";
+import { validateCouponCode } from "@/lib/server/signups";
 import { PaymentVerification } from "@/lib/order-builder";
 import { Address } from "@/lib/types";
 
@@ -22,6 +24,11 @@ interface CompactItem {
   s: string;
   c: string;
 }
+
+const STRIPE_CURRENCY_MAP: Record<string, "GBP" | "USD"> = {
+  gbp: "GBP",
+  usd: "USD",
+};
 
 /**
  * Retrieves a Checkout Session and normalizes it. Shared by the
@@ -46,6 +53,15 @@ export async function verifyStripeSession(sessionId: string): Promise<PaymentVer
   const customerEmail = session.customer_details?.email ?? session.customer_email ?? "";
   const customerName = metadata.customer_name ?? "Guest";
   const customerPhone = metadata.customer_phone ?? "";
+  const discountCode: string | undefined = metadata.discount_code || undefined;
+
+  // Re-validated here rather than trusted from Stripe's own metadata echo —
+  // the code was checked once at /api/stripe/checkout time, but this is the
+  // moment it actually gets redeemed, so it's checked again against current
+  // state (e.g. someone else's order redeemed it in between).
+  const discountPercent = discountCode
+    ? (await validateCouponCode(discountCode)).discountPercent
+    : 0;
 
   const itemInputs = compactItems.map((item) => ({
     product_id: item.i,
@@ -54,13 +70,20 @@ export async function verifyStripeSession(sessionId: string): Promise<PaymentVer
     color: item.c,
   }));
 
+  // Trust what Stripe itself actually charged in, not a re-derivation from
+  // country — the two should agree (checkout sets currency from country
+  // too) but session.currency is the authoritative record of the real charge.
+  const currency = STRIPE_CURRENCY_MAP[session.currency ?? "gbp"] ?? "GBP";
+
   const products = await getAllProducts();
-  const orderItems = buildOrderItems(itemInputs, "GBP", products);
-  const { subtotal, shipping: shippingCost, tax, total } = calculateOrderTotals(
+  const settings = await getStoreSettings();
+  const orderItems = buildOrderItems(itemInputs, currency, products, discountPercent);
+  const { subtotal, shipping: shippingCost, tax, total, discount } = calculateOrderTotals(
     itemInputs,
-    "GBP",
-    country,
+    currency,
     products,
+    settings,
+    discountPercent,
   );
 
   const shippingAddress: Address = {
@@ -76,6 +99,7 @@ export async function verifyStripeSession(sessionId: string): Promise<PaymentVer
 
   return {
     status: "success",
+    currency,
     customerEmail,
     customerName,
     customerPhone,
@@ -85,5 +109,7 @@ export async function verifyStripeSession(sessionId: string): Promise<PaymentVer
     shippingCost,
     tax,
     total,
+    discount,
+    discountCode: discountPercent > 0 ? discountCode : undefined,
   };
 }

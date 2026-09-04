@@ -3,21 +3,35 @@
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { recordProductView } from "@/lib/use-recently-viewed";
 import { Heart, Share2, ChevronDown, Star, Minus, Plus, Check } from "lucide-react";
 import { Product } from "@/lib/types";
-import { getProductRating } from "@/lib/mock-reviews";
 import { FitFinder } from "@/components/fit-finder";
 import { sizeChart, type SizeCategory } from "@/lib/size-guide-data";
+import { useRegion } from "@/lib/region-context";
+import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 
 function isSizeCategory(category: string): category is SizeCategory {
   return category in sizeChart;
 }
 
-export default function ProductClient({ product }: { product: Product }) {
+export default function ProductClient({
+  product,
+  rating,
+}: {
+  product: Product;
+  rating: { average: number; count: number };
+}) {
   const { addItem } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { average, count } = getProductRating(product.id);
+  const { average, count } = rating;
+  const { currency } = useRegion();
+  const displayPrice = getProductPriceForCurrency(product, currency);
+
+  useEffect(() => {
+    recordProductView(product.id);
+  }, [product.id]);
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState(
@@ -78,12 +92,18 @@ export default function ProductClient({ product }: { product: Product }) {
         </h1>
         <div className="flex items-center gap-4 mb-5">
           <span className="text-3xl md:text-4xl text-primary font-bold">
-            £{product.price_gbp}
+            {formatCurrency(displayPrice, currency)}
           </span>
           <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             {product.featured ? "Best Seller" : "New Arrival"}
           </span>
         </div>
+        {currency !== "GBP" && (
+          <p className="-mt-4 mb-5 text-xs text-neutral/50">
+            Shown in {currency} for reference — you&apos;ll pay in the currency for your shipping
+            country at checkout.
+          </p>
+        )}
         <p className="text-neutral/70 leading-relaxed max-w-xl">
           {product.description}
         </p>

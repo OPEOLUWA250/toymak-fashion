@@ -12,10 +12,12 @@ export function StatCard({
   icon: Icon,
 }: {
   title: string;
-  value: string;
+  value: string | string[];
   subLabel: string;
   icon: React.ComponentType<{ size?: number }>;
 }) {
+  const lines = Array.isArray(value) ? value : [value];
+
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -29,7 +31,14 @@ export function StatCard({
       <p className="text-xs uppercase tracking-[0.24em] text-neutral-500">
         {title}
       </p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900">{value}</p>
+      <div className="mt-2">
+        <p className="text-2xl font-semibold text-neutral-900">{lines[0]}</p>
+        {lines.slice(1).map((line) => (
+          <p key={line} className="mt-0.5 text-sm font-medium text-neutral-500">
+            {line}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }

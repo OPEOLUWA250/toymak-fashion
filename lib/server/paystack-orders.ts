@@ -34,6 +34,7 @@ export async function verifyPaystackTransaction(
 
   return {
     status: "success",
+    currency: "NGN",
     customerEmail: tx.customer?.email ?? "",
     customerName: metadata.customer_name ?? "Guest",
     customerPhone: metadata.customer_phone ?? "",
@@ -43,5 +44,7 @@ export async function verifyPaystackTransaction(
     shippingCost: metadata.shipping_cost ?? 0,
     tax: metadata.tax ?? 0,
     total: metadata.total ?? (tx.amount ?? 0) / 100,
+    discount: metadata.discount ?? 0,
+    discountCode: metadata.discount_code || undefined,
   };
 }

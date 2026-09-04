@@ -48,8 +48,11 @@ export async function POST(request: NextRequest) {
       if (reference) {
         const verification = await verifyPaystackTransaction(reference);
         if (verification) {
-          const order = buildOrderFromVerification(reference, "paystack", "NGN", verification);
-          await appendServerOrder(order);
+          const order = buildOrderFromVerification(reference, "paystack", verification);
+          await appendServerOrder(order, {
+            origin: request.nextUrl.origin,
+            discountCode: verification.discountCode,
+          });
         }
       }
     }

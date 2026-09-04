@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Upload, X } from "lucide-react";
 import { Product, ProductCategory } from "@/lib/types";
+import { useSettings } from "@/lib/use-settings";
 import { cn } from "@/lib/utils";
 
 const categoryOptions: { value: ProductCategory; label: string }[] = [
@@ -21,6 +22,7 @@ interface ProductFormModalProps {
 
 export function ProductFormModal({ product, onClose, onSave }: ProductFormModalProps) {
   const isEditing = product !== null;
+  const { settings } = useSettings();
 
   const [name, setName] = useState(product?.name ?? "");
   const [sku, setSku] = useState(product?.sku ?? "");
@@ -29,6 +31,11 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   const [priceGbp, setPriceGbp] = useState(product ? String(product.price_gbp) : "");
   const [priceNgn, setPriceNgn] = useState(product ? String(product.price_ngn) : "");
   const [priceUsd, setPriceUsd] = useState(product?.price_usd ? String(product.price_usd) : "");
+  // Tracks whether NGN/USD were hand-edited, so the GBP-driven suggestion
+  // below only ever fills an empty field — it never overwrites a price the
+  // admin actually chose (e.g. her real NGN prices aren't FX conversions).
+  const ngnTouched = useRef(isEditing);
+  const usdTouched = useRef(isEditing);
   const [stockQty, setStockQty] = useState(product ? String(product.stock_qty) : "");
   const [lowStockThreshold, setLowStockThreshold] = useState(
     product ? String(product.low_stock_threshold) : "10",
@@ -39,6 +46,9 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     product?.colors.map((c) => `${c.name}, ${c.hex}`).join("\n") ?? "",
   );
   const [featured, setFeatured] = useState(product?.featured ?? false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -47,6 +57,40 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  const handleGbpChange = (value: string) => {
+    setPriceGbp(value);
+    const gbp = Number(value);
+    if (!gbp) return;
+
+    if (!ngnTouched.current) {
+      setPriceNgn(String(Math.round(gbp * settings.exchangeRates.gbpToNgn)));
+    }
+    if (!usdTouched.current) {
+      setPriceUsd((gbp * settings.exchangeRates.gbpToUsd).toFixed(2));
+    }
+  };
+
+  const handleFileSelect = async (fileList: FileList | null) => {
+    const file = fileList?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/admin/upload-image", { method: "POST", body: formData });
+      const data = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+      setImages((current) => (current.trim() ? `${current.trim()}\n${data.url}` : data.url!));
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -73,7 +117,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       description: description.trim(),
       price_gbp: Number(priceGbp) || 0,
       price_ngn: Number(priceNgn) || 0,
-      price_usd: priceUsd ? Number(priceUsd) : undefined,
+      price_usd: Number(priceUsd) || 0,
       stock_qty: Number(stockQty) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 0,
       sizes: sizes.split(",").map((s) => s.trim()).filter(Boolean),
@@ -91,7 +135,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
+        className="scrollbar-hide max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-6 flex items-center justify-between">
@@ -156,30 +200,43 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field
-              id="product-price-gbp"
-              label="Price (£)"
-              value={priceGbp}
-              onChange={setPriceGbp}
-              type="number"
-              required
-            />
-            <Field
-              id="product-price-ngn"
-              label="Price (₦)"
-              value={priceNgn}
-              onChange={setPriceNgn}
-              type="number"
-              required
-            />
-            <Field
-              id="product-price-usd"
-              label="Price ($, optional)"
-              value={priceUsd}
-              onChange={setPriceUsd}
-              type="number"
-            />
+          <div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field
+                id="product-price-gbp"
+                label="Price (£)"
+                value={priceGbp}
+                onChange={handleGbpChange}
+                type="number"
+                required
+              />
+              <Field
+                id="product-price-ngn"
+                label="Price (₦)"
+                value={priceNgn}
+                onChange={(value) => {
+                  ngnTouched.current = true;
+                  setPriceNgn(value);
+                }}
+                type="number"
+                required
+              />
+              <Field
+                id="product-price-usd"
+                label="Price ($)"
+                value={priceUsd}
+                onChange={(value) => {
+                  usdTouched.current = true;
+                  setPriceUsd(value);
+                }}
+                type="number"
+                required
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-neutral-500">
+              NGN and USD are suggested from the GBP price using the exchange rate set in Settings —
+              edit either freely, your own number always wins over the suggestion.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -210,15 +267,33 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
           />
 
           <div className="space-y-1.5">
-            <label htmlFor="product-images" className="text-sm font-medium text-neutral-700">
-              Image URLs (one per line)
-            </label>
+            <label className="text-sm font-medium text-neutral-700">Images</label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="inline-flex items-center gap-2 border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                {isUploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                {isUploading ? "Uploading…" : "Upload from computer"}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => handleFileSelect(e.target.files)}
+              />
+              <span className="text-xs text-neutral-400">PNG, JPEG, WebP, or GIF · up to 5MB</span>
+            </div>
+            {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
             <textarea
               id="product-images"
               value={images}
               onChange={(e) => setImages(e.target.value)}
               rows={2}
-              placeholder="/shop-img/example.png"
+              placeholder="Or paste image URLs here, one per line"
               className="w-full resize-none rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-primary"
             />
           </div>

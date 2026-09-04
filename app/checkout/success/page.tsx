@@ -65,12 +65,7 @@ function CheckoutSuccessContent() {
           return;
         }
 
-        const newOrder = buildOrderFromVerification(
-          paymentId,
-          gateway,
-          gateway === "stripe" ? "GBP" : "NGN",
-          data as PaymentVerification,
-        );
+        const newOrder = buildOrderFromVerification(paymentId, gateway, data as PaymentVerification);
 
         addOrder(newOrder);
         clearCart();

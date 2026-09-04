@@ -2,6 +2,7 @@ import { Address, Currency, Order, OrderItem, PaymentGateway } from "./types";
 
 export interface PaymentVerification {
   status: "success" | "failed";
+  currency: Currency;
   customerEmail: string;
   customerName: string;
   customerPhone: string;
@@ -11,6 +12,8 @@ export interface PaymentVerification {
   shippingCost: number;
   tax: number;
   total: number;
+  discount: number;
+  discountCode?: string;
 }
 
 /**
@@ -20,11 +23,15 @@ export interface PaymentVerification {
  * always resolves to the exact same order id/tracking id — derived
  * deterministically from the payment reference — no matter which path
  * creates it first.
+ *
+ * Currency comes from `verification.currency` — i.e. what the gateway
+ * itself actually charged (Stripe's own session.currency, or NGN for
+ * Paystack) — never re-guessed from country/gateway at this point, so a
+ * GBP vs USD Stripe charge can never get mislabeled.
  */
 export function buildOrderFromVerification(
   paymentId: string,
   gateway: PaymentGateway,
-  currency: Currency,
   verification: PaymentVerification,
 ): Order {
   const shortRef = paymentId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
@@ -37,14 +44,14 @@ export function buildOrderFromVerification(
     customer_phone: verification.customerPhone,
     shipping_address: verification.shippingAddress,
     status: "unshipped",
-    currency,
+    currency: verification.currency,
     payment_gateway: gateway,
     payment_reference: paymentId,
     items: verification.orderItems,
     subtotal: verification.subtotal,
     shipping_cost: verification.shippingCost,
     tax: verification.tax,
-    discount_applied: 0,
+    discount_applied: verification.discount,
     total_amount: verification.total,
     created_at: new Date(),
     updated_at: new Date(),

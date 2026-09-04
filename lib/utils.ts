@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { PaymentGateway } from "./types";
+import { Currency, PaymentGateway } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -45,4 +45,29 @@ export function getPaymentGatewayForCountry(country: string): PaymentGateway {
   }
 
   return "stripe";
+}
+
+/**
+ * Currency is a separate decision from gateway — Nigeria is the only
+ * country routed to Paystack, but everyone else still goes through Stripe,
+ * and Stripe can charge in either GBP or USD depending on where the
+ * customer actually is. Product display prices on the storefront stay GBP
+ * everywhere regardless (that's the reference price shown on every card and
+ * product page) — this only decides what a US customer is actually charged
+ * at checkout.
+ */
+export function getCheckoutCurrency(country: string): Currency {
+  const normalizedCountry = country.trim().toLowerCase();
+
+  if (["nigeria", "ng", "ngn"].includes(normalizedCountry)) {
+    return "NGN";
+  }
+
+  if (
+    ["united states", "us", "usa", "united states of america"].includes(normalizedCountry)
+  ) {
+    return "USD";
+  }
+
+  return "GBP";
 }

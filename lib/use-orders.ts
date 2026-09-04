@@ -2,9 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Order, OrderStatus } from "./types";
-import { mockOrders } from "./mock-orders";
-
-const STORAGE_KEY = "toymak-orders";
 
 function reviveDates(orders: Order[]): Order[] {
   return orders.map((order) => ({
@@ -16,57 +13,24 @@ function reviveDates(orders: Order[]): Order[] {
 
 /**
  * Shared order store used by both the admin dashboard and the storefront
- * account page, so a status/tracking-link update made by admin is
- * immediately visible to a customer looking up their order — there's no
- * real backend yet, so localStorage is the single source of truth both
- * sides read from.
+ * account page — backed entirely by GET /api/orders (Supabase) now, no more
+ * localStorage/mock seed. addOrder is a local-only optimistic append so
+ * /checkout/success can show the order immediately after
+ * POST /api/orders/confirm succeeds, without waiting on a refetch; the
+ * order itself is already durably saved server-side by that point.
  */
 export function useOrders() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        setOrders(reviveDates(JSON.parse(saved)));
-      } catch {
-        // ignore corrupt local data, fall back to mock seed
-      }
-    }
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-    }
-  }, [orders, isHydrated]);
-
-  // Pull in anything a webhook recorded server-side that this browser
-  // hasn't seen yet — covers a customer who closed the tab before the
-  // client-side verify-on-success path could run.
-  useEffect(() => {
-    if (!isHydrated) return;
-
     fetch("/api/orders")
       .then((response) => response.json())
-      .then((data: { orders: Order[] }) => {
-        const serverOrders = reviveDates(data.orders ?? []);
-        if (serverOrders.length === 0) return;
-
-        setOrders((current) => {
-          const existingRefs = new Set(current.map((order) => order.payment_reference));
-          const newOnes = serverOrders.filter(
-            (order) => !existingRefs.has(order.payment_reference),
-          );
-          return newOnes.length === 0 ? current : [...newOnes, ...current];
-        });
+      .then((data: { orders?: Order[] }) => {
+        setOrders(reviveDates(data.orders ?? []));
       })
-      .catch(() => {
-        // best-effort merge — ignore network errors (e.g. offline)
-      });
-  }, [isHydrated]);
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const actions = useMemo(
     () => ({
@@ -78,23 +42,21 @@ export function useOrders() {
           return [order, ...current];
         });
       },
-      updateOrderStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => {
-        setOrders((current) =>
-          current.map((order) =>
-            order.id === orderId
-              ? {
-                  ...order,
-                  status,
-                  tracking_link: trackingLink !== undefined ? trackingLink : order.tracking_link,
-                  updated_at: new Date(),
-                }
-              : order,
-          ),
-        );
+      updateOrderStatus: async (orderId: string, status: OrderStatus, trackingLink?: string) => {
+        const response = await fetch(`/api/admin/orders/${orderId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, trackingLink }),
+        });
+        const data = (await response.json()) as { order?: Order };
+        if (data.order) {
+          const updated = reviveDates([data.order])[0];
+          setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
+        }
       },
     }),
     [],
   );
 
-  return { orders, ...actions };
+  return { orders, isLoading, ...actions };
 }

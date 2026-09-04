@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
 import { getAllProducts } from "@/lib/server/products";
+import { getStoreSettings } from "@/lib/server/settings";
+import { validateCouponCode } from "@/lib/server/signups";
+import { getCheckoutCurrency } from "@/lib/utils";
 import { Address } from "@/lib/types";
 
 interface CheckoutRequestBody {
@@ -10,6 +13,7 @@ interface CheckoutRequestBody {
   items: { product_id: string; quantity: number; size: string; color: string }[];
   customer: { fullName: string; phone: string };
   shipping: Omit<Address, "fullName" | "email" | "phone">;
+  discountCode?: string;
   success_url: string;
   cancel_url: string;
 }
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json()) as CheckoutRequestBody;
-  const { email, country, items, customer, shipping, success_url, cancel_url } = body;
+  const { email, items, customer, shipping, discountCode, success_url, cancel_url } = body;
 
   if (!email || !items?.length || !customer?.fullName || !shipping?.street) {
     return NextResponse.json(
@@ -36,15 +40,33 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Currency is always GBP for Stripe here — recompute everything server-side
+  // Currency is derived server-side from the shipping country — never
+  // trusted from the client — same as every price/total below, recomputed
   // from the real catalog so nothing charged is trusted from the client.
+  const currency = getCheckoutCurrency(shipping.country);
+  const stripeCurrency = currency.toLowerCase();
   const products = await getAllProducts();
-  const orderItems = buildOrderItems(items, "GBP", products);
-  const { shipping: shippingCost, tax } = calculateOrderTotals(items, "GBP", country, products);
+  const settings = await getStoreSettings();
+
+  // The discount percent is never taken from the client — only the code is.
+  // An invalid/already-used code is silently ignored here (0% applied) so a
+  // stale code left in the field doesn't block checkout.
+  const discountPercent = discountCode
+    ? (await validateCouponCode(discountCode)).discountPercent
+    : 0;
+
+  const orderItems = buildOrderItems(items, currency, products, discountPercent);
+  const { shipping: shippingCost, tax } = calculateOrderTotals(
+    items,
+    currency,
+    products,
+    settings,
+    discountPercent,
+  );
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map((item) => ({
     price_data: {
-      currency: "gbp",
+      currency: stripeCurrency,
       product_data: {
         name: item.product_name,
         description: `Size ${item.size} · ${item.color}`,
@@ -57,7 +79,7 @@ export async function POST(request: NextRequest) {
   if (shippingCost > 0) {
     lineItems.push({
       price_data: {
-        currency: "gbp",
+        currency: stripeCurrency,
         product_data: { name: "Shipping" },
         unit_amount: Math.round(shippingCost * 100),
       },
@@ -68,7 +90,7 @@ export async function POST(request: NextRequest) {
   if (tax > 0) {
     lineItems.push({
       price_data: {
-        currency: "gbp",
+        currency: stripeCurrency,
         product_data: { name: "VAT" },
         unit_amount: Math.round(tax * 100),
       },
@@ -101,6 +123,7 @@ export async function POST(request: NextRequest) {
             c: item.color,
           })),
         ),
+        ...(discountPercent > 0 && discountCode ? { discount_code: discountCode.trim().toUpperCase() } : {}),
       },
     });
 

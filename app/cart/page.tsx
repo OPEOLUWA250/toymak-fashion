@@ -4,27 +4,18 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { useSettings } from "@/lib/use-settings";
 import { Trash2 } from "lucide-react";
-import { useState } from "react";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
-  const [discountCode, setDiscountCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(0);
+  const { settings } = useSettings();
 
   const subtotal = getTotal();
-  const shipping = subtotal > 50 ? 0 : 7.99;
-  const tax = (subtotal + shipping) * 0.2; // 20% VAT
-  const total = subtotal + shipping + tax - discountApplied;
-
-  const handleApplyDiscount = () => {
-    if (discountCode.toLowerCase() === "welcome10") {
-      setDiscountApplied(subtotal * 0.1);
-      setDiscountCode("");
-    } else {
-      alert("Invalid discount code");
-    }
-  };
+  const shippingThreshold = settings.shippingThreshold.GBP;
+  const shipping = subtotal > shippingThreshold ? 0 : settings.shippingCost.GBP;
+  const tax = subtotal * (settings.tax.GBP / 100);
+  const total = subtotal + shipping + tax;
 
   if (items.length === 0) {
     return (
@@ -157,12 +148,6 @@ export default function CartPage() {
                 <span>Tax (VAT)</span>
                 <span className="font-medium">£{tax.toFixed(2)}</span>
               </div>
-              {discountApplied > 0 && (
-                <div className="flex justify-between gap-4 text-primary font-medium">
-                  <span>Discount</span>
-                  <span>-£{discountApplied.toFixed(2)}</span>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-between font-bold text-lg">
@@ -170,30 +155,9 @@ export default function CartPage() {
               <span className="text-primary">£{total.toFixed(2)}</span>
             </div>
 
-            {/* Discount Code */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-neutral">
-                Promo Code
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter code"
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
-                  className="flex-1 rounded-md border border-neutral/20 px-3 py-2 text-sm text-neutral focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  onClick={handleApplyDiscount}
-                  className="rounded-md border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 transition"
-                >
-                  Apply
-                </button>
-              </div>
-              <p className="text-xs text-neutral/60">
-                Tip: Try &quot;welcome10&quot;
-              </p>
-            </div>
+            <p className="text-xs text-neutral/60">
+              Have a discount code? Enter it at checkout.
+            </p>
 
             {/* Checkout */}
             <Link

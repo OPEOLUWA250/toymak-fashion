@@ -43,13 +43,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Payment not confirmed." }, { status: 400 });
     }
 
-    const order = buildOrderFromVerification(
-      paymentId,
-      gateway,
-      gateway === "stripe" ? "GBP" : "NGN",
-      verification,
-    );
-    const { added } = await appendServerOrder(order);
+    const order = buildOrderFromVerification(paymentId, gateway, verification);
+    const { added } = await appendServerOrder(order, {
+      origin: request.nextUrl.origin,
+      discountCode: verification.discountCode,
+    });
     return NextResponse.json({ added });
   } catch (error) {
     return NextResponse.json(

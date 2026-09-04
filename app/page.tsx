@@ -7,9 +7,10 @@ import { TestimonialStack } from "@/components/testimonial-stack";
 import { TestimonialCard } from "@/components/testimonial-card";
 import { ContactFaqSection } from "@/components/contact-faq-section";
 import { FirstOrderPopup } from "@/components/first-order-popup";
+import { RecentlyViewed } from "@/components/recently-viewed";
 import { ArrowRight, Play, Ruler } from "lucide-react";
 import { getAllProducts } from "@/lib/server/products";
-import { mockReviews } from "@/lib/mock-reviews";
+import { getAllApprovedReviews } from "@/lib/server/reviews";
 import { faqSections } from "@/lib/faq-data";
 
 // Otherwise Next.js bakes this page (including product data) at build time
@@ -91,7 +92,7 @@ const videoGuides = [
 const testimonialProductIds = ["prod-001", "prod-002", "prod-003", "prod-004", "prod-005", "prod-006"];
 
 export default async function HomePage() {
-  const products = await getAllProducts();
+  const [products, reviews] = await Promise.all([getAllProducts(), getAllApprovedReviews()]);
 
   const newestProducts = [...products].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -102,8 +103,8 @@ export default async function HomePage() {
   const testimonials = testimonialProductIds
     .map((productId) => {
       const product = products.find((p) => p.id === productId);
-      const bestReview = [...mockReviews]
-        .filter((review) => review.product_id === productId && review.approved)
+      const bestReview = [...reviews]
+        .filter((review) => review.product_id === productId)
         .sort((a, b) => b.rating - a.rating || b.created_at.getTime() - a.created_at.getTime())[0];
       if (!product || !bestReview) return null;
       return { ...bestReview, productName: product.name };
@@ -371,6 +372,10 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <RecentlyViewed />
+      </div>
 
       {/* Contact + FAQ */}
       <ContactFaqSection faqs={homepageFaqs} />

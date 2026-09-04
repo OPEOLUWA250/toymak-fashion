@@ -27,18 +27,18 @@ export function OverviewView({
       return sums;
     }, {});
     const currencyOrder: Currency[] = ["GBP", "USD", "NGN"];
-    const totalRevenueDisplay =
+    const totalRevenueLines =
       currencyOrder
         .filter((currency) => revenueByCurrency[currency] !== undefined)
-        .map((currency) => formatCurrency(revenueByCurrency[currency]!, currency))
-        .join(" + ") || formatCurrency(0, "GBP");
+        .map((currency) => formatCurrency(revenueByCurrency[currency]!, currency));
+    if (totalRevenueLines.length === 0) totalRevenueLines.push(formatCurrency(0, "GBP"));
     const lowStockProducts = products.filter((p) => p.stock_qty <= p.low_stock_threshold);
     const featuredProducts = products.filter((p) => p.featured);
     const unshippedOrders = orders.filter((o) => o.status === "unshipped");
     const customers = deriveCustomers(orders);
     const repeatCustomers = customers.filter((c) => c.orderCount > 1);
 
-    return { totalRevenueDisplay, lowStockProducts, featuredProducts, unshippedOrders, customers, repeatCustomers };
+    return { totalRevenueLines, lowStockProducts, featuredProducts, unshippedOrders, customers, repeatCustomers };
   }, [orders, products]);
 
   const recentOrders = [...orders]
@@ -51,7 +51,7 @@ export function OverviewView({
         <button onClick={() => onNavigate("orders")} className="text-left">
           <StatCard
             title="Total Sales"
-            value={insights.totalRevenueDisplay}
+            value={insights.totalRevenueLines}
             subLabel={`${orders.length} order${orders.length === 1 ? "" : "s"}`}
             icon={TrendingUp}
           />

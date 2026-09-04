@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
+import { RegionProvider } from "@/lib/region-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -59,9 +60,11 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <CartProvider>
-          <WishlistProvider>{children}</WishlistProvider>
-        </CartProvider>
+        <RegionProvider>
+          <CartProvider>
+            <WishlistProvider>{children}</WishlistProvider>
+          </CartProvider>
+        </RegionProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
         {/* Same live Chatway widget already running on toymakenterprise.co.uk
             (reusing the existing account/inbox, per the owner's choice) —

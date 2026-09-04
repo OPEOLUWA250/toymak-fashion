@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { markSignupEmailSent } from "@/lib/server/signups";
 
 interface SendCouponRequestBody {
+  signupId: string;
   firstName: string;
   email: string;
   couponCode: string;
@@ -93,8 +95,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json()) as SendCouponRequestBody;
-  const { firstName, email, couponCode, discountLabel } = body;
+  const { signupId, firstName, email, couponCode, discountLabel } = body;
 
+  if (!signupId) {
+    return NextResponse.json({ error: "Missing signupId." }, { status: 400 });
+  }
   if (!email || !EMAIL_PATTERN.test(email)) {
     return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
   }
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 502 });
     }
 
+    await markSignupEmailSent(signupId);
     return NextResponse.json({ sent: true });
   } catch (error) {
     return NextResponse.json(

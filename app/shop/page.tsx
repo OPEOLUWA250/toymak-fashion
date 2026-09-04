@@ -290,7 +290,7 @@ function ShopPageInner() {
           <div className="grid gap-10 lg:grid-cols-[260px_1fr]">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block">
-              <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-neutral/10 bg-white p-6">
+              <div className="scrollbar-hide sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-2xl border border-neutral/10 bg-white p-6">
                 <div className="mb-6 flex items-center justify-between">
                   <p className="text-sm font-bold uppercase tracking-[0.14em] text-neutral">
                     Filters
@@ -519,7 +519,7 @@ function ShopPageInner() {
                 <X size={18} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="scrollbar-hide flex-1 overflow-y-auto p-5">
               <FilterContent {...filterProps} />
             </div>
             <div className="flex gap-3 border-t border-neutral/10 p-4">
