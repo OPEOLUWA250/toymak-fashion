@@ -123,6 +123,27 @@ export default function CheckoutPage() {
     appliedCoupon?.discountPercent ?? 0,
   );
 
+  // Debounced, best-effort background save so an abandoned checkout can
+  // still get a recovery email later — the cart itself never otherwise
+  // touches the server until a payment actually starts. Silently does
+  // nothing until there's a valid email and at least one item; re-fires on
+  // every edit so the saved snapshot stays current.
+  useEffect(() => {
+    if (!/^\S+@\S+\.\S+$/.test(email) || items.length === 0) return;
+
+    const timer = setTimeout(() => {
+      fetch("/api/checkout/save-cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, customerName: fullName, items, currency: checkoutCurrency, subtotal }),
+      }).catch(() => {
+        // Best-effort — losing this save just means no recovery email later.
+      });
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [email, fullName, items, checkoutCurrency, subtotal]);
+
   const handleApplyCoupon = async () => {
     const code = couponInput.trim();
     if (!code) return;

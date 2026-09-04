@@ -10,7 +10,7 @@ import { useOrders } from "@/lib/use-orders";
 import { formatCurrency } from "@/lib/pricing";
 import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
 import { Order, PaymentGateway } from "@/lib/types";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Download, Loader2, XCircle } from "lucide-react";
 
 type VerifyState = "loading" | "success" | "failed" | "error";
 
@@ -147,6 +147,13 @@ function CheckoutSuccessContent() {
                 Continue shopping
               </Link>
             </div>
+            <a
+              href={`/api/orders/${order.id}/receipt?email=${encodeURIComponent(order.customer_email)}`}
+              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-neutral/60 underline underline-offset-4 hover:text-primary"
+            >
+              <Download size={14} />
+              Download receipt (PDF)
+            </a>
           </>
         )}
 

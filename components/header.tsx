@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Menu, X, Search, Heart, ShoppingBag, User, ChevronRight, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useRegion } from "@/lib/region-context";
-import { currencySymbols } from "@/lib/pricing";
-import { Currency } from "@/lib/types";
+import { useSettings } from "@/lib/use-settings";
+import { useProducts } from "@/lib/use-products";
+import { currencySymbols, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { Currency, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const currencyOptions: { value: Currency; label: string }[] = [
@@ -16,6 +18,65 @@ const currencyOptions: { value: Currency; label: string }[] = [
   { value: "NGN", label: "NGN — Nigeria" },
   { value: "USD", label: "USD — US" },
 ];
+
+const MAX_SEARCH_SUGGESTIONS = 5;
+
+/**
+ * Shared by both the desktop popover and the mobile menu's search form —
+ * same matching rule the shop page's own search filter uses (name or
+ * description, case-insensitive), so "what you'd find on /shop" and "what
+ * shows up here" never disagree.
+ */
+function SearchSuggestions({
+  query,
+  matches,
+  currency,
+  onSelect,
+}: {
+  query: string;
+  matches: Product[];
+  currency: Currency;
+  onSelect: () => void;
+}) {
+  return (
+    <div role="listbox" className="max-h-96 overflow-y-auto p-1">
+      {matches.length === 0 ? (
+        <p className="px-3 py-4 text-center text-sm text-neutral-500">
+          No products found for &ldquo;{query}&rdquo;
+        </p>
+      ) : (
+        matches.map((product) => (
+          <Link
+            key={product.id}
+            href={`/product/${product.id}`}
+            role="option"
+            onClick={onSelect}
+            className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-neutral-100"
+          >
+            <img
+              src={product.images[0]}
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-md object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-neutral-900">{product.name}</p>
+              <p className="text-xs text-neutral-500">
+                {formatCurrency(getProductPriceForCurrency(product, currency), currency)}
+              </p>
+            </div>
+          </Link>
+        ))
+      )}
+      <Link
+        href={`/shop?q=${encodeURIComponent(query)}`}
+        onClick={onSelect}
+        className="mt-1 block rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-primary transition hover:bg-primary/5"
+      >
+        See all results for &ldquo;{query}&rdquo;
+      </Link>
+    </div>
+  );
+}
 
 export default function Header({
   variant = "solid",
@@ -32,9 +93,21 @@ export default function Header({
   const { productIds: wishlistProductIds } = useWishlist();
   const wishlistCount = wishlistProductIds.length;
   const { currency, setCurrency } = useRegion();
+  const { settings } = useSettings();
+  const bannerVisible = Boolean(settings.announcementEnabled && settings.announcementText?.trim());
+  const { products } = useProducts();
+
+  const searchQuery = searchValue.trim();
+  const searchMatches = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return [];
+    return products
+      .filter((p) => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query))
+      .slice(0, MAX_SEARCH_SUGGESTIONS);
+  }, [products, searchQuery]);
 
   const isTransparent = variant === "transparent" && !scrolled;
-  const searchRef = useRef<HTMLFormElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -117,15 +190,34 @@ export default function Header({
 
   return (
     <>
-      {/* Desktop Header */}
-      <header
-        className={cn(
-          "fixed top-0 left-0 right-0 z-40 border-b transition-colors duration-300",
-          isTransparent
-            ? "bg-transparent border-transparent text-white"
-            : "bg-white border-neutral-200 text-neutral",
+      {/* Fixed wrapper: announcement banner (if enabled) + the header nav
+          bar stacked together, so the banner isn't hidden behind the
+          header's own fixed positioning. */}
+      <div className="fixed top-0 left-0 right-0 z-40">
+        {bannerVisible && (
+          <div className="flex h-9 items-center justify-center gap-2 bg-primary px-4 text-white">
+            <span className="truncate text-[11px] font-semibold tracking-wide sm:text-xs">
+              {settings.announcementText}
+            </span>
+            {settings.announcementLink && (
+              <Link
+                href={settings.announcementLink}
+                className="shrink-0 text-[11px] font-semibold underline underline-offset-2 hover:opacity-80 sm:text-xs"
+              >
+                Learn more
+              </Link>
+            )}
+          </div>
         )}
-      >
+        {/* Desktop Header */}
+        <header
+          className={cn(
+            "border-b transition-colors duration-300",
+            isTransparent
+              ? "bg-transparent border-transparent text-white"
+              : "bg-white border-neutral-200 text-neutral",
+          )}
+        >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -198,48 +290,62 @@ export default function Header({
                 )}
               </div>
               {searchOpen ? (
-                <form
-                  ref={searchRef}
-                  onSubmit={handleSearchSubmit}
-                  className={cn(
-                    "flex items-center gap-1.5  border px-3 py-1.5 transition",
-                    isTransparent
-                      ? "border-white/40 bg-white/10"
-                      : "border-neutral-200 bg-white",
-                  )}
-                >
-                  <Search
-                    size={16}
-                    className={isTransparent ? "text-white/80" : "text-neutral/50"}
-                  />
-                  <input
-                    autoFocus
-                    type="text"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    placeholder="Search products..."
+                <div className="relative" ref={searchRef}>
+                  <form
+                    onSubmit={handleSearchSubmit}
                     className={cn(
-                      "w-40 bg-transparent text-sm outline-none",
+                      "flex items-center gap-1.5  border px-3 py-1.5 transition",
                       isTransparent
-                        ? "text-white placeholder:text-white/60"
-                        : "text-neutral placeholder:text-neutral/40",
-                    )}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      setSearchValue("");
-                    }}
-                    aria-label="Close search"
-                    className={cn(
-                      " p-0.5 transition",
-                      isTransparent ? "hover:bg-white/10" : "hover:bg-neutral/5",
+                        ? "border-white/40 bg-white/10"
+                        : "border-neutral-200 bg-white",
                     )}
                   >
-                    <X size={14} />
-                  </button>
-                </form>
+                    <Search
+                      size={16}
+                      className={isTransparent ? "text-white/80" : "text-neutral/50"}
+                    />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
+                      placeholder="Search products..."
+                      className={cn(
+                        "w-40 bg-transparent text-sm outline-none",
+                        isTransparent
+                          ? "text-white placeholder:text-white/60"
+                          : "text-neutral placeholder:text-neutral/40",
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        setSearchValue("");
+                      }}
+                      aria-label="Close search"
+                      className={cn(
+                        " p-0.5 transition",
+                        isTransparent ? "hover:bg-white/10" : "hover:bg-neutral/5",
+                      )}
+                    >
+                      <X size={14} />
+                    </button>
+                  </form>
+                  {searchQuery && (
+                    <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-72 rounded-xl border border-neutral-200 bg-white text-neutral shadow-2xl">
+                      <SearchSuggestions
+                        query={searchQuery}
+                        matches={searchMatches}
+                        currency={currency}
+                        onSelect={() => {
+                          setSearchOpen(false);
+                          setSearchValue("");
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               ) : (
                 <button
                   type="button"
@@ -347,12 +453,14 @@ export default function Header({
             </div>
           </div>
         </div>
-      </header>
+        </header>
+      </div>
 
       {/* Mobile Menu */}
       <div
         className={cn(
-          "fixed inset-0 top-20 z-30 flex flex-col bg-white transition-all duration-300 ease-out md:hidden",
+          "fixed inset-0 z-30 flex flex-col bg-white transition-all duration-300 ease-out md:hidden",
+          bannerVisible ? "top-[116px]" : "top-20",
           mobileMenuOpen
             ? "translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-3 opacity-0",
@@ -374,6 +482,19 @@ export default function Header({
               tabIndex={mobileMenuOpen ? 0 : -1}
             />
           </form>
+          {mobileMenuOpen && searchQuery && (
+            <div className="mt-2 rounded-xl border border-neutral-200 bg-white">
+              <SearchSuggestions
+                query={searchQuery}
+                matches={searchMatches}
+                currency={currency}
+                onSelect={() => {
+                  setSearchValue("");
+                  setMobileMenuOpen(false);
+                }}
+              />
+            </div>
+          )}
 
           <p className="mb-1 mt-8 px-1 text-xs font-semibold uppercase tracking-[0.2em] text-neutral/40">
             Shop
@@ -417,7 +538,11 @@ export default function Header({
         </nav>
       </div>
 
-      {/* Spacer for fixed header */}
+      {/* Spacer for the fixed banner + header. The banner always reserves
+          its own space (even on transparent/hero pages) since it's real
+          information, not decorative chrome — only the nav bar itself
+          overlays the hero on transparent pages. */}
+      {bannerVisible && <div className="h-9" />}
       {variant !== "transparent" && <div className="h-20" />}
     </>
   );

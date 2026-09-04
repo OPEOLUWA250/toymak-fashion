@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, CreditCard, Globe, Loader2, RefreshCw, Ticket, Truck, WalletCards } from "lucide-react";
+import { CheckCircle2, CreditCard, Globe, Loader2, Mail, Megaphone, RefreshCw, Ticket, Truck, WalletCards } from "lucide-react";
 import type { StoreSettings } from "@/lib/server/settings";
 import type { Currency } from "@/lib/types";
+import { invalidateSettingsCache } from "@/lib/use-settings";
 
 const currencyRows: { currency: Currency; taxLabel: string; symbol: string }[] = [
   { currency: "GBP", taxLabel: "United Kingdom (VAT)", symbol: "£" },
@@ -49,6 +50,19 @@ export function SettingsView() {
     setSaved(false);
   };
 
+  const updateAnnouncement = <Field extends "announcementEnabled" | "announcementText" | "announcementLink">(
+    field: Field,
+    value: StoreSettings[Field],
+  ) => {
+    setSettings((current) => (current ? { ...current, [field]: value } : current));
+    setSaved(false);
+  };
+
+  const updateNotificationEmail = (value: string) => {
+    setSettings((current) => (current ? { ...current, orderNotificationEmail: value } : current));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     if (!settings) return;
     setIsSaving(true);
@@ -63,6 +77,10 @@ export function SettingsView() {
       if (data.settings) {
         setSettings(data.settings);
         setSaved(true);
+        // The header on every storefront page caches settings — without
+        // this, a saved change here wouldn't show up until someone
+        // hard-refreshes past the cache.
+        invalidateSettingsCache();
       }
     } finally {
       setIsSaving(false);
@@ -132,6 +150,30 @@ export function SettingsView() {
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Mail size={18} />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold text-neutral-900">Notifications</h2>
+            <p className="text-sm text-neutral-500">
+              Emailed here every time a new order comes in — leave blank to turn this off
+            </p>
+          </div>
+        </div>
+        <label className="block max-w-sm text-sm font-medium text-neutral-700">
+          Order notification email
+          <input
+            type="email"
+            value={settings.orderNotificationEmail ?? ""}
+            onChange={(e) => updateNotificationEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="mt-1.5 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
+          />
+        </label>
+      </div>
+
+      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
+        <div className="mb-5 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Globe size={18} />
           </span>
           <div>
@@ -187,6 +229,70 @@ export function SettingsView() {
             <span className="text-sm text-neutral-500">%</span>
           </div>
         </label>
+      </div>
+
+      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Megaphone size={18} />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-neutral-900">Announcement Banner</h2>
+              <p className="text-sm text-neutral-500">Shown above the header on every storefront page</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.announcementEnabled}
+            onClick={() => updateAnnouncement("announcementEnabled", !settings.announcementEnabled)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+              settings.announcementEnabled ? "bg-primary" : "bg-neutral-200"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
+                settings.announcementEnabled ? "left-5" : "left-0.5"
+              }`}
+            />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-neutral-700">
+            Message
+            <input
+              type="text"
+              maxLength={100}
+              value={settings.announcementText ?? ""}
+              onChange={(e) => updateAnnouncement("announcementText", e.target.value)}
+              placeholder="Free shipping on all orders over £50."
+              className="mt-1.5 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
+            />
+          </label>
+          <label className="block max-w-xs text-sm font-medium text-neutral-700">
+            "Learn more" links to
+            <input
+              type="text"
+              value={settings.announcementLink ?? ""}
+              onChange={(e) => updateAnnouncement("announcementLink", e.target.value)}
+              placeholder="/faq"
+              className="mt-1.5 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
+            />
+          </label>
+          <p className="text-xs text-neutral-500">
+            Reminder — the free-shipping threshold actually charged at checkout is set below (currently{" "}
+            {currencyRows.map((row, i) => (
+              <span key={row.currency}>
+                {i > 0 && " / "}
+                {row.symbol}
+                {settings.shippingThreshold[row.currency]}
+              </span>
+            ))}
+            ), so keep the message text in sync with that if it mentions a number.
+          </p>
+        </div>
       </div>
 
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">

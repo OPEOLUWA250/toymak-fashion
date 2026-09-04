@@ -12,6 +12,7 @@ import { useProducts } from "@/lib/use-products";
 import { useWishlist } from "@/lib/wishlist-context";
 import { Order, OrderStatus } from "@/lib/types";
 import {
+  Download,
   ExternalLink,
   Heart,
   MapPin,
@@ -299,6 +300,13 @@ function AccountContent() {
                       <p className="mt-1.5 text-2xl font-bold text-primary">
                         {formatCurrency(order.total_amount, order.currency)}
                       </p>
+                      <a
+                        href={`/api/orders/${order.id}/receipt?email=${encodeURIComponent(order.customer_email)}`}
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-neutral/60 hover:text-primary"
+                      >
+                        <Download size={12} />
+                        Download Receipt
+                      </a>
                     </div>
                   </div>
 

@@ -10,6 +10,10 @@ export interface StoreSettings {
     gbpToUsd: number;
   };
   welcomeDiscountPercent: number; // applied to the WELCOME-XXXXXX coupon codes
+  announcementEnabled: boolean;
+  announcementText: string;
+  announcementLink: string;
+  orderNotificationEmail: string; // notified on every new order; blank disables it
 }
 
 interface SettingsRow {
@@ -25,6 +29,10 @@ interface SettingsRow {
   exchange_rate_gbp_to_ngn: number;
   exchange_rate_gbp_to_usd: number;
   welcome_discount_percent: number;
+  announcement_enabled: boolean;
+  announcement_text: string;
+  announcement_link: string;
+  order_notification_email: string;
 }
 
 function rowToSettings(row: SettingsRow): StoreSettings {
@@ -49,6 +57,10 @@ function rowToSettings(row: SettingsRow): StoreSettings {
       gbpToUsd: Number(row.exchange_rate_gbp_to_usd),
     },
     welcomeDiscountPercent: Number(row.welcome_discount_percent),
+    announcementEnabled: row.announcement_enabled,
+    announcementText: row.announcement_text,
+    announcementLink: row.announcement_link,
+    orderNotificationEmail: row.order_notification_email,
   };
 }
 
@@ -79,6 +91,10 @@ export async function updateStoreSettings(settings: StoreSettings): Promise<Stor
       exchange_rate_gbp_to_ngn: settings.exchangeRates.gbpToNgn,
       exchange_rate_gbp_to_usd: settings.exchangeRates.gbpToUsd,
       welcome_discount_percent: settings.welcomeDiscountPercent,
+      announcement_enabled: settings.announcementEnabled,
+      announcement_text: settings.announcementText,
+      announcement_link: settings.announcementLink,
+      order_notification_email: settings.orderNotificationEmail,
     })
     .eq("id", "default")
     .select("*")

@@ -3,7 +3,9 @@ import { eventBus } from "./event-bus";
 import { decrementProductStock } from "./products";
 import { getSupabaseAdmin } from "./supabase";
 import { redeemCouponCode } from "./signups";
-import { sendOrderConfirmationEmail } from "./order-email";
+import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./order-email";
+import { getStoreSettings } from "./settings";
+import { deleteAbandonedCartByEmail } from "./abandoned-carts";
 
 interface OrderRow {
   id: string;
@@ -68,6 +70,12 @@ export async function getServerOrders(): Promise<Order[]> {
   return (data as OrderRow[]).map(rowToOrder);
 }
 
+export async function getServerOrderById(id: string): Promise<Order | null> {
+  const { data, error } = await getSupabaseAdmin().from("orders").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Failed to load order ${id}: ${error.message}`);
+  return data ? rowToOrder(data as OrderRow) : null;
+}
+
 /**
  * Idempotent on payment_reference — Stripe and Paystack both retry webhook
  * delivery, so the same event can arrive more than once. Idempotency is
@@ -122,10 +130,21 @@ export async function appendServerOrder(
     await redeemCouponCode(options.discountCode);
   }
 
+  // A real conversion — clear any abandoned-cart record for this email so
+  // it never gets a "you left something behind" email after actually buying.
+  void deleteAbandonedCartByEmail(order.customer_email).catch((error) =>
+    console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
+  );
+
   // Fire-and-forget — a slow or failed email must never hold up (or fail)
   // the order write, which is the part that actually matters.
   const origin = options.origin ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://toymakenterprise.co.uk";
   void sendOrderConfirmationEmail(order, origin);
+  void getStoreSettings()
+    .then((settings) => sendAdminOrderNotificationEmail(order, origin, settings.orderNotificationEmail))
+    .catch((error) =>
+      console.error(`Could not load settings for admin order notification (order ${order.id}):`, error),
+    );
 
   return { added: true };
 }
