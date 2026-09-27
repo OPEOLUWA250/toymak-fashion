@@ -3,6 +3,7 @@
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, Lock } from "lucide-react";
+import { PasswordInput } from "@/components/admin/password-input";
 
 // Only return to a page inside the admin area after signing in.
 function safeNext(value: string | null): string {
@@ -93,14 +94,11 @@ function LoginForm() {
           {mode === "login" && (
             <div className="space-y-2">
               <label htmlFor="admin-password" className="text-sm font-medium text-neutral-800">Password</label>
-              <input
+              <PasswordInput
                 id="admin-password"
-                type="password"
                 autoComplete="current-password"
-                required
-                maxLength={200}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 className={inputClass}
               />
             </div>

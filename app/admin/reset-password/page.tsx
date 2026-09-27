@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/admin-password";
+import { PasswordInput } from "@/components/admin/password-input";
 
 const inputClass =
   "w-full rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary";
@@ -57,27 +58,21 @@ export default function AdminResetPasswordPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
             <label htmlFor="new-password" className="text-sm font-medium text-neutral-800">New password</label>
-            <input
+            <PasswordInput
               id="new-password"
-              type="password"
               autoComplete="new-password"
-              required
-              maxLength={200}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={setPassword}
               className={inputClass}
             />
           </div>
           <div className="space-y-2">
             <label htmlFor="confirm-password" className="text-sm font-medium text-neutral-800">Confirm password</label>
-            <input
+            <PasswordInput
               id="confirm-password"
-              type="password"
               autoComplete="new-password"
-              required
-              maxLength={200}
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={setConfirm}
               className={inputClass}
             />
           </div>
