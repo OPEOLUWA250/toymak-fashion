@@ -1,6 +1,23 @@
-import { Resend } from "resend";
 import { AbandonedCart } from "./abandoned-carts";
 import { formatCurrency } from "@/lib/pricing";
+import { createEmailLinkToken } from "./email-links";
+import { isEmailConfigured, sendEmail } from "./email-sender";
+
+/** Links that work on any device: restore the bag, or stop these emails. */
+function cartEmailLinks(cart: AbandonedCart, origin: string) {
+  const restoreToken = createEmailLinkToken("restore-cart", cart.email);
+  const unsubscribeToken = encodeURIComponent(createEmailLinkToken("unsubscribe", cart.email));
+  return {
+    restore: `${origin}/cart?restore=${encodeURIComponent(restoreToken)}`,
+    unsubscribePage: `${origin}/unsubscribe?token=${unsubscribeToken}`,
+    unsubscribeOneClick: `${origin}/api/email/unsubscribe?token=${unsubscribeToken}`,
+  };
+}
+
+// Product images are normally full URLs already; make any relative one absolute for email.
+function absoluteUrl(url: string, origin: string): string {
+  return /^https?:\/\//i.test(url) ? url : `${origin}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 function escapeHtml(value: string): string {
   return value
@@ -12,6 +29,7 @@ function escapeHtml(value: string): string {
 }
 
 function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): string {
+  const links = cartEmailLinks(cart, origin);
   const firstName = escapeHtml((cart.customerName ?? "").split(" ")[0] || "there");
 
   const itemsRows = cart.items
@@ -19,7 +37,7 @@ function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): strin
       (item) => `
       <tr>
         <td style="padding:10px;width:64px;">
-          <img src="${escapeHtml(item.image_url)}" alt="" width="56" height="56" style="border-radius:8px;object-fit:cover;display:block;" />
+          <img src="${escapeHtml(absoluteUrl(item.image_url, origin))}" alt="" width="56" height="56" style="border-radius:8px;object-fit:cover;display:block;" />
         </td>
         <td style="padding:10px 0;border-bottom:1px solid rgba(16,24,32,0.08);font-size:13px;color:#101820;">
           ${escapeHtml(item.product_name)}<br />
@@ -62,11 +80,15 @@ function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): strin
       </tr>
       <tr>
         <td style="padding:24px 32px 32px;text-align:center;">
-          <a href="${origin}/cart" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
+          <a href="${escapeHtml(links.restore)}" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
             Return To My Bag
           </a>
           <p style="margin:20px 0 0;font-size:12px;color:rgba(16,24,32,0.4);">
             Questions? Reach us at hello@toymak.com — Toymak, premium shapewear for the modern woman.
+          </p>
+          <p style="margin:12px 0 0;font-size:11px;color:rgba(16,24,32,0.4);">
+            Don&#39;t want bag reminders?
+            <a href="${escapeHtml(links.unsubscribePage)}" style="color:rgba(16,24,32,0.55);">Unsubscribe</a>
           </p>
         </td>
       </tr>
@@ -79,29 +101,24 @@ function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): strin
  * never break the cron run that's sending several of these in a loop.
  */
 export async function sendAbandonedCartRecoveryEmail(cart: AbandonedCart, origin: string): Promise<boolean> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn(`Skipped abandoned cart email for ${cart.id}: RESEND_API_KEY not configured.`);
+  if (!isEmailConfigured()) {
+    console.warn(`Skipped abandoned cart email for ${cart.id}: email isn't configured.`);
     return false;
   }
 
-  const fromAddress = process.env.RESEND_FROM_EMAIL || "Toymak <onboarding@resend.dev>";
-  const resend = new Resend(apiKey);
-
-  try {
-    const { error } = await resend.emails.send({
-      from: fromAddress,
+  const { error } = await sendEmail({
       to: cart.email,
       subject: "You left something in your bag",
       html: buildAbandonedCartEmailHtml(cart, origin),
-    });
-    if (error) {
-      console.error(`Abandoned cart email failed for ${cart.id}:`, error.message);
-      return false;
-    }
-    return true;
-  } catch (error) {
+      // One-click unsubscribe shown by Gmail, Apple Mail, etc. (RFC 8058).
+      headers: {
+        "List-Unsubscribe": `<${cartEmailLinks(cart, origin).unsubscribeOneClick}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+  });
+  if (error) {
     console.error(`Abandoned cart email failed for ${cart.id}:`, error);
     return false;
   }
+  return true;
 }

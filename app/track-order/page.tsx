@@ -1,41 +1,25 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { useOrders } from "@/lib/use-orders";
+import Link from "next/link";
+import { ReceiptDownloadForm } from "@/components/receipt-download-form";
 import { formatCurrency } from "@/lib/pricing";
 import { normalizeExternalUrl } from "@/lib/utils";
 import { useProducts } from "@/lib/use-products";
-import { useWishlist } from "@/lib/wishlist-context";
 import { Order, OrderStatus } from "@/lib/types";
 import {
-  Download,
   ExternalLink,
-  Heart,
-  MapPin,
+  Loader2,
   Package,
-  Save,
   Search,
   ShieldOff,
-  ShoppingBag,
-  Trash2,
   Truck,
   type LucideIcon,
 } from "lucide-react";
-
-const PROFILE_STORAGE_KEY = "toymak-profile";
-
-interface SavedProfile {
-  fullName: string;
-  email: string;
-  phone: string;
-  address: string;
-}
-
-const emptyProfile: SavedProfile = { fullName: "", email: "", phone: "", address: "" };
 
 const statusLabels: Record<OrderStatus, string> = {
   unshipped: "Preparing your order",
@@ -115,83 +99,73 @@ function OrderProgress({ status }: { status: OrderStatus }) {
   );
 }
 
-function AccountContent() {
-  const { orders } = useOrders();
-  const { productIds } = useWishlist();
+function TrackOrderContent() {
   const { products } = useProducts();
-  const wishlistProducts = products.filter((product) => productIds.includes(product.id));
   const searchParams = useSearchParams();
   const productLookup = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
     [products],
   );
 
-  // Order lookup — email alone is enough; tracking ID just narrows results
-  // for anyone who happens to still have it, since most customers won't.
+  // Guest lookup — checkout email plus the order number from the
+  // confirmation email / success page. No account or sign-in involved.
   const [lookupEmail, setLookupEmail] = useState("");
-  const [trackingId, setTrackingId] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
   const [matchedOrders, setMatchedOrders] = useState<Order[] | null>(null);
+  // The credentials that produced matchedOrders — receipt downloads and
+  // return requests re-prove ownership with these, not the live inputs.
+  const [verified, setVerified] = useState<{ email: string; orderNumber: string } | null>(null);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [isLooking, setIsLooking] = useState(false);
 
-  const runLookup = (email: string, tracking: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedTracking = tracking.trim().toLowerCase();
-
-    const matches = orders
-      .filter((order) => order.customer_email.trim().toLowerCase() === normalizedEmail)
-      .filter(
-        (order) => !normalizedTracking || order.tracking_id.trim().toLowerCase() === normalizedTracking,
-      )
-      .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
-
-    setMatchedOrders(matches);
+  const runLookup = async (email: string, number: string) => {
+    setIsLooking(true);
+    setLookupError(null);
+    setMatchedOrders(null);
+    try {
+      const response = await fetch("/api/orders/lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, orderNumber: number }),
+      });
+      const data = (await response.json()) as { orders?: Order[]; error?: string };
+      if (response.status === 404) {
+        setMatchedOrders([]);
+        return;
+      }
+      if (!response.ok || !Array.isArray(data.orders)) {
+        throw new Error(data.error || "Could not look up your order. Please retry.");
+      }
+      setMatchedOrders(
+        data.orders.map((order) => ({
+          ...order,
+          created_at: new Date(order.created_at),
+          updated_at: new Date(order.updated_at),
+        })),
+      );
+      setVerified({ email, orderNumber: number });
+    } catch (error) {
+      setLookupError(error instanceof Error ? error.message : "Could not look up your order. Please retry.");
+    } finally {
+      setIsLooking(false);
+    }
   };
 
   const handleTrackOrder = (event: React.FormEvent) => {
     event.preventDefault();
-    runLookup(lookupEmail, trackingId);
+    void runLookup(lookupEmail, orderNumber);
   };
 
-  // Arriving from checkout/success with ?email=...&auto=1 — prefill and run
-  // the lookup automatically instead of leaving the customer to type their
-  // own email back in right after they just gave it to us at checkout.
-  // Depends on `orders` too, since useOrders() starts from the mock seed and
-  // only picks up the just-placed order once localStorage hydration lands.
+  // Arriving from checkout/success or the confirmation email with
+  // ?email=...&order=... — prefill and look the order up straight away.
   useEffect(() => {
     const emailParam = searchParams.get("email");
-    const autoParam = searchParams.get("auto");
-    if (emailParam && autoParam) {
-      setLookupEmail(emailParam);
-      runLookup(emailParam, "");
-    }
+    const orderParam = searchParams.get("order");
+    if (emailParam) setLookupEmail(emailParam);
+    if (orderParam) setOrderNumber(orderParam);
+    if (emailParam && orderParam) void runLookup(emailParam, orderParam);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, orders]);
-
-  // Saved details (local device only, no account/password)
-  const [profile, setProfile] = useState<SavedProfile>(emptyProfile);
-  const [justSaved, setJustSaved] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (saved) {
-      try {
-        setProfile(JSON.parse(saved));
-      } catch {
-        // ignore corrupt local data
-      }
-    }
-  }, []);
-
-  const handleSaveProfile = (event: React.FormEvent) => {
-    event.preventDefault();
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2500);
-  };
-
-  const handleClearProfile = () => {
-    localStorage.removeItem(PROFILE_STORAGE_KEY);
-    setProfile(emptyProfile);
-  };
+  }, [searchParams]);
 
   return (
     <main className="bg-white">
@@ -199,11 +173,11 @@ function AccountContent() {
 
       <section className="bg-tertiary/40 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-xs uppercase tracking-[0.3em] text-primary">My Account</p>
-          <h1 className="mt-3 text-4xl font-bold text-neutral">Your Account</h1>
+          <p className="text-xs uppercase tracking-[0.3em] text-primary">Order Tracking</p>
+          <h1 className="mt-3 text-4xl font-bold text-neutral">Track Your Order</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral/60">
-            No password, no sign-in. Track an order, manage your wishlist, and save your
-            details on this device for a faster checkout next time.
+            No account needed — use the email you checked out with and the order number from
+            your confirmation email.
           </p>
         </div>
       </section>
@@ -218,7 +192,7 @@ function AccountContent() {
             <div>
               <h2 className="text-2xl font-bold text-neutral">Track an Order</h2>
               <p className="text-sm text-neutral/60">
-                Just the email you used at checkout — no tracking ID needed.
+                Your checkout email and order number (e.g. TMK-AB12CD).
               </p>
             </div>
           </div>
@@ -237,37 +211,42 @@ function AccountContent() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral">
-                Tracking ID <span className="font-normal text-neutral/40">(optional)</span>
+                Order number
               </label>
               <input
                 type="text"
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                placeholder="Have it? Narrows results"
+                value={orderNumber}
+                onChange={(e) => setOrderNumber(e.target.value)}
+                placeholder="TMK-AB12CD"
+                required
+                maxLength={40}
                 className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
               />
             </div>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 sm:w-auto"
+                disabled={isLooking}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-60 sm:w-auto"
               >
-                <Search size={16} />
+                {isLooking ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                 Track
               </button>
             </div>
           </form>
 
           <p className="mt-4 text-xs text-neutral/45">
-            This is a demo storefront — try email{" "}
-            <span className="font-medium text-neutral/60">elena@example.com</span> to see it
-            in action.
+            Your order number is in your confirmation email and was shown after payment.
           </p>
+
+          {lookupError && (
+            <p role="alert" className="mt-6 text-sm text-red-700">{lookupError}</p>
+          )}
 
           {matchedOrders && matchedOrders.length === 0 && (
             <div className="mt-6 flex items-center gap-3 rounded-2xl border border-neutral/10 bg-tertiary/30 px-5 py-4 text-sm text-neutral/70">
               <ShieldOff size={18} className="shrink-0 text-neutral/40" />
-              We couldn&apos;t find any orders for that email. Double-check for typos, or{" "}
+              We couldn&apos;t find an order matching that email and order number. Double-check for typos, or{" "}
               <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
                 email us
               </a>{" "}
@@ -300,13 +279,15 @@ function AccountContent() {
                       <p className="mt-1.5 text-2xl font-bold text-primary">
                         {formatCurrency(order.total_amount, order.currency)}
                       </p>
-                      <a
-                        href={`/api/orders/${order.id}/receipt?email=${encodeURIComponent(order.customer_email)}`}
-                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-neutral/60 hover:text-primary"
-                      >
-                        <Download size={12} />
-                        Download Receipt
-                      </a>
+                      {verified && (
+                        <ReceiptDownloadForm
+                          orderId={order.id}
+                          email={verified.email}
+                          orderNumber={verified.orderNumber}
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-neutral/60 hover:text-primary"
+                          iconSize={12}
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -353,7 +334,7 @@ function AccountContent() {
                         >
                           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-tertiary/40">
                             {product?.images?.[0] && (
-                              <img
+                              <StoreImage sizes="64px"
                                 src={product.images[0]}
                                 alt={item.product_name}
                                 className="h-full w-full object-cover"
@@ -376,6 +357,13 @@ function AccountContent() {
                     })}
                   </div>
 
+                  <p className="border-t border-neutral/10 px-6 py-4 text-sm text-neutral/60 sm:px-8">
+                    Need to return or exchange something? See our{" "}
+                    <Link href="/returns" className="font-semibold text-primary hover:underline">
+                      returns policy
+                    </Link>
+                    .
+                  </p>
                   {/* Totals */}
                   <div className="space-y-2 border-t border-neutral/10 bg-tertiary/15 px-6 py-5 text-sm sm:px-8">
                     <div className="flex items-center justify-between text-neutral/60">
@@ -394,6 +382,7 @@ function AccountContent() {
                       <span>Tax</span>
                       <span>{formatCurrency(order.tax, order.currency)}</span>
                     </div>
+                    {(order.refunded_amount ?? 0) > 0 && <p>Refunded: {formatCurrency(order.refunded_amount!, order.currency)}</p>}
                     {order.discount_applied > 0 && (
                       <div className="flex items-center justify-between text-primary">
                         <span>Discount</span>
@@ -401,7 +390,7 @@ function AccountContent() {
                       </div>
                     )}
                     <div className="flex items-center justify-between border-t border-neutral/10 pt-3 text-base font-bold text-neutral">
-                      <span>Total</span>
+                      <span>Total paid</span>
                       <span>{formatCurrency(order.total_amount, order.currency)}</span>
                     </div>
                   </div>
@@ -410,134 +399,6 @@ function AccountContent() {
             </div>
           )}
         </div>
-
-        {/* Wishlist + Saved Details */}
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          {/* Wishlist summary */}
-          <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Heart size={20} />
-              </span>
-              <div>
-                <h2 className="text-2xl font-bold text-neutral">Wishlist</h2>
-                <p className="text-sm text-neutral/60">
-                  {wishlistProducts.length > 0
-                    ? `${wishlistProducts.length} item${wishlistProducts.length === 1 ? "" : "s"} saved`
-                    : "Nothing saved yet"}
-                </p>
-              </div>
-            </div>
-
-            {wishlistProducts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-neutral/15 px-5 py-8 text-center">
-                <p className="text-sm text-neutral/55">
-                  Save products you like while browsing and they&apos;ll show up here.
-                </p>
-                <Link
-                  href="/shop"
-                  className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                >
-                  <ShoppingBag size={16} />
-                  Browse Products
-                </Link>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-3">
-                  {wishlistProducts.slice(0, 6).map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/product/${product.id}`}
-                      className="group h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-tertiary/40"
-                    >
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="h-full w-full object-cover transition group-hover:scale-110"
-                      />
-                    </Link>
-                  ))}
-                </div>
-                <Link
-                  href="/wishlist"
-                  className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-                >
-                  View full wishlist
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Saved details */}
-          <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm sm:p-8">
-            <div className="mb-6 flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <MapPin size={20} />
-              </span>
-              <div>
-                <h2 className="text-2xl font-bold text-neutral">Saved Details</h2>
-                <p className="text-sm text-neutral/60">Saved on this device only</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  type="text"
-                  value={profile.fullName}
-                  onChange={(e) => setProfile((p) => ({ ...p, fullName: e.target.value }))}
-                  placeholder="Full name"
-                  className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-                />
-                <input
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
-                  placeholder="Email"
-                  className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-                />
-              </div>
-              <input
-                type="tel"
-                value={profile.phone}
-                onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="Phone"
-                className="w-full rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-              />
-              <textarea
-                value={profile.address}
-                onChange={(e) => setProfile((p) => ({ ...p, address: e.target.value }))}
-                placeholder="Shipping address"
-                rows={3}
-                className="w-full resize-none rounded-xl border border-neutral/15 bg-transparent px-4 py-3 text-sm text-black outline-none placeholder:text-black/40 focus:border-primary"
-              />
-
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary/90"
-                >
-                  <Save size={16} />
-                  Save Details
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearProfile}
-                  className="inline-flex items-center gap-2 rounded-xl border border-neutral/15 px-5 py-3 text-sm font-medium text-neutral/70 transition hover:border-primary hover:text-primary"
-                >
-                  <Trash2 size={16} />
-                  Clear
-                </button>
-                {justSaved && (
-                  <span className="text-sm font-medium text-primary" role="status">
-                    Saved on this device
-                  </span>
-                )}
-              </div>
-            </form>
-          </div>
-        </div>
       </section>
 
       <Footer />
@@ -545,10 +406,10 @@ function AccountContent() {
   );
 }
 
-export default function AccountPage() {
+export default function TrackOrderPage() {
   return (
     <Suspense fallback={null}>
-      <AccountContent />
+      <TrackOrderContent />
     </Suspense>
   );
 }

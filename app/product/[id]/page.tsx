@@ -1,3 +1,5 @@
+import { siteUrl } from "@/lib/site-url";
+import { StoreImage } from "@/components/store-image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getAllProducts, getProductById } from "@/lib/server/products";
@@ -37,8 +39,10 @@ export async function generateMetadata({
   }
 
   return {
+    alternates: { canonical: `${siteUrl}/product/${encodeURIComponent(product.id)}` },
     title: `${product.name} | Toymak Fashion`,
-    description: product.longDescription ?? product.description,
+    description: (product.longDescription?.trim() || product.description?.trim() ||
+      `Shop ${product.name} at Toymak. Explore product details, available options, and delivery information.`).slice(0, 160),
   };
 }
 
@@ -68,6 +72,15 @@ export default async function ProductPage({
 
   return (
     <main className="bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org", "@type": "Product", name: product.name,
+        description: product.description, image: product.images, sku: product.sku,
+        brand: { "@type": "Brand", name: "Toymak" },
+        offers: { "@type": "Offer", priceCurrency: "GBP", price: product.price_gbp,
+          url: `${siteUrl}/product/${encodeURIComponent(product.id)}`,
+          availability: product.stock_qty > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
+        ...(count ? { aggregateRating: { "@type": "AggregateRating", ratingValue: average, reviewCount: count } } : {}),
+      }).replace(/</g, "\\u003c") }} />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -110,7 +123,7 @@ export default async function ProductPage({
                   className="group"
                 >
                   <div className="bg-tertiary/50 rounded-lg overflow-hidden mb-4 h-64">
-                    <img
+                    <StoreImage sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                       src={related.images[0]}
                       alt={related.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition"

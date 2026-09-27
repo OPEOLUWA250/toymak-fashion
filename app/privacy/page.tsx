@@ -61,9 +61,9 @@ export default function PrivacyPage() {
               deliver your order.
             </li>
             <li>
-              <span className="font-medium text-neutral">On your account page:</span> if you
-              choose to save your details for faster checkout next time — this is stored only
-              in your own browser on your own device, not on our servers.
+              <span className="font-medium text-neutral">Your wishlist:</span> the products
+              you save are stored only in your own browser on your own device, not on our
+              servers.
             </li>
             <li>
               <span className="font-medium text-neutral">First-order discount signup:</span>{" "}
@@ -181,9 +181,8 @@ export default function PrivacyPage() {
             We keep order information for as long as necessary to fulfil the order, handle
             any returns or disputes, and meet our tax and accounting obligations. If you
             asked us for a discount code, we keep your signup details until you ask us to
-            delete them or unsubscribe. Details saved on your own device (via the account
-            page) stay there until you clear them yourself, and are never sent to us unless
-            you use them to place an order.
+            delete them or unsubscribe. Your wishlist stays on your own device until you
+            clear it yourself, and is never sent to us.
           </p>
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">9. Your Rights</h2>

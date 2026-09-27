@@ -88,8 +88,36 @@ export async function createOrGetSignup(
   return { signup: rowToSignup(data as SignupRow), isNew: true };
 }
 
+/**
+ * The coupon email is always built from this server-side record — never
+ * from what the browser sends — so it can only ever send a signup's own
+ * code to its own address.
+ */
+export async function getSignupForCouponEmail(
+  id: string,
+): Promise<{ firstName: string; email: string; couponCode: string; lastSentAt: Date | null } | null> {
+  const { data, error } = await getSupabaseAdmin().from("signups").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(`Failed to load signup ${id}: ${error.message}`);
+  if (!data) return null;
+  const row = data as SignupRow & { email_last_sent_at?: string | null };
+  return {
+    firstName: row.first_name,
+    email: row.email,
+    couponCode: row.coupon_code,
+    lastSentAt: row.email_last_sent_at ? new Date(row.email_last_sent_at) : null,
+  };
+}
+
 export async function markSignupEmailSent(id: string): Promise<void> {
-  const { error } = await getSupabaseAdmin().from("signups").update({ email_sent: true }).eq("id", id);
+  const db = getSupabaseAdmin();
+  let { error } = await db
+    .from("signups")
+    .update({ email_sent: true, email_last_sent_at: new Date().toISOString() })
+    .eq("id", id);
+  // Before migration 0014 there's no email_last_sent_at column.
+  if (error && (error.code === "42703" || error.code === "PGRST204")) {
+    ({ error } = await db.from("signups").update({ email_sent: true }).eq("id", id));
+  }
   if (error) throw new Error(`Failed to mark signup ${id} as emailed: ${error.message}`);
 }
 

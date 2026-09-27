@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,10 @@ export function ProductGallery({
   return (
     <div className="space-y-4">
       <div className="product-photo relative bg-tertiary/40 rounded-2xl overflow-hidden min-h-[28rem] md:min-h-[40rem] flex items-center justify-center">
-        <img
+        <StoreImage sizes="(max-width: 1024px) 100vw, 50vw"
+          fill
+          loading="eager"
+          fetchPriority="high"
           src={images[activeIndex]}
           alt={alt}
           className="w-full h-full object-cover"
@@ -41,7 +45,7 @@ export function ProductGallery({
                 activeIndex === index ? "ring-primary" : "ring-transparent hover:ring-primary/30",
               )}
             >
-              <img
+              <StoreImage sizes="(max-width: 1024px) 50vw, 25vw"
                 src={image}
                 alt={`${alt} view ${index + 1}`}
                 className="w-full h-full object-cover"

@@ -35,27 +35,32 @@ export default function ProductClient({
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState(
-    product.colors[0]?.name || "",
+    product.colors[0]?.name || "Default",
   );
   const [quantity, setQuantity] = useState(1);
+  const variantStock = product.variants?.length ? product.variants.find(v => v.size === (selectedSize || 'Not applicable') && v.color === selectedColor)?.stock ?? 0 : product.stock_qty;
   const [sizeError, setSizeError] = useState(false);
+  const [stockError, setStockError] = useState("");
   const [justAdded, setJustAdded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
 
   const isWishlisted = isInWishlist(product.id);
   const sizeCategory = isSizeCategory(product.category) ? product.category : null;
 
   const handleAddToCart = () => {
-    if (!selectedSize) {
+    if (product.sizes.length > 0 && !selectedSize) {
       setSizeError(true);
       return;
     }
     setSizeError(false);
+    if (quantity > variantStock) { setStockError("This option is unavailable in that quantity."); return; }
+    setStockError("");
     addItem({
       product_id: product.id,
       product_name: product.name,
       quantity,
-      size: selectedSize,
+      size: selectedSize || "Not applicable",
       color: selectedColor,
       price_at_addition: product.price_gbp,
       image_url: product.images[0],
@@ -65,6 +70,7 @@ export default function ProductClient({
   };
 
   const handleShare = async () => {
+    setShareError(null);
     const url = typeof window !== "undefined" ? window.location.href : "";
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -74,15 +80,19 @@ export default function ProductClient({
         // user cancelled or share failed — fall through to clipboard copy
       }
     }
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
+    try {
+      if (!navigator.clipboard) throw new Error();
       await navigator.clipboard.writeText(url);
       setShareCopied(true);
       setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      setShareError("Could not copy the link. You can copy it from your browser's address bar.");
     }
   };
 
   return (
     <div className="space-y-6 lg:sticky lg:top-6">
+      {shareError && <p role="alert" className="text-sm text-red-600">{shareError}</p>}
       <div>
         <p className="text-xs uppercase tracking-[0.22em] text-primary font-semibold mb-3">
           {product.category.replace("-", " ")}
@@ -144,7 +154,7 @@ export default function ProductClient({
               <button
                 key={color.name}
                 type="button"
-                onClick={() => setSelectedColor(color.name)}
+                onClick={() => { setSelectedColor(color.name); setQuantity(1); setStockError(""); }}
                 aria-label={color.name}
                 aria-pressed={selectedColor === color.name}
                 title={color.name}
@@ -158,7 +168,7 @@ export default function ProductClient({
         </div>
       )}
 
-      <div>
+      {product.sizes.length > 0 && <div>
         <div className="flex items-center justify-between mb-3">
           <label className="block text-sm font-semibold tracking-[0.16em] uppercase text-neutral">
             Select size
@@ -178,6 +188,8 @@ export default function ProductClient({
               key={size}
               onClick={() => {
                 setSelectedSize(size);
+                setQuantity(1);
+                setStockError("");
                 setSizeError(false);
               }}
               className={`py-3 px-3 border rounded-lg font-medium transition ${
@@ -193,7 +205,7 @@ export default function ProductClient({
         {sizeError && (
           <p className="mt-2 text-xs font-medium text-red-500">Please select a size</p>
         )}
-      </div>
+      </div>}
 
       <div>
         <label className="mb-3 block text-sm font-semibold tracking-[0.16em] uppercase text-neutral">
@@ -212,7 +224,8 @@ export default function ProductClient({
           <span className="w-10 text-center text-sm font-semibold text-neutral">{quantity}</span>
           <button
             type="button"
-            onClick={() => setQuantity((q) => Math.min(product.stock_qty || 99, q + 1))}
+            onClick={() => setQuantity((q) => Math.min(variantStock, q + 1))}
+            disabled={quantity >= variantStock}
             aria-label="Increase quantity"
             className="flex h-11 w-11 items-center justify-center text-neutral transition hover:text-primary"
           >
@@ -223,11 +236,12 @@ export default function ProductClient({
 
       <button
         onClick={handleAddToCart}
-        disabled={product.stock_qty <= 0}
+        disabled={variantStock <= 0}
         className="w-full rounded-md bg-primary py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white shadow-lg shadow-primary/20 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {product.stock_qty <= 0 ? "Out of Stock" : justAdded ? "Added to Bag" : "Add to Bag"}
+        {variantStock <= 0 ? "Select an available option" : justAdded ? "Added to Bag" : "Add to Bag"}
       </button>
+      {stockError && <p role="alert" className="text-sm text-red-700">{stockError}</p>}
       {justAdded && (
         <p className="-mt-3 flex items-center gap-1.5 text-sm font-medium text-primary" role="status">
           <Check size={15} />

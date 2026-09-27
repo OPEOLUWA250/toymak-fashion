@@ -8,5 +8,6 @@ export type AdminView =
   | "inventory"
   | "signups"
   | "reviews"
-  | "admin"
+  | "activity"
+  | "admins"
   | "settings";

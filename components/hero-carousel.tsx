@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -59,8 +60,9 @@ export function HeroCarousel({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {images.map((image, i) => (
-        <img
+      {images.map((image, i) => (i === index || i === (index + 1) % images.length) && (
+        <StoreImage sizes="100vw"
+          fill
           key={image.src}
           src={image.src}
           alt={image.alt}

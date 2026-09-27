@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import { validateCheckoutItems, validateCheckoutContact } from "@/lib/checkout-validation";
+import { saveCheckoutSnapshot } from "@/lib/server/checkout-snapshots";
 import { NextRequest, NextResponse } from "next/server";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
 import { getAllProducts } from "@/lib/server/products";
@@ -29,6 +32,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  try {
   const body = (await request.json()) as InitializeRequestBody;
   const { email, items, customer, shipping, discountCode, callback_url } = body;
 
@@ -43,14 +47,16 @@ export async function POST(request: NextRequest) {
   // from the real catalog so nothing charged is trusted from the client.
   const products = await getAllProducts();
   const settings = await getStoreSettings();
+  validateCheckoutContact(body);
+  validateCheckoutItems(items, products, "NGN");
 
   // The discount percent is never taken from the client — only the code is.
-  // An invalid/already-used code is silently ignored here (0% applied) so a
-  // stale code left in the field doesn't block checkout.
+  // Reject stale codes so the customer can review the revised total first.
   const discountPercent = discountCode
     ? (await validateCouponCode(discountCode)).discountPercent
     : 0;
 
+  if (discountCode && discountPercent === 0) return NextResponse.json({ error: "This discount code is no longer valid. Remove it or choose another code." }, { status: 400 });
   const orderItems = buildOrderItems(items, "NGN", products, discountPercent);
 
   const { subtotal, shipping: shippingCost, tax, total, discount } = calculateOrderTotals(
@@ -61,7 +67,13 @@ export async function POST(request: NextRequest) {
     discountPercent,
   );
 
-  const reference = `tmk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  if (shipping.country !== "Nigeria") throw new Error("Use Stripe for delivery outside Nigeria.");
+  const snapshotId = await saveCheckoutSnapshot("paystack", {
+    status: "success", currency: "NGN", customerEmail: email, customerName: customer.fullName,
+    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
+    orderItems, subtotal, shippingCost, tax, total, discount, discountCode,
+  });
+  const reference = `tmk_${randomUUID()}`;
 
   const paystackResponse = await fetch(`${PAYSTACK_API}/transaction/initialize`, {
     method: "POST",
@@ -74,19 +86,8 @@ export async function POST(request: NextRequest) {
       amount: Math.round(total * 100), // kobo
       currency: "NGN",
       reference,
-      callback_url,
-      metadata: {
-        customer_name: customer.fullName,
-        customer_phone: customer.phone,
-        shipping_address: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
-        order_items: orderItems,
-        subtotal,
-        shipping_cost: shippingCost,
-        tax,
-        total,
-        discount,
-        ...(discountPercent > 0 && discountCode ? { discount_code: discountCode.trim().toUpperCase() } : {}),
-      },
+      callback_url: `${request.nextUrl.origin}/checkout/success?gateway=paystack`,
+      metadata: { checkout_snapshot_id: snapshotId },
     }),
   });
 
@@ -100,4 +101,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(data.data);
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to start checkout." }, { status: 400 });
+  }
 }

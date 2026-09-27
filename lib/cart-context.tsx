@@ -6,6 +6,7 @@ import { CartItem } from './types'
 interface CartContextType {
   items: CartItem[]
   addItem: (item: CartItem) => void
+  restoreItems: (items: CartItem[]) => void
   removeItem: (productId: string, size: string, color: string) => void
   updateQuantity: (productId: string, size: string, color: string, quantity: number) => void
   clearCart: () => void
@@ -64,6 +65,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
+  // Restoring a saved bag (reminder email link): add lines not already in
+  // the cart, leaving existing ones alone so a second click doesn't double up.
+  const restoreItems = (restored: CartItem[]) => {
+    setItems((prevItems) => [
+      ...prevItems,
+      ...restored.filter(
+        (item) =>
+          !prevItems.some(
+            (existing) =>
+              existing.product_id === item.product_id && existing.size === item.size && existing.color === item.color
+          )
+      ),
+    ])
+  }
+
   const removeItem = (productId: string, size: string, color: string) => {
     setItems((prevItems) =>
       prevItems.filter(
@@ -110,6 +126,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       value={{
         items,
         addItem,
+        restoreItems,
         removeItem,
         updateQuantity,
         clearCart,

@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import Link from "next/link";
 import { Heart, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/product/${product.id}`} className="group block">
       <div className="product-photo relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40">
-        <img
+        <StoreImage sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           src={product.images[0]}
           alt={product.name}
           className={cn(
@@ -52,7 +53,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         />
         {secondaryImage && (
-          <img
+          <StoreImage sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             src={secondaryImage}
             alt=""
             aria-hidden

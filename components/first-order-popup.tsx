@@ -1,14 +1,41 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
-import { NewsletterSignup } from "@/lib/types";
 import { useSettings } from "@/lib/use-settings";
 
-const DISMISSED_KEY = "toymak-popup-dismissed";
-const SHOW_DELAY_MS = 4000;
+// Bump the version to show the popup again on every device, including ones
+// where it was already dismissed (the old key is simply ignored).
+const DISMISSED_KEY = "toymak-popup-dismissed-v2";
+const SHOW_DELAY_MS = 10000;
+
+// Storage can be blocked (private mode, strict settings) — never let that
+// break the page; worst case the popup shows again next visit.
+function wasDismissed(): boolean {
+  try {
+    return !!localStorage.getItem(DISMISSED_KEY);
+  } catch {
+    return false;
+  }
+}
+
+function rememberDismissed() {
+  try {
+    localStorage.setItem(DISMISSED_KEY, "true");
+  } catch {
+    // See wasDismissed.
+  }
+}
 
 type EmailStatus = "idle" | "sending" | "sent" | "failed" | "duplicate";
+
+// All the server returns about a signup — the code itself only ever goes
+// out by email.
+interface PopupSignup {
+  id: string;
+  email: string;
+}
 
 export function FirstOrderPopup() {
   const { settings } = useSettings();
@@ -23,11 +50,13 @@ export function FirstOrderPopup() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [signup, setSignup] = useState<NewsletterSignup | null>(null);
+  const [signup, setSignup] = useState<PopupSignup | null>(null);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
 
   useEffect(() => {
-    if (localStorage.getItem(DISMISSED_KEY)) return;
+    // ?popup=1 forces it to show, for testing after it's been dismissed.
+    const forced = new URLSearchParams(window.location.search).get("popup") === "1";
+    if (!forced && wasDismissed()) return;
 
     const timer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
     return () => clearTimeout(timer);
@@ -50,28 +79,23 @@ export function FirstOrderPopup() {
 
   const dismiss = () => {
     setEntered(false);
-    localStorage.setItem(DISMISSED_KEY, "true");
+    rememberDismissed();
     setTimeout(() => setVisible(false), 200);
   };
 
   // The code only ever appears in the email — never on screen — so sending
   // has to be able to fail without stranding the customer. This is used
   // both for the initial send and the "Try again" / "Resend" retry.
-  const sendCouponEmail = async (target: NewsletterSignup) => {
+  const sendCouponEmail = async (target: PopupSignup) => {
     setEmailStatus("sending");
     try {
       const response = await fetch("/api/signups/send-coupon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          signupId: target.id,
-          firstName: target.first_name,
-          email: target.email,
-          couponCode: target.coupon_code,
-          discountLabel,
-        }),
+        body: JSON.stringify({ signupId: target.id }),
       });
-      if (!response.ok) throw new Error("Email send failed");
+      // 429 = it was sent moments ago; nothing failed.
+      if (!response.ok && response.status !== 429) throw new Error("Email send failed");
       setEmailStatus("sent");
     } catch {
       setEmailStatus("failed");
@@ -82,7 +106,7 @@ export function FirstOrderPopup() {
     event.preventDefault();
     setEmailStatus("sending");
 
-    let newSignup: NewsletterSignup;
+    let newSignup: PopupSignup;
     let isNew: boolean;
     try {
       const response = await fetch("/api/signups", {
@@ -90,7 +114,7 @@ export function FirstOrderPopup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ firstName, lastName, email }),
       });
-      const data = (await response.json()) as { signup?: NewsletterSignup; isNew?: boolean; error?: string };
+      const data = (await response.json()) as { signup?: PopupSignup; isNew?: boolean; error?: string };
       if (!response.ok || !data.signup) throw new Error(data.error ?? "Signup failed");
       newSignup = data.signup;
       isNew = data.isNew ?? false;
@@ -100,7 +124,7 @@ export function FirstOrderPopup() {
     }
 
     setSignup(newSignup);
-    localStorage.setItem(DISMISSED_KEY, "true");
+    rememberDismissed();
 
     if (!isNew) {
       // Same email submitting again — don't mint a new code or fire off
@@ -129,7 +153,7 @@ export function FirstOrderPopup() {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative flex min-h-[560px] flex-col justify-end sm:min-h-[600px]">
-          <img
+          <StoreImage sizes="(max-width: 640px) 100vw, 640px"
             src="/shop-img/imgi_85_img_7941.jpg"
             alt="Toymak shapewear, on model"
             className="absolute inset-0 h-full w-full object-cover"

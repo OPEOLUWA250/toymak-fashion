@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Pencil, Plus, Search, Trash2 } from "lucide-react";
@@ -21,16 +22,23 @@ export function ProductsView({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
+  isLoading = false,
+  error = null,
 }: {
   products: Product[];
   search: string;
   onSearchChange: (value: string) => void;
-  onAddProduct: (product: Product) => void;
-  onUpdateProduct: (product: Product) => void;
-  onDeleteProduct: (productId: string) => void;
+  onAddProduct: (product: Product) => Promise<void>;
+  onUpdateProduct: (product: Product) => Promise<void>;
+  onDeleteProduct: (productId: string) => Promise<void>;
+  isLoading?: boolean;
+  error?: string | null;
 }) {
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | "all">("all");
   const [formTarget, setFormTarget] = useState<"add" | Product | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const categories = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
@@ -49,23 +57,40 @@ export function ProductsView({
     });
   }, [products, categoryFilter, search]);
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     if (confirm(`Delete "${product.name}"? This can't be undone.`)) {
-      onDeleteProduct(product.id);
+      setActionError(null);
+      setNotice(null);
+      setDeletingId(product.id);
+      try {
+        await onDeleteProduct(product.id);
+        setNotice("Product deleted.");
+      } catch (error) {
+        setActionError(error instanceof Error ? error.message : "Could not delete product.");
+      } finally {
+        setDeletingId(null);
+      }
     }
   };
 
-  const handleSave = (product: Product) => {
+  const handleSave = async (product: Product) => {
+    setNotice(null);
+    setActionError(null);
     if (formTarget === "add") {
-      onAddProduct(product);
+      await onAddProduct(product);
+      setNotice("Product added.");
     } else {
-      onUpdateProduct(product);
+      await onUpdateProduct(product);
+      setNotice("Product saved.");
     }
     setFormTarget(null);
   };
 
   return (
     <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
+      {notice && <p role="status" className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+      {(error || actionError) && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error || actionError}</p>}
+      {isLoading && <p role="status" className="mb-4 text-sm text-neutral-500">Loading products...</p>}
       <div className="mb-5 flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -123,8 +148,8 @@ export function ProductsView({
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-190 border-collapse text-left">
-            <thead className="bg-neutral-50">
+          <table className="admin-product-table w-full border-collapse text-left">
+            <thead className="hidden bg-neutral-50 xl:table-header-group">
               <tr>
                 <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
                   Product
@@ -154,7 +179,7 @@ export function ProductsView({
                   <tr key={product.id}>
                     <td className="px-4 py-4 align-middle">
                       <div className="flex items-center gap-3">
-                        <img
+                        <StoreImage sizes="40px"
                           src={product.images[0]}
                           alt={product.name}
                           className="h-10 w-10 shrink-0 rounded-lg object-cover"
@@ -163,20 +188,21 @@ export function ProductsView({
                           <p className="truncate text-sm font-medium text-neutral-900">
                             {product.name}
                           </p>
+                          <span className="mr-2 text-[11px] text-neutral-500">{product.status === "draft" ? "Draft" : product.status === "archived" ? "Archived" : "Published"}</span>
                           {product.featured && (
                             <span className="text-[11px] font-medium text-primary">Featured</span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 align-middle text-sm text-neutral-600">{product.sku}</td>
-                    <td className="px-4 py-4 align-middle text-sm text-neutral-600">
+                    <td data-label="SKU" className="break-all px-4 py-4 align-middle text-sm text-neutral-600">{product.sku}</td>
+                    <td data-label="Category" className="px-4 py-4 align-middle text-sm text-neutral-600">
                       {categoryLabels[product.category]}
                     </td>
-                    <td className="px-4 py-4 align-middle text-sm font-semibold text-neutral-900">
+                    <td data-label="Price" className="px-4 py-4 align-middle text-sm font-semibold text-neutral-900">
                       £{product.price_gbp.toFixed(2)}
                     </td>
-                    <td className="px-4 py-4 align-middle">
+                    <td data-label="Stock" className="px-4 py-4 align-middle">
                       <span
                         className={`inline-flex w-fit whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${
                           outOfStock
@@ -216,6 +242,7 @@ export function ProductsView({
                           onClick={() => handleDelete(product)}
                           className="rounded-lg p-1.5 text-neutral-500 transition hover:bg-red-50 hover:text-red-600"
                           aria-label={`Delete ${product.name}`}
+                          disabled={deletingId !== null}
                         >
                           <Trash2 size={15} />
                         </button>
@@ -228,7 +255,7 @@ export function ProductsView({
           </table>
         </div>
 
-        {filtered.length === 0 && (
+        {!isLoading && !error && filtered.length === 0 && (
           <p className="px-4 py-10 text-center text-sm text-neutral-500">
             No products match that search or filter.
           </p>

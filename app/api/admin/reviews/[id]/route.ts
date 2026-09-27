@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { deleteReview, updateReviewApproval } from "@/lib/server/reviews";
+import { adminRoute } from "@/lib/server/admin-auth";
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = adminRoute(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = (await request.json()) as { approved?: boolean };
 
@@ -21,9 +22,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       { status: 500 },
     );
   }
-}
+});
 
-export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = adminRoute(async (_request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
 
   try {
@@ -35,4 +36,4 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
       { status: 500 },
     );
   }
-}
+});

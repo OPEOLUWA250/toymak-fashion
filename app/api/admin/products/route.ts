@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createProduct } from "@/lib/server/products";
+import { createProduct, getAllProducts } from "@/lib/server/products";
 import { Product } from "@/lib/types";
+import { adminRoute } from "@/lib/server/admin-auth";
 
-export async function POST(request: NextRequest) {
+export const POST = adminRoute(async (request: NextRequest) => {
   try {
     const product = (await request.json()) as Product;
     const created = await createProduct({
@@ -17,4 +18,9 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+});
+
+export const GET = adminRoute(async () => {
+  try { return NextResponse.json({ products: await getAllProducts(true) }); }
+  catch { return NextResponse.json({ error: "Unable to load products." }, { status: 500 }); }
+});

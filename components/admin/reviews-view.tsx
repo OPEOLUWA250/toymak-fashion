@@ -16,14 +16,21 @@ export function ReviewsView({
   onDelete: (id: string) => Promise<void>;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const pending = reviews.filter((review) => !review.approved);
   const approved = reviews.filter((review) => review.approved);
 
   const runAction = async (id: string, action: () => Promise<void>) => {
     setBusyId(id);
+    setError(null);
+    setNotice(null);
     try {
       await action();
+      setNotice("Review updated.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not update review. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -31,6 +38,8 @@ export function ReviewsView({
 
   return (
     <div className="space-y-6">
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-neutral-200 bg-white p-5">
           <div className="flex items-center gap-3">

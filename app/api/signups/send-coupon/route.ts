@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-import { markSignupEmailSent } from "@/lib/server/signups";
+import { getSignupForCouponEmail, markSignupEmailSent } from "@/lib/server/signups";
+import { getStoreSettings } from "@/lib/server/settings";
+import { isEmailConfigured, sendEmail } from "@/lib/server/email-sender";
 
-interface SendCouponRequestBody {
-  signupId: string;
-  firstName: string;
-  email: string;
-  couponCode: string;
-  discountLabel: string;
-}
-
-const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
-const COUPON_CODE_PATTERN = /^WELCOME-[A-Z0-9]{6}$/;
+// A resend ("Resend my code") is allowed at most this often per signup, so
+// the endpoint can't be used to flood someone's inbox.
+const RESEND_COOLDOWN_MS = 5 * 60 * 1000;
 
 function escapeHtml(value: string): string {
   return value
@@ -86,41 +80,49 @@ function buildCouponEmailHtml({
 }
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
+  if (!isEmailConfigured()) {
     return NextResponse.json(
-      { error: "Email isn't configured yet. Add RESEND_API_KEY to .env.local and restart the dev server." },
+      { error: "Email isn't configured yet. Add RESEND_API_KEY or the SMTP settings to .env.local and restart the dev server." },
       { status: 500 },
     );
   }
 
-  const body = (await request.json()) as SendCouponRequestBody;
-  const { signupId, firstName, email, couponCode, discountLabel } = body;
-
-  if (!signupId) {
+  // Only the signup id is taken from the request. The address, name and
+  // code all come from our own database record, so this can only ever send
+  // a signup's own code to the address that signed up.
+  let signupId: unknown;
+  try { ({ signupId } = await request.json()); } catch { signupId = undefined; }
+  if (typeof signupId !== "string" || !signupId || signupId.length > 100) {
     return NextResponse.json({ error: "Missing signupId." }, { status: 400 });
   }
-  if (!email || !EMAIL_PATTERN.test(email)) {
-    return NextResponse.json({ error: "A valid email is required." }, { status: 400 });
+
+  let signup: Awaited<ReturnType<typeof getSignupForCouponEmail>>;
+  let discountPercent: number;
+  try {
+    [signup, { welcomeDiscountPercent: discountPercent }] = await Promise.all([
+      getSignupForCouponEmail(signupId),
+      getStoreSettings(),
+    ]);
+  } catch {
+    return NextResponse.json({ error: "Could not send your code. Please retry." }, { status: 500 });
   }
-  if (!couponCode || !COUPON_CODE_PATTERN.test(couponCode)) {
-    return NextResponse.json({ error: "Invalid coupon code." }, { status: 400 });
+  if (!signup) return NextResponse.json({ error: "Signup not found." }, { status: 404 });
+  if (signup.lastSentAt && Date.now() - signup.lastSentAt.getTime() < RESEND_COOLDOWN_MS) {
+    return NextResponse.json(
+      { error: "We've just sent your code. Check your inbox (and spam) before asking again." },
+      { status: 429 },
+    );
   }
 
   // The link back to the site is derived from the request itself, never
-  // from client-supplied input — otherwise anyone could POST here directly
-  // and use our Resend account to send a branded email pointing anywhere,
-  // to any address.
+  // from client-supplied input.
   const origin = request.nextUrl.origin;
-  const safeDiscountLabel = (discountLabel || "").replace(/[\r\n]/g, "").slice(0, 60) || "your";
-  const safeFirstName = (firstName || "").replace(/[\r\n]/g, "").slice(0, 100);
-
-  const fromAddress = process.env.RESEND_FROM_EMAIL || "Toymak <onboarding@resend.dev>";
-  const resend = new Resend(apiKey);
+  const safeDiscountLabel = `${discountPercent}% off`;
+  const safeFirstName = signup.firstName.replace(/[\r\n]/g, "").slice(0, 100);
+  const { email, couponCode } = signup;
 
   try {
-    const { error } = await resend.emails.send({
-      from: fromAddress,
+    const { error } = await sendEmail({
       to: email,
       subject: `Your ${safeDiscountLabel} Toymak code is here`,
       html: buildCouponEmailHtml({
@@ -132,10 +134,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 502 });
+      return NextResponse.json({ error }, { status: 502 });
     }
 
-    await markSignupEmailSent(signupId);
+    try {
+      await markSignupEmailSent(signupId);
+    } catch (markError) {
+      // The email went out; failing to record it mustn't report a failure.
+      console.error(markError);
+    }
     return NextResponse.json({ sent: true });
   } catch (error) {
     return NextResponse.json(

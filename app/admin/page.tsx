@@ -13,9 +13,9 @@ import {
   PanelLeftOpen,
   Search,
   Settings as SettingsIcon,
+  ShieldCheck,
   ShoppingCart,
   Ticket,
-  UserCog,
   Users,
   X,
 } from "lucide-react";
@@ -28,6 +28,7 @@ import { useAdminLiveEvents } from "@/lib/use-admin-live-events";
 import { useAdminReviews } from "@/lib/use-admin-reviews";
 import { cn } from "@/lib/utils";
 import type { AdminView } from "@/components/admin/types";
+import { OperationsView } from "@/components/admin/operations-view";
 import { OverviewView } from "@/components/admin/overview-view";
 import { AnalyticsView } from "@/components/admin/analytics-view";
 import { OrdersView } from "@/components/admin/orders-view";
@@ -37,9 +38,10 @@ import { CustomersView } from "@/components/admin/customers-view";
 import { InventoryView } from "@/components/admin/inventory-view";
 import { SignupsView } from "@/components/admin/signups-view";
 import { ReviewsView } from "@/components/admin/reviews-view";
-import { AdminManagementView } from "@/components/admin/admin-management-view";
 import { SettingsView } from "@/components/admin/settings-view";
 import { AdminProfileMenu } from "@/components/admin/admin-profile-menu";
+import { AdminsView } from "@/components/admin/admins-view";
+import { useAdminSession } from "@/lib/use-admin-session";
 import { NotificationsPanel } from "@/components/admin/notifications-panel";
 
 const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
@@ -51,15 +53,25 @@ const mainNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[
   { view: "customers", label: "Customers", icon: Users },
   { view: "inventory", label: "Inventory", icon: Boxes },
   { view: "signups", label: "Signups", icon: Ticket },
+  { view: "activity", label: "Activity", icon: LayoutGrid },
   { view: "reviews", label: "Reviews", icon: MessageSquareText },
 ];
 
-const bottomNavItems: { view: AdminView; label: string; icon: typeof LayoutGrid }[] = [
-  { view: "admin", label: "Admin", icon: UserCog },
-  { view: "settings", label: "Settings", icon: SettingsIcon },
-];
+// "Admins" is only shown to super admins (and its API refuses everyone else).
+const adminsNavItem: { view: AdminView; label: string; icon: typeof LayoutGrid } = {
+  view: "admins",
+  label: "Admins",
+  icon: ShieldCheck,
+};
+const settingsNavItem: { view: AdminView; label: string; icon: typeof LayoutGrid } = {
+  view: "settings",
+  label: "Settings",
+  icon: SettingsIcon,
+};
 
 const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: string }> = {
+  activity: { eyebrow: "Store history", title: "Activity", subtitle: "Recent product, order, settings, and admin changes." },
+  admins: { eyebrow: "Access", title: "Admins", subtitle: "Add, reset, or remove the people who can use this dashboard." },
   overview: {
     eyebrow: "Dashboard Overview",
     title: "Good morning, Toymak team",
@@ -83,7 +95,7 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
   products: {
     eyebrow: "Catalog",
     title: "Products",
-    subtitle: "The exact products, prices, and stock live on the storefront.",
+    subtitle: "Manage published products, drafts, archived items, prices, and stock.",
   },
   customers: {
     eyebrow: "Customers",
@@ -104,11 +116,6 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
     eyebrow: "Storefront",
     title: "Reviews",
     subtitle: "Moderate customer-submitted reviews before they go live on product pages.",
-  },
-  admin: {
-    eyebrow: "Team",
-    title: "Admin Access",
-    subtitle: "Manage who has access to this dashboard.",
   },
   settings: {
     eyebrow: "Configuration",
@@ -159,9 +166,12 @@ export default function AdminPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeView, setActiveView] = useState<AdminView>("overview");
   const [productSearch, setProductSearch] = useState("");
+  const session = useAdminSession();
+  const isSuperAdmin = session?.role === "super_admin";
+  const bottomNavItems = isSuperAdmin ? [adminsNavItem, settingsNavItem] : [settingsNavItem];
 
-  const { products, addProduct, updateProduct, removeProduct } = useAdminProducts();
-  const { orders, addOrder, updateOrderStatus } = useOrders();
+  const { products, isLoading: productsLoading, error: productsError, addProduct, updateProduct, removeProduct } = useAdminProducts();
+  const { orders, isLoading: ordersLoading, error: ordersError, addOrder, updateOrderStatus } = useOrders();
   const { signups } = useSignups();
   const { reviews: allReviews, setApproval: setReviewApproval, removeReview } = useAdminReviews();
   const {
@@ -361,6 +371,8 @@ export default function AdminPage() {
             {activeView === "products" && (
               <ProductsView
                 products={products}
+                isLoading={productsLoading}
+                error={productsError}
                 search={productSearch}
                 onSearchChange={setProductSearch}
                 onAddProduct={addProduct}
@@ -368,7 +380,7 @@ export default function AdminPage() {
                 onDeleteProduct={removeProduct}
               />
             )}
-            {activeView === "customers" && <CustomersView customers={customers} />}
+            {activeView === "customers" && <CustomersView customers={customers} isLoading={ordersLoading} error={ordersError} />}
             {activeView === "inventory" && <InventoryView products={products} />}
             {activeView === "signups" && <SignupsView signups={signups} />}
             {activeView === "reviews" && (
@@ -379,7 +391,8 @@ export default function AdminPage() {
                 onDelete={removeReview}
               />
             )}
-            {activeView === "admin" && <AdminManagementView />}
+            {activeView === "activity" && <OperationsView />}
+            {activeView === "admins" && isSuperAdmin && <AdminsView />}
             {activeView === "settings" && <SettingsView />}
           </div>
         </section>

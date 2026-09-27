@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
+import { randomUUID } from "node:crypto";
+import { adminRoute } from "@/lib/server/admin-auth";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
-export async function POST(request: NextRequest) {
+export const POST = adminRoute(async (request: NextRequest) => {
   const formData = await request.formData();
   const file = formData.get("file");
 
@@ -21,8 +23,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Image must be under 5MB." }, { status: 400 });
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+  // Clipboard files may have no extension; use the validated MIME type.
+  const extension = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" }[file.type];
+  const path = `${randomUUID()}.${extension}`;
 
   const supabase = getSupabaseAdmin();
   const { error } = await supabase.storage
@@ -35,4 +38,4 @@ export async function POST(request: NextRequest) {
 
   const { data } = supabase.storage.from("product-images").getPublicUrl(path);
   return NextResponse.json({ url: data.publicUrl });
-}
+});

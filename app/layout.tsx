@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   title: "Toymak - Premium Shapewear & Fashion",
   description:
     "Discover luxury shapewear and fashion designed for the modern woman. Premium quality, confidence-boosting styles.",
-  generator: "v0.app",
   icons: {
     icon: [
       {

@@ -48,14 +48,14 @@ export default function TermsPage() {
           </p>
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">
-            3. Guest Checkout &amp; Your Account
+            3. Guest Checkout
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            Toymak doesn&apos;t require you to create a password-protected account. You check
-            out as a guest, and can track any order afterwards using the email address you
-            checked out with. Any shipping details you choose to save for faster checkout are
-            stored locally on your own device and are your responsibility to keep accurate
-            and up to date.
+            Toymak doesn&apos;t use customer accounts — you never need to sign up or log in.
+            You check out as a guest and can track any order afterwards using the email
+            address you checked out with and the order number from your confirmation email.
+            Please make sure the contact and shipping details you enter at checkout are
+            accurate.
           </p>
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">
@@ -100,7 +100,7 @@ export default function TermsPage() {
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             We aim to dispatch orders promptly and will provide a tracking link from our
-            courier as soon as your order ships, viewable any time on your account page.
+            courier as soon as your order ships, viewable any time on our Track Order page.
             Delivery times are estimates, not guarantees, and Toymak isn&apos;t responsible
             for delays caused by the courier or events outside our reasonable control.
           </p>

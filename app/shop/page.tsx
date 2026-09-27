@@ -52,7 +52,7 @@ export default function ShopPage() {
 
 function ShopPageInner() {
   const searchParams = useSearchParams()
-  const { products } = useProducts()
+  const { products, isLoading, error } = useProducts()
 
   // Falls back to a sane default range while products are still loading
   // (an empty array would otherwise give Math.min/max of Infinity/-Infinity).
@@ -466,7 +466,20 @@ function ShopPageInner() {
               )}
 
               {/* Products Grid */}
-              {sortedProducts.length > 0 ? (
+              {isLoading ? (
+                <p role="status" className="py-20 text-center text-sm text-neutral/60">Loading products...</p>
+              ) : error ? (
+                <div role="alert" className="rounded-3xl border border-neutral/10 bg-tertiary/20 px-6 py-20 text-center">
+                  <h2 className="text-lg font-bold text-neutral">We couldn&apos;t load the collection</h2>
+                  <p className="mt-2 text-sm text-neutral/60">Please refresh the page to try again.</p>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="rounded-3xl border border-neutral/10 bg-tertiary/20 px-6 py-20 text-center">
+                  <h2 className="text-xl font-bold text-neutral">New arrivals are on the way</h2>
+                  <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-neutral/60">There are no products available right now. Check back soon to explore our collection.</p>
+                  <Link href="/" className="mt-6 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white">Back to home</Link>
+                </div>
+              ) : sortedProducts.length > 0 ? (
                 <div
                   className={cn(
                     'grid gap-x-6 gap-y-10 sm:grid-cols-2',
@@ -724,4 +737,3 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
     </span>
   )
 }
-

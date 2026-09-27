@@ -5,7 +5,7 @@ export interface AdminCustomer {
   name: string;
   phone: string;
   orderCount: number;
-  totalSpent: number;
+  totalSpentByCurrency: Partial<Record<Currency, number>>;
   lastOrderDate: Date;
 }
 
@@ -16,29 +16,46 @@ export interface AdminCustomer {
  */
 export function deriveCustomers(orders: Order[]): AdminCustomer[] {
   const byEmail = new Map<string, AdminCustomer>();
+  const seenIds = new Set<string>();
+  const seenPayments = new Set<string>();
 
   orders.forEach((order) => {
-    const existing = byEmail.get(order.customer_email);
+    const paymentKey = order.payment_reference ? `${order.payment_gateway}:${order.payment_reference}` : null;
+    if (seenIds.has(order.id) || (paymentKey && seenPayments.has(paymentKey))) return;
+    seenIds.add(order.id);
+    if (paymentKey) seenPayments.add(paymentKey);
+
+    const email = order.customer_email.trim().toLowerCase();
+    const existing = byEmail.get(email);
+    // Sum the recorded, final order amounts in minor units. Never add
+    // different currencies together or subtract the discount a second time.
+    const amountInMinorUnits = Math.max(0, Math.round(order.total_amount * 100) - Math.round((order.refunded_amount ?? 0) * 100));
     if (existing) {
       existing.orderCount += 1;
-      existing.totalSpent += order.total_amount;
+      const previous = Math.round((existing.totalSpentByCurrency[order.currency] ?? 0) * 100);
+      existing.totalSpentByCurrency[order.currency] = (previous + amountInMinorUnits) / 100;
       if (order.created_at > existing.lastOrderDate) {
         existing.lastOrderDate = order.created_at;
+        existing.name = order.customer_name;
+        existing.phone = order.customer_phone;
       }
       return;
     }
 
-    byEmail.set(order.customer_email, {
-      email: order.customer_email,
+    byEmail.set(email, {
+      email,
       name: order.customer_name,
       phone: order.customer_phone,
       orderCount: 1,
-      totalSpent: order.total_amount,
+      totalSpentByCurrency: { [order.currency]: amountInMinorUnits / 100 },
       lastOrderDate: order.created_at,
     });
   });
 
-  return Array.from(byEmail.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+  // Recency is comparable across currencies; spending is not.
+  return Array.from(byEmail.values()).sort((a, b) =>
+    b.lastOrderDate.getTime() - a.lastOrderDate.getTime() || a.email.localeCompare(b.email),
+  );
 }
 
 export interface DailyTrendPoint {
@@ -80,7 +97,7 @@ export function deriveSalesTrend(orders: Order[], days: number): DailyTrendPoint
     const bucket = buckets.get(key);
     if (!bucket) return; // outside the selected range
     bucket.orderCount += 1;
-    bucket.revenue[order.currency] = (bucket.revenue[order.currency] ?? 0) + order.total_amount;
+    bucket.revenue[order.currency] = (bucket.revenue[order.currency] ?? 0) + Math.max(0, order.total_amount - (order.refunded_amount ?? 0));
   });
 
   return Array.from(buckets.values());

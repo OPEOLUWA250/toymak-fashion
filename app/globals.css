@@ -203,6 +203,35 @@ textarea:-webkit-autofill:focus {
 }
 
 @layer components {
+  @media (width < 80rem) {
+    .admin-product-table,
+    .admin-product-table tbody {
+      display: block;
+    }
+    .admin-product-table tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      padding: 0.5rem;
+    }
+    .admin-product-table td {
+      display: block;
+      min-width: 0;
+      padding: 0.5rem;
+    }
+    .admin-product-table td:first-child,
+    .admin-product-table td:nth-child(2),
+    .admin-product-table td:last-child {
+      grid-column: 1 / -1;
+    }
+    .admin-product-table td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      margin-bottom: 0.25rem;
+      color: #737373;
+      font-size: 0.7rem;
+      font-weight: 400;
+    }
+  }
   /* Product photos come from mixed sources with mismatched backdrops (cool
      grey, warm yellow, near-white) and different exposure. A uniform filter
      plus a low-opacity warm-neutral wash (multiply darkens whites toward the

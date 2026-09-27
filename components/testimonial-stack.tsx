@@ -8,6 +8,7 @@ export function TestimonialStack({ testimonials }: { testimonials: TestimonialEn
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (testimonials.length < 2) return;
     intervalRef.current = setInterval(() => {
       setActive((current) => (current + 1) % testimonials.length);
     }, 4000);
@@ -20,10 +21,13 @@ export function TestimonialStack({ testimonials }: { testimonials: TestimonialEn
   const goTo = (index: number) => {
     setActive(index);
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (testimonials.length < 2) return;
     intervalRef.current = setInterval(() => {
       setActive((current) => (current + 1) % testimonials.length);
     }, 4000);
   };
+
+  if (testimonials.length === 0) return null;
 
   return (
     <div>

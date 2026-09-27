@@ -37,7 +37,7 @@ export function buildOrderFromVerification(
   const shortRef = paymentId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
 
   return {
-    id: `ord-${shortRef}`,
+    id: `ord-${gateway}-${paymentId}`,
     tracking_id: `TMK-${shortRef}`,
     customer_name: verification.customerName || "Guest",
     customer_email: verification.customerEmail,

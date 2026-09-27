@@ -5,12 +5,12 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
+import { ReceiptDownloadForm } from "@/components/receipt-download-form";
 import { useCart } from "@/lib/cart-context";
-import { useOrders } from "@/lib/use-orders";
 import { formatCurrency } from "@/lib/pricing";
 import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
 import { Order, PaymentGateway } from "@/lib/types";
-import { CheckCircle2, Download, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 type VerifyState = "loading" | "success" | "failed" | "error";
 
@@ -25,7 +25,6 @@ function CheckoutSuccessContent() {
   const paymentId =
     gateway === "stripe" ? searchParams.get("session_id") : searchParams.get("reference");
   const { clearCart } = useCart();
-  const { orders, addOrder } = useOrders();
   const [state, setState] = useState<VerifyState>("loading");
   const [order, setOrder] = useState<Order | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,13 +40,6 @@ function CheckoutSuccessContent() {
     if (hasStarted.current) return;
     hasStarted.current = true;
 
-    const existing = orders.find((o) => o.payment_reference === paymentId);
-    if (existing) {
-      setOrder(existing);
-      setState("success");
-      return;
-    }
-
     const verifyUrl =
       gateway === "stripe"
         ? `/api/stripe/verify?session_id=${encodeURIComponent(paymentId)}`
@@ -59,7 +51,7 @@ function CheckoutSuccessContent() {
         if (!response.ok) throw new Error(data.error || "Verification failed.");
         return data as { status: "success" | "failed" } & Partial<PaymentVerification>;
       })
-      .then((data) => {
+      .then(async (data) => {
         if (data.status !== "success") {
           setState("failed");
           return;
@@ -67,24 +59,14 @@ function CheckoutSuccessContent() {
 
         const newOrder = buildOrderFromVerification(paymentId, gateway, data as PaymentVerification);
 
-        addOrder(newOrder);
+        const confirmation = await fetch('/api/orders/confirm', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gateway, paymentId }),
+        });
+        if (!confirmation.ok) throw new Error('Your payment was received, but order confirmation is delayed. Refresh this page or contact support with your payment reference. Do not pay again.');
         clearCart();
         setOrder(newOrder);
-        setState("success");
-
-        // Report to the server so it lands in the durable store and the
-        // admin dashboard finds out in real time — fire-and-forget, since
-        // the customer's own confirmation above doesn't depend on this.
-        // keepalive lets the request survive even if the tab closes right
-        // after this line runs, same as a customer would in real usage.
-        fetch("/api/orders/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ gateway, paymentId }),
-          keepalive: true,
-        }).catch(() => {
-          // webhook (once configured) remains the fallback for this order
-        });
+        setState('success');
       })
       .catch((error) => {
         setErrorMessage(error instanceof Error ? error.message : "Something went wrong.");
@@ -133,9 +115,14 @@ function CheckoutSuccessContent() {
               <Row label="Payment reference" value={order.payment_reference} mono />
             </div>
 
+            <p className="mt-4 text-xs text-neutral/50">
+              Keep your order number ({order.tracking_id}) — with your email, it&apos;s all you
+              need to track this order. We&apos;ve also emailed it to you.
+            </p>
+
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href={`/account?email=${encodeURIComponent(order.customer_email)}&auto=1`}
+                href={`/track-order?email=${encodeURIComponent(order.customer_email)}&order=${encodeURIComponent(order.tracking_id)}`}
                 className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-opacity-90"
               >
                 Track my order
@@ -147,13 +134,15 @@ function CheckoutSuccessContent() {
                 Continue shopping
               </Link>
             </div>
-            <a
-              href={`/api/orders/${order.id}/receipt?email=${encodeURIComponent(order.customer_email)}`}
-              className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-neutral/60 underline underline-offset-4 hover:text-primary"
-            >
-              <Download size={14} />
-              Download receipt (PDF)
-            </a>
+            <div className="mt-4">
+              <ReceiptDownloadForm
+                orderId={order.id}
+                email={order.customer_email}
+                orderNumber={order.tracking_id}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral/60 underline underline-offset-4 hover:text-primary"
+                iconSize={14}
+              />
+            </div>
           </>
         )}
 

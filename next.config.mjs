@@ -1,10 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
+  // Customer accounts were removed; old links (including ones in
+  // already-sent order emails) land on guest order tracking instead.
+  async redirects() {
+    return [{ source: '/account', destination: '/track-order', permanent: true }]
   },
   images: {
-    unoptimized: true,
+    formats: ['image/webp'],
+    remotePatterns: process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? [new URL('/storage/v1/object/public/product-images/**', process.env.NEXT_PUBLIC_SUPABASE_URL)]
+      : [],
   },
 }
 

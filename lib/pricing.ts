@@ -72,19 +72,15 @@ export function calculateOrderTotals(
   discountPercent = 0,
 ): OrderTotals {
   const productLookup = new Map(products.map((product) => [product.id, product]));
-  const rawSubtotal = items.reduce((runningTotal, item) => {
-    const product = productLookup.get(item.product_id);
-    return runningTotal + getProductPriceForCurrency(product, currency) * item.quantity;
-  }, 0);
-
-  const discount = rawSubtotal * (discountPercent / 100);
-  const subtotal = rawSubtotal - discount;
-
-  const shippingThreshold = settings.shippingThreshold[currency];
-  const shippingBase = settings.shippingCost[currency];
-  const shipping = subtotal > shippingThreshold ? 0 : shippingBase;
-  const tax = subtotal * (settings.tax[currency] / 100);
-  const total = subtotal + shipping + tax;
+  const rawMinor = items.reduce((sum, item) => sum + Math.round(getProductPriceForCurrency(productLookup.get(item.product_id), currency) * 100) * item.quantity, 0);
+  const subtotalMinor = items.reduce((sum, item) => sum + Math.round(getProductPriceForCurrency(productLookup.get(item.product_id), currency) * (1 - discountPercent / 100) * 100) * item.quantity, 0);
+  const discount = (rawMinor - subtotalMinor) / 100;
+  const subtotal = subtotalMinor / 100;
+  const shippingMinor = subtotal >= settings.shippingThreshold[currency] ? 0 : Math.round(settings.shippingCost[currency] * 100);
+  const taxMinor = Math.round(subtotalMinor * settings.tax[currency] / 100);
+  const shipping = shippingMinor / 100;
+  const tax = taxMinor / 100;
+  const total = (subtotalMinor + shippingMinor + taxMinor) / 100;
 
   return { subtotal, shipping, tax, total, discount };
 }

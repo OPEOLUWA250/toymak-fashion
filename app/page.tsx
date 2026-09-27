@@ -1,3 +1,7 @@
+import { siteUrl } from "@/lib/site-url";
+import type { Metadata } from "next";
+export const metadata: Metadata = { alternates: { canonical: siteUrl } };
+import { StoreImage } from "@/components/store-image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
@@ -8,7 +12,7 @@ import { TestimonialCard } from "@/components/testimonial-card";
 import { ContactFaqSection } from "@/components/contact-faq-section";
 import { FirstOrderPopup } from "@/components/first-order-popup";
 import { RecentlyViewed } from "@/components/recently-viewed";
-import { ArrowRight, Play, Ruler } from "lucide-react";
+import { ArrowRight, Ruler } from "lucide-react";
 import { getAllProducts } from "@/lib/server/products";
 import { getAllApprovedReviews } from "@/lib/server/reviews";
 import { faqSections } from "@/lib/faq-data";
@@ -60,31 +64,6 @@ const homepageFaqs = [
   faqSections[1].questions[0],
   faqSections[2].questions[0],
   faqSections[4].questions[0],
-];
-
-// Real guide videos aren't ready yet — shown as "Coming Soon" rather than
-// faked, so nothing here claims to be playable that isn't.
-const videoGuides = [
-  {
-    title: "How to Put On a Waist Trainer",
-    blurb: "Getting the fit and compression right from the first wear.",
-    image: "/shop-img/imgi_13_waist_wrp.png",
-  },
-  {
-    title: "Finding Your Perfect Size",
-    blurb: "A quick walkthrough of measuring bust, waist, and hips.",
-    image: "/shop-img/imgi_9_2-5.jpg",
-  },
-  {
-    title: "Care & Washing Guide",
-    blurb: "Keep your shapewear firm and lasting longer.",
-    image: "/shop-img/imgi_24_img_8677-1.jpg",
-  },
-  {
-    title: "Styling Shapewear Under Outfits",
-    blurb: "Seamless looks for dresses, trousers, and more.",
-    image: "/shop-img/imgi_81_img_7941-1536x1536.jpg",
-  },
 ];
 
 // Highest-rated real review per product, so testimonials reflect actual
@@ -140,13 +119,14 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid gap-px bg-neutral/10 lg:grid-cols-[1.3fr_1fr]">
+          {newestFeature ? (
+          <div className={`grid gap-px bg-neutral/10 ${newestGrid.length > 0 ? "lg:grid-cols-[1.3fr_1fr]" : ""}`}>
             {/* Newest product, editorial feature tile */}
             <Link
               href={`/product/${newestFeature.id}`}
               className="product-photo group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
             >
-              <img
+              <StoreImage sizes="(max-width: 1024px) 100vw, 55vw"
                 src={newestFeature.images[0]}
                 alt={newestFeature.name}
                 className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
@@ -166,14 +146,14 @@ export default async function HomePage() {
             </Link>
 
             {/* Next newest, stacked in the same editorial treatment as the feature tile */}
-            <div className="grid grid-rows-2 gap-px">
+            {newestGrid.length > 0 && <div className={`grid gap-px ${newestGrid.length > 1 ? "grid-rows-2" : ""}`}>
               {newestGrid.map((product) => (
                 <Link
                   key={product.id}
                   href={`/product/${product.id}`}
                   className="product-photo group relative min-h-[220px] overflow-hidden bg-tertiary/40 lg:min-h-0"
                 >
-                  <img
+                  <StoreImage sizes="(max-width: 1024px) 100vw, 45vw"
                     src={product.images[0]}
                     alt={product.name}
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
@@ -187,8 +167,19 @@ export default async function HomePage() {
                   </div>
                 </Link>
               ))}
-            </div>
+            </div>}
           </div>
+          ) : (
+            <div className="rounded-2xl border border-neutral/10 bg-tertiary/30 px-6 py-16 text-center">
+              <h3 className="text-2xl font-bold text-neutral">New arrivals are on the way</h3>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral/60">
+                There are no products available right now. Check back soon to explore our collection.
+              </p>
+              <Link href="/size-guide" className="mt-6 inline-flex items-center gap-2 font-semibold text-primary hover:underline">
+                Explore our size guide <ArrowRight size={16} />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -203,7 +194,7 @@ export default async function HomePage() {
                 className="group flex w-20 flex-col items-center gap-3 sm:w-24"
               >
                 <div className="product-photo h-20 w-20 overflow-hidden rounded-full bg-tertiary/40 ring-1 ring-neutral/10 transition group-hover:ring-primary/40 sm:h-24 sm:w-24">
-                  <img
+                  <StoreImage sizes="96px"
                     src={cat.image}
                     alt={cat.label}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-110"
@@ -232,7 +223,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div className="relative order-2 h-80 overflow-hidden rounded-2xl md:order-1 md:h-[28rem]">
-              <img
+              <StoreImage sizes="(max-width: 768px) 100vw, 50vw"
                 src="/shop-img/imgi_16_nu_amanda.png"
                 alt="The Toymak woman"
                 className="h-full w-full object-cover"
@@ -263,51 +254,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Video Guides */}
-      <section className="py-20 md:py-28 bg-tertiary/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="text-xs uppercase tracking-[0.3em] text-primary font-semibold mb-3">
-              Learn
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-neutral mb-4">Video Guides</h2>
-            <p className="text-neutral/60 max-w-2xl mx-auto">
-              Sizing, styling, and care guides to help you get the most out of every piece —
-              filming now, launching soon
-            </p>
-          </div>
-
-          <ScrollCarousel>
-            {videoGuides.map((guide) => (
-              <div
-                key={guide.title}
-                className="group relative w-64 shrink-0 snap-start sm:w-80"
-              >
-                <div className="relative h-44 overflow-hidden rounded-2xl bg-neutral sm:h-52">
-                  <img
-                    src={guide.image}
-                    alt={guide.title}
-                    className="h-full w-full object-cover opacity-70 transition duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/20" />
-                  <span className="absolute left-4 top-4 bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-neutral">
-                    Coming Soon
-                  </span>
-                  <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-primary shadow-lg transition group-hover:scale-110">
-                      <Play size={22} className="ml-0.5" fill="currentColor" />
-                    </span>
-                  </span>
-                </div>
-                <h3 className="mt-4 font-semibold text-neutral">{guide.title}</h3>
-                <p className="mt-1 text-sm text-neutral/60">{guide.blurb}</p>
-              </div>
-            ))}
-          </ScrollCarousel>
-        </div>
-      </section>
-
       {/* Testimonials */}
+      {testimonials.length > 0 && (
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -342,12 +290,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Find Your Fit */}
       <section className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative overflow-hidden rounded-2xl bg-neutral">
-            <img
+            <StoreImage sizes="(max-width: 768px) 100vw, 50vw"
               src="/shop-img/imgi_85_img_7941.jpg"
               alt="Find your fit"
               className="absolute inset-0 h-full w-full object-cover opacity-50"

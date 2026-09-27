@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
@@ -488,7 +489,7 @@ export default function CheckoutPage() {
                 <p className="mt-1 leading-6">
                   {selectedGateway === "paystack"
                     ? "Nigeria detected, so Paystack is active."
-                    : "UK detected, so Stripe is active."}
+                    : `${country} detected, so Stripe is active.`}
                 </p>
               </div>
             </div>
@@ -514,7 +515,7 @@ export default function CheckoutPage() {
                     key={`${item.product_id}-${item.size}-${item.color}`}
                     className="flex gap-3"
                   >
-                    <img
+                    <StoreImage sizes="64px"
                       src={item.image_url}
                       alt={item.product_name}
                       className="h-16 w-16 rounded-xl object-cover"

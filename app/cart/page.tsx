@@ -1,13 +1,27 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useSettings } from "@/lib/use-settings";
 import { Trash2 } from "lucide-react";
+import { Suspense } from "react";
+import { CartRestorer } from "@/components/cart-restorer";
 
 export default function CartPage() {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <CartRestorer />
+      </Suspense>
+      <CartContent />
+    </>
+  );
+}
+
+function CartContent() {
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
   const { settings } = useSettings();
 
@@ -59,7 +73,7 @@ export default function CartPage() {
                 key={idx}
                 className="grid gap-4 rounded-2xl border border-neutral/10 bg-white p-4 sm:p-5 shadow-sm sm:grid-cols-[96px_minmax(0,1fr)_auto]"
               >
-                <img
+                <StoreImage sizes="96px"
                   src={item.image_url}
                   alt={item.product_name}
                   className="h-24 w-24 rounded-xl object-cover"

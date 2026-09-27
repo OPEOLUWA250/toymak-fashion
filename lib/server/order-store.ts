@@ -1,13 +1,16 @@
 import { Order } from "@/lib/types";
 import { eventBus } from "./event-bus";
-import { decrementProductStock } from "./products";
+
 import { getSupabaseAdmin } from "./supabase";
-import { redeemCouponCode } from "./signups";
-import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from "./order-email";
+
+import { dispatchOrderEmails } from "./order-outbox";
+import { after } from "next/server";
 import { getStoreSettings } from "./settings";
 import { deleteAbandonedCartByEmail } from "./abandoned-carts";
 
 interface OrderRow {
+  refunded_amount?: number;
+  fulfillment_issue?: string | null;
   id: string;
   tracking_id: string;
   customer_name: string;
@@ -31,6 +34,8 @@ interface OrderRow {
 
 function rowToOrder(row: OrderRow): Order {
   return {
+    refunded_amount: Number(row.refunded_amount ?? 0),
+    fulfillment_issue: row.fulfillment_issue,
     id: row.id,
     tracking_id: row.tracking_id,
     customer_name: row.customer_name,
@@ -60,11 +65,13 @@ function rowToOrder(row: OrderRow): Order {
  * back to /checkout/success. Client pages (useOrders) pull from
  * GET /api/orders.
  */
-export async function getServerOrders(): Promise<Order[]> {
-  const { data, error } = await getSupabaseAdmin()
+export async function getServerOrders(email?: string): Promise<Order[]> {
+  let query = getSupabaseAdmin()
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false });
+  if (email) query = query.ilike("customer_email", email.replace(/[%_]/g, "\\$&"));
+  const { data, error } = await query;
 
   if (error) throw new Error(`Failed to load orders: ${error.message}`);
   return (data as OrderRow[]).map(rowToOrder);
@@ -94,41 +101,10 @@ export async function appendServerOrder(
 ): Promise<{ added: boolean }> {
   const supabase = getSupabaseAdmin();
 
-  const { error } = await supabase.from("orders").insert({
-    id: order.id,
-    tracking_id: order.tracking_id,
-    customer_name: order.customer_name,
-    customer_email: order.customer_email,
-    customer_phone: order.customer_phone,
-    shipping_address: order.shipping_address,
-    status: order.status,
-    tracking_link: order.tracking_link ?? null,
-    currency: order.currency,
-    payment_gateway: order.payment_gateway,
-    payment_reference: order.payment_reference,
-    items: order.items,
-    subtotal: order.subtotal,
-    shipping_cost: order.shipping_cost,
-    tax: order.tax,
-    discount_applied: order.discount_applied,
-    total_amount: order.total_amount,
-  });
-
-  if (error) {
-    if (error.code === "23505") {
-      // Already recorded by an earlier webhook/confirm call for this
-      // reference — exactly the retry case this is meant to absorb.
-      return { added: false };
-    }
-    throw new Error(`Failed to save order: ${error.message}`);
-  }
-
+  const { data: added, error } = await supabase.rpc("record_paid_order", { payload: order, coupon: options.discountCode ?? null });
+  if (error) throw new Error(`Failed to record order: ${error.message}`);
+  if (!added) return { added: false };
   eventBus.emit("order", order);
-  await decrementProductStock(order.items);
-
-  if (options.discountCode) {
-    await redeemCouponCode(options.discountCode);
-  }
 
   // A real conversion — clear any abandoned-cart record for this email so
   // it never gets a "you left something behind" email after actually buying.
@@ -136,15 +112,7 @@ export async function appendServerOrder(
     console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
   );
 
-  // Fire-and-forget — a slow or failed email must never hold up (or fail)
-  // the order write, which is the part that actually matters.
-  const origin = options.origin ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://toymakenterprise.co.uk";
-  void sendOrderConfirmationEmail(order, origin);
-  void getStoreSettings()
-    .then((settings) => sendAdminOrderNotificationEmail(order, origin, settings.orderNotificationEmail))
-    .catch((error) =>
-      console.error(`Could not load settings for admin order notification (order ${order.id}):`, error),
-    );
+  after(async () => { await dispatchOrderEmails(order.id); });
 
   return { added: true };
 }

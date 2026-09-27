@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateServerOrderStatus } from "@/lib/server/order-store";
 import { OrderStatus } from "@/lib/types";
+import { adminRoute } from "@/lib/server/admin-auth";
 
 interface UpdateOrderBody {
   status: OrderStatus;
   trackingLink?: string;
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = adminRoute(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   try {
     const { status, trackingLink } = (await request.json()) as UpdateOrderBody;
@@ -22,4 +23,4 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       { status: 500 },
     );
   }
-}
+});

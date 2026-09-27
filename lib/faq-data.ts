@@ -22,7 +22,7 @@ export const faqSections: FaqSection[] = [
       },
       {
         q: 'How can I track my order?',
-        a: 'Once your order has been dispatched, you\'ll receive an email with a tracking number and a link to follow your parcel in real time. You can also check your order status in your account dashboard.',
+        a: 'Once your order has been dispatched, you\'ll receive an email with a tracking number and a link to follow your parcel in real time. You can also check your order status any time on our Track Order page using your email and order number — no account needed.',
       },
       {
         q: 'Do you ship internationally?',

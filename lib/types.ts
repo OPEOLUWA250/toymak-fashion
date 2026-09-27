@@ -14,6 +14,8 @@ export interface Color {
 }
 
 export interface Product {
+  status?: 'active' | 'draft' | 'archived'
+  variants?: { size: string; color: string; stock: number }[]
   id: string
   name: string
   description: string
@@ -66,6 +68,8 @@ export interface OrderItem {
 }
 
 export interface Order {
+  refunded_amount?: number
+  fulfillment_issue?: string | null
   id: string
   tracking_id: string
   customer_name: string

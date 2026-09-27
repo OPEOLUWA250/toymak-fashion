@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "./supabase";
 import { Product } from "../types";
 
 interface ProductRow {
+  status?: Product["status"];
+  variants?: Product["variants"];
   id: string;
   name: string;
   description: string;
@@ -24,6 +27,8 @@ interface ProductRow {
 
 function rowToProduct(row: ProductRow): Product {
   return {
+    status: row.status ?? "active",
+    variants: row.variants ?? [],
     id: row.id,
     name: row.name,
     description: row.description,
@@ -46,7 +51,20 @@ function rowToProduct(row: ProductRow): Product {
 }
 
 function productToRow(product: Product) {
+  if (!product.name?.trim() || !['active', 'draft', 'archived'].includes(product.status ?? 'active')) throw new Error('Enter a name and valid visibility.');
+  for (const value of [product.stock_qty, product.low_stock_threshold]) if (!Number.isSafeInteger(value) || value < 0) throw new Error('Stock quantities must be nonnegative whole numbers.');
+  for (const value of [product.price_gbp, product.price_ngn, product.price_usd ?? 0]) if (!Number.isFinite(value) || value < 0) throw new Error('Prices must be nonnegative numbers.');
+  const variants = product.variants ?? [];
+  const seen = new Set<string>();
+  for (const variant of variants) {
+    const key = JSON.stringify([variant.size, variant.color]);
+    if (seen.has(key) || !Number.isSafeInteger(variant.stock) || variant.stock < 0 || !(product.sizes.length ? product.sizes : ['Not applicable']).includes(variant.size) || !(product.colors.length ? product.colors.map(c => c.name) : ['Default']).includes(variant.color)) throw new Error('Check the size and colour inventory entries.');
+    seen.add(key);
+  }
+
   return {
+    status: product.status ?? "active",
+    variants: product.variants ?? [],
     id: product.id,
     name: product.name,
     description: product.description,
@@ -58,35 +76,38 @@ function productToRow(product: Product) {
     category: product.category,
     sizes: product.sizes,
     colors: product.colors,
-    stock_qty: product.stock_qty,
+    stock_qty: variants.length ? variants.reduce((sum, v) => sum + v.stock, 0) : product.stock_qty,
     low_stock_threshold: product.low_stock_threshold,
-    sku: product.sku,
     images: product.images,
     featured: product.featured,
   };
 }
 
-export async function getAllProducts(): Promise<Product[]> {
+export async function getAllProducts(includeHidden = false): Promise<Product[]> {
   const { data, error } = await getSupabaseAdmin()
     .from("products")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to load products: ${error.message}`);
-  return (data as ProductRow[]).map(rowToProduct);
+  return (data as ProductRow[]).map(rowToProduct).filter(p => includeHidden || p.status === "active");
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
   const { data, error } = await getSupabaseAdmin().from("products").select("*").eq("id", id).maybeSingle();
 
   if (error) throw new Error(`Failed to load product ${id}: ${error.message}`);
-  return data ? rowToProduct(data as ProductRow) : null;
+  const product = data ? rowToProduct(data as ProductRow) : null;
+  return product?.status === "active" ? product : null;
 }
 
 export async function createProduct(product: Product): Promise<Product> {
   const { data, error } = await getSupabaseAdmin()
     .from("products")
-    .insert(productToRow(product))
+    .insert({
+      ...productToRow(product),
+      sku: `TM-${randomUUID().replaceAll("-", "").toUpperCase()}`,
+    })
     .select("*")
     .single();
 
@@ -111,29 +132,3 @@ export async function deleteProduct(id: string): Promise<void> {
   if (error) throw new Error(`Failed to delete product ${id}: ${error.message}`);
 }
 
-/**
- * Depletes stock for every line item in a confirmed order. Not run inside a
- * single transaction (Supabase's JS client doesn't expose multi-statement
- * transactions) — each item is read-then-written independently, same
- * consistency guarantee the old client-side version had. Good enough at
- * this catalog's order volume; a Postgres RPC would be the real fix if
- * concurrent purchases of the same low-stock item ever become common.
- */
-export async function decrementProductStock(
-  items: { product_id: string; quantity: number }[],
-): Promise<void> {
-  const supabase = getSupabaseAdmin();
-
-  for (const item of items) {
-    const { data: product, error: fetchError } = await supabase
-      .from("products")
-      .select("stock_qty")
-      .eq("id", item.product_id)
-      .maybeSingle();
-
-    if (fetchError || !product) continue; // product may have been removed since the order was placed
-
-    const newStock = Math.max(0, product.stock_qty - item.quantity);
-    await supabase.from("products").update({ stock_qty: newStock }).eq("id", item.product_id);
-  }
-}

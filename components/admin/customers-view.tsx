@@ -3,8 +3,16 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { AdminCustomer } from "@/lib/admin-data";
+import { formatCurrency } from "@/lib/pricing";
+import { Currency } from "@/lib/types";
 
-export function CustomersView({ customers }: { customers: AdminCustomer[] }) {
+const currencies: Currency[] = ["GBP", "USD", "NGN"];
+
+export function CustomersView({ customers, isLoading = false, error = null }: {
+  customers: AdminCustomer[];
+  isLoading?: boolean;
+  error?: string | null;
+}) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -15,6 +23,9 @@ export function CustomersView({ customers }: { customers: AdminCustomer[] }) {
     );
   }, [customers, search]);
 
+  if (isLoading) return <p role="status" className="p-6 text-sm text-neutral-500">Loading customers and their order totals...</p>;
+  if (error) return <p role="alert" className="rounded-xl border border-red-200 bg-white p-6 text-sm text-red-700">Customer totals could not be loaded. Please refresh to try again.</p>;
+
   return (
     <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -23,6 +34,7 @@ export function CustomersView({ customers }: { customers: AdminCustomer[] }) {
           <p className="text-sm text-neutral-500">
             Derived from who has actually placed an order — {customers.length} so far
           </p>
+          <p className="mt-1 text-xs text-neutral-500">Totals include shipping and tax, after discounts. Each currency is shown separately.</p>
         </div>
         <div className="flex items-center gap-2 rounded-xl border border-neutral-200 px-3 py-2">
           <Search size={14} className="text-neutral-400" />
@@ -67,8 +79,16 @@ export function CustomersView({ customers }: { customers: AdminCustomer[] }) {
                 </div>
               </div>
               <p className="truncate text-sm text-neutral-600">{customer.email}</p>
-              <p className="text-sm text-neutral-600">{customer.orderCount}</p>
-              <p className="text-sm font-semibold text-neutral-900">£{customer.totalSpent.toFixed(2)}</p>
+              <p className="text-sm text-neutral-600"><span className="sm:hidden">Orders: </span>{customer.orderCount}</p>
+              <div className="space-y-1 text-sm font-semibold tabular-nums text-neutral-900">
+                <span className="block text-xs font-normal text-neutral-500 sm:hidden">Total spent</span>
+                {currencies.filter((currency) => customer.totalSpentByCurrency[currency] !== undefined).map((currency) => (
+                  <p key={currency} className="break-words">
+                    {formatCurrency(customer.totalSpentByCurrency[currency]!, currency)}
+                    <span className="ml-1 text-[10px] font-normal text-neutral-500">{currency}</span>
+                  </p>
+                ))}
+              </div>
               <p className="text-sm text-neutral-500">
                 {customer.lastOrderDate.toLocaleDateString("en-GB", { dateStyle: "medium" })}
               </p>
@@ -77,7 +97,7 @@ export function CustomersView({ customers }: { customers: AdminCustomer[] }) {
 
           {filtered.length === 0 && (
             <p className="px-4 py-10 text-center text-sm text-neutral-500">
-              No customers match that search.
+              {customers.length === 0 ? "Customers will appear here after their first confirmed order." : "No customers match that search."}
             </p>
           )}
         </div>

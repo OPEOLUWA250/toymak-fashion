@@ -2,11 +2,26 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, ExternalLink, KeyRound, LogOut } from "lucide-react";
+import { useAdminSession } from "@/lib/use-admin-session";
 
 export function AdminProfileMenu() {
   const [open, setOpen] = useState(false);
+  const session = useAdminSession();
+  const email = session?.email ?? null;
+  const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      window.location.assign("/admin/login");
+    }
+  };
+
+  const initials = (email ?? "TT").slice(0, 2).toUpperCase();
 
   useEffect(() => {
     if (!open) return;
@@ -38,9 +53,11 @@ export function AdminProfileMenu() {
         aria-expanded={open}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-          TT
+          {initials}
         </span>
-        <span className="hidden text-sm font-medium text-neutral-800 sm:inline">Toymak Team</span>
+        <span className="hidden max-w-[12rem] truncate text-sm font-medium text-neutral-800 sm:inline">
+          {email ?? "Toymak Team"}
+        </span>
         <ChevronDown
           size={14}
           className={`hidden text-neutral-400 transition sm:inline-block ${open ? "rotate-180" : ""}`}
@@ -54,11 +71,13 @@ export function AdminProfileMenu() {
         >
           <div className="flex items-center gap-3 rounded-xl px-3 py-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              TT
+              {initials}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-neutral-900">Toymak Team</p>
-              <p className="truncate text-xs text-neutral-500">admin@toymak.com</p>
+              <p className="truncate text-sm font-semibold text-neutral-900">{email ?? "Toymak Team"}</p>
+              <p className="truncate text-xs text-neutral-500">
+                {session?.role === "super_admin" ? "Super admin" : "Admin"}
+              </p>
             </div>
           </div>
           <div className="my-1 border-t border-neutral-100" />
@@ -67,9 +86,27 @@ export function AdminProfileMenu() {
             role="menuitem"
             className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
           >
-            <LogOut size={15} />
-            Log out
+            <ExternalLink size={15} />
+            View storefront
           </Link>
+          <Link
+            href="/admin/reset-password"
+            role="menuitem"
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50"
+          >
+            <KeyRound size={15} />
+            Change password
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+          >
+            <LogOut size={15} />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useMemo, useState } from "react";
 import { CircleAlert } from "lucide-react";
 import { Product } from "@/lib/types";
@@ -95,7 +96,7 @@ export function InventoryView({ products }: { products: Product[] }) {
                   className="grid grid-cols-1 gap-2 px-4 py-4 sm:grid-cols-[1.6fr_0.8fr_0.9fr_0.9fr_1.2fr] sm:items-center"
                 >
                   <div className="flex items-center gap-3">
-                    <img
+                    <StoreImage sizes="40px"
                       src={product.images[0]}
                       alt={product.name}
                       className="h-10 w-10 shrink-0 rounded-lg object-cover"

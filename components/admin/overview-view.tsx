@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import { useMemo } from "react";
 import { CircleAlert, ShoppingCart, Store, TrendingUp, Users } from "lucide-react";
 import { Currency, Order, Product } from "@/lib/types";
@@ -23,7 +24,7 @@ export function OverviewView({
     // in this mock app to convert between them, so revenue is kept broken
     // out by currency rather than summed into one misleading number.
     const revenueByCurrency = orders.reduce<Partial<Record<Currency, number>>>((sums, order) => {
-      sums[order.currency] = (sums[order.currency] ?? 0) + order.total_amount;
+      sums[order.currency] = (sums[order.currency] ?? 0) + Math.max(0, order.total_amount - (order.refunded_amount ?? 0));
       return sums;
     }, {});
     const currencyOrder: Currency[] = ["GBP", "USD", "NGN"];
@@ -150,7 +151,7 @@ export function OverviewView({
                   key={product.id}
                   className="flex items-center gap-3 rounded-2xl border border-neutral-200 p-3"
                 >
-                  <img
+                  <StoreImage sizes="40px"
                     src={product.images[0]}
                     alt={product.name}
                     className="h-12 w-12 rounded-xl object-cover"

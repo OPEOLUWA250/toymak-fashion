@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appendContactMessage, getContactMessages } from "@/lib/server/contact-store";
 import { ContactMessage } from "@/lib/types";
+import { adminRoute } from "@/lib/server/admin-auth";
 
 interface ContactRequestBody {
   name: string;
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Read by the admin dashboard's Messages view.
-export async function GET() {
+export const GET = adminRoute(async () => {
   try {
     const messages = await getContactMessages();
     return NextResponse.json({ messages });
@@ -66,4 +67,4 @@ export async function GET() {
     console.error("Failed to read contact messages:", error);
     return NextResponse.json({ messages: [] });
   }
-}
+});

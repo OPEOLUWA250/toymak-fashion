@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Mail, MapPin, Phone, Heart, Share2, Clock } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Phone, Clock } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -34,22 +34,11 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div>
-            <h4 className="text-lg font-bold mb-6">TOYMAK</h4>
+            <Link href="/" aria-label="Toymak home" className="mb-6 inline-block text-lg font-bold">TOYMAK</Link>
             <p className="text-sm text-white/70 mb-6">
               Premium shapewear and fashion for the modern woman. Confidence
               through quality.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="hover:text-white transition">
-                <Heart size={20} />
-              </a>
-              <a href="#" className="hover:text-white transition">
-                <Share2 size={20} />
-              </a>
-              <a href="#" className="hover:text-white transition">
-                <Mail size={20} />
-              </a>
-            </div>
           </div>
 
           {/* Shop */}

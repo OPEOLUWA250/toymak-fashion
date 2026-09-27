@@ -1,7 +1,7 @@
-import { Resend } from "resend";
 import { Order } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
 import { generateReceiptPdf } from "./receipt-pdf";
+import { emailSender, sendEmail } from "./email-sender";
 
 function escapeHtml(value: string): string {
   return value
@@ -89,7 +89,7 @@ function buildOrderEmailHtml(order: Order, origin: string): string {
       </tr>
       <tr>
         <td style="padding:24px 32px 32px;text-align:center;">
-          <a href="${origin}/account?email=${encodeURIComponent(order.customer_email)}&auto=1" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
+          <a href="${origin}/track-order?email=${encodeURIComponent(order.customer_email)}&order=${encodeURIComponent(order.tracking_id)}" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
             Track My Order
           </a>
           <p style="margin:20px 0 0;font-size:12px;color:rgba(16,24,32,0.4);">
@@ -145,77 +145,22 @@ function buildAdminNotificationHtml(order: Order, origin: string): string {
   </div>`;
 }
 
-/**
- * Best-effort — a failed or unconfigured email must never break order
- * recording, so this catches everything itself instead of throwing back
- * into appendServerOrder's critical path.
- */
-export async function sendOrderConfirmationEmail(order: Order, origin: string): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn(`Skipped order confirmation email for ${order.id}: RESEND_API_KEY not configured.`);
-    return;
-  }
-
-  const fromAddress = process.env.RESEND_FROM_EMAIL || "Toymak <onboarding@resend.dev>";
-  const resend = new Resend(apiKey);
-
-  // A PDF rendering failure shouldn't cost the customer their confirmation
-  // email entirely — worst case, it sends without the attachment.
-  let receiptBuffer: Buffer | null = null;
-  try {
-    receiptBuffer = await generateReceiptPdf(order);
-  } catch (error) {
-    console.error(`Receipt PDF generation failed for ${order.id}:`, error);
-  }
-
-  try {
-    const { error } = await resend.emails.send({
-      from: fromAddress,
-      to: order.customer_email,
-      subject: `Your Toymak order ${order.tracking_id} is confirmed`,
-      html: buildOrderEmailHtml(order, origin),
-      attachments: receiptBuffer
-        ? [{ filename: `toymak-receipt-${order.tracking_id}.pdf`, content: receiptBuffer, contentType: "application/pdf" }]
-        : undefined,
-    });
-    if (error) {
-      console.error(`Order confirmation email failed for ${order.id}:`, error.message);
-    }
-  } catch (error) {
-    console.error(`Order confirmation email failed for ${order.id}:`, error);
-  }
+export interface PreparedOrderEmail {
+  from: string; to: string; subject: string; html: string; replyTo?: string;
+  attachments?: { filename: string; content: string; contentType: string }[];
 }
 
-/**
- * Notifies the admin inbox configured in Settings whenever a new order
- * lands — separate from the customer confirmation above so one failing
- * never affects the other. No-ops silently if no address is configured
- * (the default, until an admin sets one) or Resend isn't set up.
- */
-export async function sendAdminOrderNotificationEmail(order: Order, origin: string, notifyEmail: string): Promise<void> {
-  if (!notifyEmail.trim()) return;
+export async function prepareOrderEmail(order: Order, origin: string, kind: 'customer' | 'admin', notifyEmail = ''): Promise<PreparedOrderEmail | null> {
+  if (kind === 'admin' && !notifyEmail.trim()) return null;
+  const base = emailSender();
+  // Replying to the shop's new-order alert goes straight to the customer.
+  if (kind === 'admin') return { ...base, replyTo: order.customer_email, to: notifyEmail.trim(), subject: `New order ${order.tracking_id} — ${formatCurrency(order.total_amount, order.currency)}`, html: buildAdminNotificationHtml(order, origin) };
+  const receipt = await generateReceiptPdf(order);
+  return { ...base, to: order.customer_email, subject: `Your Toymak order ${order.tracking_id} is confirmed`, html: buildOrderEmailHtml(order, origin), attachments: [{ filename: `toymak-receipt-${order.tracking_id}.pdf`, content: receipt.toString('base64'), contentType: 'application/pdf' }] };
+}
 
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.warn(`Skipped admin order notification for ${order.id}: RESEND_API_KEY not configured.`);
-    return;
-  }
-
-  const fromAddress = process.env.RESEND_FROM_EMAIL || "Toymak <onboarding@resend.dev>";
-  const resend = new Resend(apiKey);
-
-  try {
-    const { error } = await resend.emails.send({
-      from: fromAddress,
-      to: notifyEmail.trim(),
-      subject: `New order ${order.tracking_id} — ${formatCurrency(order.total_amount, order.currency)}`,
-      html: buildAdminNotificationHtml(order, origin),
-    });
-    if (error) {
-      console.error(`Admin order notification failed for ${order.id}:`, error.message);
-    }
-  } catch (error) {
-    console.error(`Admin order notification failed for ${order.id}:`, error);
-  }
+export async function sendPreparedOrderEmail(payload: PreparedOrderEmail, idempotencyKey: string): Promise<boolean> {
+  const { error } = await sendEmail(payload, { idempotencyKey });
+  if (error) console.error(`Order email to ${payload.to} failed:`, error);
+  return !error;
 }

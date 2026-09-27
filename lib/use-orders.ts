@@ -12,24 +12,38 @@ function reviveDates(orders: Order[]): Order[] {
 }
 
 /**
- * Shared order store used by both the admin dashboard and the storefront
- * account page — backed entirely by GET /api/orders (Supabase) now, no more
- * localStorage/mock seed. addOrder is a local-only optimistic append so
- * /checkout/success can show the order immediately after
- * POST /api/orders/confirm succeeds, without waiting on a refetch; the
- * order itself is already durably saved server-side by that point.
+ * Admin dashboard order store, backed by GET /api/orders (Supabase).
+ * Customers have no accounts — they look up a single order by email + order
+ * number via POST /api/orders/lookup instead. addOrder is a local-only
+ * append for orders arriving through the live admin event stream.
  */
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/orders")
-      .then((response) => response.json())
-      .then((data: { orders?: Order[] }) => {
-        setOrders(reviveDates(data.orders ?? []));
+    const controller = new AbortController();
+    setIsLoading(true);
+    setError(null);
+    fetch("/api/orders", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load orders. Please refresh to try again.");
+        return response.json();
       })
-      .finally(() => setIsLoading(false));
+      .then((data: { orders?: Order[] }) => {
+        if (!Array.isArray(data.orders)) throw new Error("Unable to load orders. Please refresh to try again.");
+        if (controller.signal.aborted) return;
+        const loaded = reviveDates(data.orders);
+        // Preserve any confirmed order received through the live event
+        // stream while this initial request was still in flight.
+        setOrders((current) => [...loaded, ...current.filter((order) => !loaded.some((saved) =>
+          saved.id === order.id || (saved.payment_reference === order.payment_reference && saved.payment_gateway === order.payment_gateway),
+        ))]);
+      })
+      .catch(() => { if (!controller.signal.aborted) setError("Unable to load orders. Please refresh to try again."); })
+      .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
+    return () => controller.abort();
   }, []);
 
   const actions = useMemo(
@@ -48,7 +62,8 @@ export function useOrders() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ status, trackingLink }),
         });
-        const data = (await response.json()) as { order?: Order };
+        const data = (await response.json()) as { order?: Order; error?: string };
+        if (!response.ok || !data.order) throw new Error(data.error ?? "Could not update this order. Please try again.");
         if (data.order) {
           const updated = reviveDates([data.order])[0];
           setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
@@ -58,5 +73,5 @@ export function useOrders() {
     [],
   );
 
-  return { orders, isLoading, ...actions };
+  return { orders, isLoading, error, ...actions };
 }

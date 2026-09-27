@@ -99,19 +99,19 @@ function SizeGuideInner() {
 
           {/* Table */}
           <div className="rounded-2xl border border-neutral/10 overflow-hidden bg-white overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs sm:text-sm">
               <thead>
                 <tr className="bg-neutral text-white">
-                  <th className="px-6 py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
+                  <th className="px-2 py-3 sm:px-6 sm:py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
                     Size
                   </th>
-                  <th className="px-6 py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
+                  <th className="px-2 py-3 sm:px-6 sm:py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
                     Bust
                   </th>
-                  <th className="px-6 py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
+                  <th className="px-2 py-3 sm:px-6 sm:py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
                     Waist
                   </th>
-                  <th className="px-6 py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
+                  <th className="px-2 py-3 sm:px-6 sm:py-4 text-left font-medium uppercase tracking-[0.12em] text-xs">
                     Hips
                   </th>
                 </tr>
@@ -122,12 +122,12 @@ function SizeGuideInner() {
                     key={row.size}
                     className={idx % 2 === 0 ? "bg-white" : "bg-tertiary/30"}
                   >
-                    <td className="px-6 py-4 font-semibold text-neutral">
+                    <td className="px-2 py-3 sm:px-6 sm:py-4 font-semibold text-neutral">
                       {row.size}
                     </td>
-                    <td className="px-6 py-4 text-neutral/65">{row.bustLabel}</td>
-                    <td className="px-6 py-4 text-neutral/65">{row.waistLabel}</td>
-                    <td className="px-6 py-4 text-neutral/65">{row.hipsLabel}</td>
+                    <td className="px-2 py-3 sm:px-6 sm:py-4 text-neutral/65">{row.bustLabel}</td>
+                    <td className="px-2 py-3 sm:px-6 sm:py-4 text-neutral/65">{row.waistLabel}</td>
+                    <td className="px-2 py-3 sm:px-6 sm:py-4 text-neutral/65">{row.hipsLabel}</td>
                   </tr>
                 ))}
               </tbody>

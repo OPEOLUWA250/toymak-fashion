@@ -17,13 +17,19 @@ export function SettingsView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings")
-      .then((response) => response.json())
-      .then((data: { settings?: StoreSettings }) => {
-        if (data.settings) setSettings(data.settings);
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        return response.json();
       })
+      .then((data: { settings?: StoreSettings }) => {
+        if (!data.settings) throw new Error();
+        setSettings(data.settings);
+      })
+      .catch(() => setError("Could not load settings. Please refresh to try again."))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -66,6 +72,7 @@ export function SettingsView() {
   const handleSave = async () => {
     if (!settings) return;
     setIsSaving(true);
+    setError(null);
     setSaved(false);
     try {
       const response = await fetch("/api/settings", {
@@ -73,7 +80,8 @@ export function SettingsView() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      const data = (await response.json()) as { settings?: StoreSettings };
+      const data = (await response.json()) as { settings?: StoreSettings; error?: string };
+      if (!response.ok || !data.settings) throw new Error(data.error ?? "Could not save settings. Please try again.");
       if (data.settings) {
         setSettings(data.settings);
         setSaved(true);
@@ -82,12 +90,14 @@ export function SettingsView() {
         // hard-refreshes past the cache.
         invalidateSettingsCache();
       }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save settings. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading || !settings) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-neutral-400">
         <Loader2 size={22} className="animate-spin" />
@@ -95,8 +105,12 @@ export function SettingsView() {
     );
   }
 
+  if (!settings) return <p role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</p>;
+
   return (
     <div className="space-y-6">
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {saved && <p role="status" className="text-sm text-emerald-700">Settings saved.</p>}
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="text-sm leading-6 text-neutral-600">
           These numbers drive real checkout math — the tax and shipping a customer is actually

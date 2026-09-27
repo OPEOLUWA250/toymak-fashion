@@ -6,16 +6,23 @@ import { NewsletterSignup } from "@/lib/types";
 
 export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
-  const handleCopy = (signup: NewsletterSignup) => {
-    navigator.clipboard.writeText(signup.coupon_code).then(() => {
+  const handleCopy = async (signup: NewsletterSignup) => {
+    setCopyError(null);
+    try {
+      await navigator.clipboard.writeText(signup.coupon_code);
       setCopiedId(signup.id);
       setTimeout(() => setCopiedId(null), 1500);
-    });
+    } catch {
+      setCopyError("Could not copy the code. Please select and copy it manually.");
+    }
   };
 
   return (
     <div className="space-y-6">
+      {copyError && <p role="alert" className="text-sm text-red-600">{copyError}</p>}
+      {copiedId && <p role="status" className="text-sm text-emerald-700">Coupon code copied.</p>}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-primary/10 p-3 text-primary">
@@ -41,8 +48,8 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
 
         <div className="overflow-hidden rounded-2xl border border-neutral-200">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-160 border-collapse text-left">
-              <thead className="bg-neutral-50">
+            <table className="admin-product-table w-full border-collapse text-left">
+              <thead className="hidden bg-neutral-50 xl:table-header-group">
                 <tr>
                   <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500">
                     Name
@@ -67,10 +74,10 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                     <td className="px-4 py-4 align-middle text-sm font-medium text-neutral-900">
                       {signup.first_name} {signup.last_name}
                     </td>
-                    <td className="px-4 py-4 align-middle text-sm text-neutral-600">
+                    <td data-label="Email" className="break-all px-4 py-4 align-middle text-sm text-neutral-600">
                       {signup.email}
                     </td>
-                    <td className="px-4 py-4 align-middle">
+                    <td data-label="Coupon" className="px-4 py-4 align-middle">
                       <button
                         type="button"
                         onClick={() => handleCopy(signup)}
@@ -80,7 +87,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                         {copiedId === signup.id ? <Check size={12} /> : <Copy size={12} />}
                       </button>
                     </td>
-                    <td className="px-4 py-4 align-middle">
+                    <td data-label="Email status" className="px-4 py-4 align-middle">
                       {signup.email_sent ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                           <Mail size={12} />
@@ -93,7 +100,7 @@ export function SignupsView({ signups }: { signups: NewsletterSignup[] }) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 align-middle text-sm text-neutral-600">
+                    <td data-label="Signed up" className="px-4 py-4 align-middle text-sm text-neutral-600">
                       {signup.created_at.toLocaleDateString("en-GB", { dateStyle: "medium" })}
                     </td>
                   </tr>

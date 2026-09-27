@@ -85,7 +85,7 @@ export function NotificationsPanel({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-2xl border border-neutral-200 bg-white p-2 shadow-2xl">
+        <div className="fixed inset-x-3 top-16 z-50 max-h-[calc(100dvh-5rem)] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-2 shadow-2xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
           <p className="px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">
             Notifications
           </p>

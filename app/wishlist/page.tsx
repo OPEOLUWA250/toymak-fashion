@@ -1,5 +1,6 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { useWishlist } from "@/lib/wishlist-context";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 
 export default function WishlistPage() {
-  const { productIds, removeFromWishlist, clearWishlist } = useWishlist();
+  const { syncError, productIds, removeFromWishlist, clearWishlist } = useWishlist();
   const { products: allProducts } = useProducts();
   const products = allProducts.filter((product) =>
     productIds.includes(product.id),
@@ -17,6 +18,7 @@ export default function WishlistPage() {
   return (
     <main className="bg-white">
       <Header />
+      {syncError && <p role="alert" className="px-4 py-3 text-red-700">{syncError}</p>}
 
       <section className="bg-tertiary/40 py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -61,7 +63,7 @@ export default function WishlistPage() {
                   key={product.id}
                   className="grid gap-4 rounded-3xl border border-neutral/10 bg-white p-4 shadow-sm sm:grid-cols-[120px_minmax(0,1fr)_auto]"
                 >
-                  <img
+                  <StoreImage sizes="128px"
                     src={product.images[0]}
                     alt={product.name}
                     className="h-32 w-32 rounded-2xl object-cover"

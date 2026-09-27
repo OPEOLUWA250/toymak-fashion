@@ -25,7 +25,7 @@ export function OrdersView({
   onUpdateStatus,
 }: {
   orders: Order[]
-  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => void
+  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => Promise<void>
 }) {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
   const [search, setSearch] = useState("")
@@ -154,6 +154,8 @@ export function OrdersView({
                       </div>
                     </div>
 
+                    {order.fulfillment_issue && <p role="alert" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{order.fulfillment_issue}</p>}
+                    {(order.refunded_amount ?? 0) > 0 && <p className="text-sm">Refunded: {formatCurrency(order.refunded_amount!, order.currency)}</p>}
                     <OrderTrackingEditor order={order} onUpdateStatus={onUpdateStatus} />
                   </div>
                 )}
@@ -181,17 +183,19 @@ function OrderTrackingEditor({
   onUpdateStatus,
 }: {
   order: Order
-  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => void
+  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => Promise<void>
 }) {
   const [draftStatus, setDraftStatus] = useState<OrderStatus>(order.status)
   const [draftLink, setDraftLink] = useState(order.tracking_link ?? "")
   const [error, setError] = useState<string | null>(null)
   const [justSaved, setJustSaved] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const needsLink = requiresTrackingLink(draftStatus)
   const dirty = draftStatus !== order.status || draftLink !== (order.tracking_link ?? "")
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (isSaving) return
     if (needsLink && draftLink.trim() === "") {
       setError("Add the carrier's tracking link before marking this order as shipped.")
       return
@@ -199,9 +203,17 @@ function OrderTrackingEditor({
     setError(null)
     const normalizedLink = draftLink.trim() ? normalizeExternalUrl(draftLink) : undefined
     setDraftLink(normalizedLink ?? "")
-    onUpdateStatus(order.id, draftStatus, normalizedLink)
-    setJustSaved(true)
-    setTimeout(() => setJustSaved(false), 2000)
+    setIsSaving(true)
+    setJustSaved(false)
+    try {
+      await onUpdateStatus(order.id, draftStatus, normalizedLink)
+      setJustSaved(true)
+      setTimeout(() => setJustSaved(false), 2000)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save the tracking update. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -215,6 +227,7 @@ function OrderTrackingEditor({
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">Status</label>
           <select
+            disabled={isSaving}
             value={draftStatus}
             onChange={(e) => {
               setDraftStatus(e.target.value as OrderStatus)
@@ -236,6 +249,7 @@ function OrderTrackingEditor({
           </label>
           <input
             type="url"
+            disabled={isSaving}
             value={draftLink}
             onChange={(e) => {
               setDraftLink(e.target.value)
@@ -247,16 +261,16 @@ function OrderTrackingEditor({
         </div>
       </div>
 
-      {error && <p className="mt-2 text-xs font-medium text-red-600">{error}</p>}
+      {error && <p role="alert" className="mt-2 text-xs font-medium text-red-600">{error}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={handleSave}
-          disabled={!dirty}
+          disabled={!dirty || isSaving}
           className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          Save tracking update
+          {isSaving ? "Saving..." : "Save tracking update"}
         </button>
         {justSaved && (
           <span className="text-xs font-medium text-emerald-600" role="status">

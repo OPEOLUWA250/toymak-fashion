@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAllReviews } from "@/lib/server/reviews";
+import { adminRoute } from "@/lib/server/admin-auth";
 
-export async function GET() {
+export const GET = adminRoute(async () => {
   try {
     const reviews = await getAllReviews();
     return NextResponse.json({ reviews });
@@ -11,4 +12,4 @@ export async function GET() {
       { status: 500 },
     );
   }
-}
+});

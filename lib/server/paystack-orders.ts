@@ -1,3 +1,4 @@
+import { verifyCheckoutSnapshot } from "./checkout-snapshots";
 import { PaymentVerification } from "@/lib/order-builder";
 
 export function getPaystackSecretKey(): string {
@@ -31,6 +32,8 @@ export async function verifyPaystackTransaction(
 
   const tx = data.data;
   const metadata = tx.metadata ?? {};
+  if (metadata.checkout_snapshot_id) return verifyCheckoutSnapshot(metadata.checkout_snapshot_id, "paystack", tx.amount, tx.currency);
+  if (tx.currency !== "NGN") throw new Error("Unexpected payment currency.");
 
   return {
     status: "success",
@@ -43,7 +46,7 @@ export async function verifyPaystackTransaction(
     subtotal: metadata.subtotal ?? 0,
     shippingCost: metadata.shipping_cost ?? 0,
     tax: metadata.tax ?? 0,
-    total: metadata.total ?? (tx.amount ?? 0) / 100,
+    total: (tx.amount ?? 0) / 100,
     discount: metadata.discount ?? 0,
     discountCode: metadata.discount_code || undefined,
   };

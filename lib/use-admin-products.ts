@@ -22,13 +22,18 @@ function reviveDates(products: Product[]): Product[] {
 export function useAdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/products")
-      .then((response) => response.json())
+    fetch("/api/admin/products")
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load products. Please refresh to try again.");
+        return response.json();
+      })
       .then((data: { products?: Product[] }) => {
         setProducts(reviveDates(data.products ?? []));
       })
+      .catch(() => setError("Could not load products. Please refresh to try again."))
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -40,7 +45,8 @@ export function useAdminProducts() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(product),
         });
-        const data = (await response.json()) as { product?: Product };
+        const data = (await response.json()) as { product?: Product; error?: string };
+        if (!response.ok || !data.product) throw new Error(data.error ?? "Could not add product. Please try again.");
         if (data.product) {
           const created = reviveDates([data.product])[0];
           setProducts((current) => [created, ...current]);
@@ -52,19 +58,21 @@ export function useAdminProducts() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(product),
         });
-        const data = (await response.json()) as { product?: Product };
+        const data = (await response.json()) as { product?: Product; error?: string };
+        if (!response.ok || !data.product) throw new Error(data.error ?? "Could not save product. Please try again.");
         if (data.product) {
           const updated = reviveDates([data.product])[0];
           setProducts((current) => current.map((p) => (p.id === updated.id ? updated : p)));
         }
       },
       removeProduct: async (productId: string) => {
-        await fetch(`/api/admin/products/${productId}`, { method: "DELETE" });
+        const response = await fetch(`/api/admin/products/${productId}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("Could not delete product. Please try again.");
         setProducts((current) => current.filter((p) => p.id !== productId));
       },
     }),
     [],
   );
 
-  return { products, isLoading, ...actions };
+  return { products, isLoading, error, ...actions };
 }

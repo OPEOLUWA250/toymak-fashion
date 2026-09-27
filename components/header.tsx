@@ -1,9 +1,10 @@
 "use client";
 
+import { StoreImage } from "@/components/store-image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Menu, X, Search, Heart, ShoppingBag, User, ChevronRight, ChevronDown } from "lucide-react";
+import { Menu, X, Search, Heart, ShoppingBag, Package, ChevronRight, ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useRegion } from "@/lib/region-context";
@@ -53,7 +54,7 @@ function SearchSuggestions({
             onClick={onSelect}
             className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-neutral-100"
           >
-            <img
+            <StoreImage sizes="40px"
               src={product.images[0]}
               alt=""
               className="h-10 w-10 shrink-0 rounded-md object-cover"
@@ -375,14 +376,14 @@ export default function Header({
                 )}
               </Link>
               <Link
-                href="/account"
+                href="/track-order"
                 className={cn(
                   " p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
-                aria-label="Account"
+                aria-label="Track order"
               >
-                <User size={20} />
+                <Package size={20} />
               </Link>
               <Link
                 href="/cart"
@@ -419,14 +420,14 @@ export default function Header({
                 )}
               </Link>
               <Link
-                href="/account"
+                href="/track-order"
                 className={cn(
                   " p-2 transition",
                   isTransparent ? "hover:bg-white/10" : "hover:text-primary hover:bg-primary/5",
                 )}
-                aria-label="Account"
+                aria-label="Track order"
               >
-                <User size={19} />
+                <Package size={19} />
               </Link>
               <Link
                 href="/cart"

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateContactMessageStatus } from "@/lib/server/contact-store";
+import { adminRoute } from "@/lib/server/admin-auth";
 
-export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = adminRoute(async (request: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params;
   const body = (await request.json()) as { status?: "new" | "read" };
 
@@ -21,4 +22,4 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       { status: 500 },
     );
   }
-}
+});

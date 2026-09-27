@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { eventBus } from "@/lib/server/event-bus";
+import { adminRoute } from "@/lib/server/admin-auth";
 
 // Must never be cached/statically optimized, and needs the persistent
 // Node process the in-memory event bus depends on (not edge).
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
  * having to poll. One open connection per admin tab; the browser's native
  * EventSource reconnects automatically if it drops.
  */
-export async function GET(request: NextRequest) {
+export const GET = adminRoute(async (request: NextRequest) => {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -68,4 +69,4 @@ export async function GET(request: NextRequest) {
       "X-Accel-Buffering": "no",
     },
   });
-}
+});

@@ -1,3 +1,5 @@
+import { validateCheckoutItems, validateCheckoutContact } from "@/lib/checkout-validation";
+import { saveCheckoutSnapshot } from "@/lib/server/checkout-snapshots";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  try {
   const body = (await request.json()) as CheckoutRequestBody;
   const { email, items, customer, shipping, discountCode, success_url, cancel_url } = body;
 
@@ -47,16 +50,18 @@ export async function POST(request: NextRequest) {
   const stripeCurrency = currency.toLowerCase();
   const products = await getAllProducts();
   const settings = await getStoreSettings();
+  validateCheckoutContact(body);
+  validateCheckoutItems(items, products, currency);
 
   // The discount percent is never taken from the client — only the code is.
-  // An invalid/already-used code is silently ignored here (0% applied) so a
-  // stale code left in the field doesn't block checkout.
+  // Reject stale codes so the customer can review the revised total first.
   const discountPercent = discountCode
     ? (await validateCouponCode(discountCode)).discountPercent
     : 0;
 
+  if (discountCode && discountPercent === 0) return NextResponse.json({ error: "This discount code is no longer valid. Remove it or choose another code." }, { status: 400 });
   const orderItems = buildOrderItems(items, currency, products, discountPercent);
-  const { shipping: shippingCost, tax } = calculateOrderTotals(
+  const { subtotal, shipping: shippingCost, tax, total, discount } = calculateOrderTotals(
     items,
     currency,
     products,
@@ -98,33 +103,20 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  if (currency === "NGN") throw new Error("Use Paystack for NGN checkout.");
+  const snapshotId = await saveCheckoutSnapshot("stripe", {
+    status: "success", currency, customerEmail: email, customerName: customer.fullName,
+    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
+    orderItems, subtotal, shippingCost, tax, total, discount, discountCode,
+  });
   const stripe = new Stripe(secretKey);
-
-  try {
-    // Metadata values must each be short, flat strings (Stripe's limit is
-    // 500 chars per value) — we store compact item refs and re-derive
-    // names/prices from the mock catalog again on verify, same as the
-    // Paystack route, rather than round-tripping priced data through it.
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
       customer_email: email,
-      success_url,
-      cancel_url,
-      metadata: {
-        customer_name: customer.fullName,
-        customer_phone: customer.phone,
-        shipping_json: JSON.stringify(shipping),
-        items_json: JSON.stringify(
-          items.map((item) => ({
-            i: item.product_id,
-            q: item.quantity,
-            s: item.size,
-            c: item.color,
-          })),
-        ),
-        ...(discountPercent > 0 && discountCode ? { discount_code: discountCode.trim().toUpperCase() } : {}),
-      },
+      success_url: `${request.nextUrl.origin}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${request.nextUrl.origin}/checkout`,
+      metadata: { checkout_snapshot_id: snapshotId },
     });
 
     if (!session.url) {
