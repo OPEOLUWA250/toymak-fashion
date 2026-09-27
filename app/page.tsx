@@ -73,11 +73,16 @@ const testimonialProductIds = ["prod-001", "prod-002", "prod-003", "prod-004", "
 export default async function HomePage() {
   const [products, reviews] = await Promise.all([getAllProducts(), getAllApprovedReviews()]);
 
+  // Products ticked "Featured" in the admin product form, newest first. If
+  // none are ticked, fall back to the newest products so the section is
+  // never empty.
   const newestProducts = [...products].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
-  const newestFeature = newestProducts[0];
-  const newestGrid = newestProducts.slice(1, 3);
+  const featuredProducts = newestProducts.filter((product) => product.featured);
+  const showcase = featuredProducts.length > 0 ? featuredProducts : newestProducts;
+  const leadProduct = showcase[0];
+  const sideProducts = showcase.slice(1, 3);
 
   const testimonials = testimonialProductIds
     .map((productId) => {
@@ -95,59 +100,59 @@ export default async function HomePage() {
       <Header variant="transparent" />
 
       {/* Hero */}
-      <HeroCarousel images={heroSlides} scrollTargetId="new-arrivals" />
+      <HeroCarousel images={heroSlides} scrollTargetId="featured" />
 
-      {/* New Arrivals */}
-      <section id="new-arrivals" className="py-24 md:py-32">
+      {/* Featured */}
+      <section id="featured" className="py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary">
-                Just Landed
+                Our Picks
               </p>
-              <h2 className="text-3xl font-bold text-neutral md:text-4xl">New Arrivals</h2>
+              <h2 className="text-3xl font-bold text-neutral md:text-4xl">Featured</h2>
               <p className="mt-3 max-w-lg text-neutral/60">
-                The latest additions to the collection, fresh off the production line.
+                Hand-picked favourites from the collection.
               </p>
             </div>
             <Link
-              href="/shop?sort=newest"
+              href="/shop?sort=featured"
               className="inline-flex items-center gap-2 border-b-2 border-primary pb-1 font-semibold text-neutral transition hover:text-primary"
             >
-              Shop New Arrivals
+              Shop Featured
               <ArrowRight size={18} />
             </Link>
           </div>
 
-          {newestFeature ? (
-          <div className={`grid gap-px bg-neutral/10 ${newestGrid.length > 0 ? "lg:grid-cols-[1.3fr_1fr]" : ""}`}>
-            {/* Newest product, editorial feature tile */}
+          {leadProduct ? (
+          <div className={`grid gap-px bg-neutral/10 ${sideProducts.length > 0 ? "lg:grid-cols-[1.3fr_1fr]" : ""}`}>
+            {/* Lead product, editorial feature tile */}
             <Link
-              href={`/product/${newestFeature.id}`}
+              href={`/product/${leadProduct.id}`}
               className="product-photo group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
             >
               <StoreImage sizes="(max-width: 1024px) 100vw, 55vw"
-                src={newestFeature.images[0]}
-                alt={newestFeature.name}
+                src={leadProduct.images[0]}
+                alt={leadProduct.name}
                 className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
               <span className="absolute left-6 top-6 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-                New
+                Featured
               </span>
               <div className="absolute inset-x-6 bottom-6">
-                <h3 className="mb-1 text-2xl font-bold text-white">{newestFeature.name}</h3>
-                <p className="mb-4 max-w-sm text-sm text-white/75">{newestFeature.description}</p>
+                <h3 className="mb-1 text-2xl font-bold text-white">{leadProduct.name}</h3>
+                <p className="mb-4 max-w-sm text-sm text-white/75">{leadProduct.description}</p>
                 <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
-                  £{newestFeature.price_gbp.toFixed(2)}
+                  £{leadProduct.price_gbp.toFixed(2)}
                   <ArrowRight size={14} className="transition group-hover:translate-x-1" />
                 </span>
               </div>
             </Link>
 
-            {/* Next newest, stacked in the same editorial treatment as the feature tile */}
-            {newestGrid.length > 0 && <div className={`grid gap-px ${newestGrid.length > 1 ? "grid-rows-2" : ""}`}>
-              {newestGrid.map((product) => (
+            {/* Next two, stacked in the same editorial treatment as the feature tile */}
+            {sideProducts.length > 0 && <div className={`grid gap-px ${sideProducts.length > 1 ? "grid-rows-2" : ""}`}>
+              {sideProducts.map((product) => (
                 <Link
                   key={product.id}
                   href={`/product/${product.id}`}
@@ -171,7 +176,7 @@ export default async function HomePage() {
           </div>
           ) : (
             <div className="rounded-2xl border border-neutral/10 bg-tertiary/30 px-6 py-16 text-center">
-              <h3 className="text-2xl font-bold text-neutral">New arrivals are on the way</h3>
+              <h3 className="text-2xl font-bold text-neutral">Featured products are on the way</h3>
               <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-neutral/60">
                 There are no products available right now. Check back soon to explore our collection.
               </p>

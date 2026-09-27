@@ -70,7 +70,7 @@ function shopMarkup({ products = [], isLoading = false, error = null, query = ""
 
 test("empty homepage retains navigation, hero, informational sections, and footer", async () => {
   const html = await homeMarkup([]);
-  for (const content of ["Site navigation", "Home hero", "New arrivals are on the way", "Our Mission", "Contact and FAQ", "Site footer"]) {
+  for (const content of ["Site navigation", "Home hero", "Featured products are on the way", "Our Mission", "Contact and FAQ", "Site footer"]) {
     assert.ok(html.includes(content), `Missing ${content}`);
   }
   assert.doesNotMatch(html, /href="\/product\//);
@@ -80,13 +80,24 @@ test("empty homepage retains navigation, hero, informational sections, and foote
 test("one product renders without an empty second column", async () => {
   const html = await homeMarkup([product("one")]);
   assert.match(html, /href="\/product\/one"/);
-  assert.doesNotMatch(html, /New arrivals are on the way|lg:grid-cols-\[1\.3fr_1fr\]/);
+  assert.doesNotMatch(html, /Featured products are on the way|lg:grid-cols-\[1\.3fr_1fr\]/);
 });
 
 test("two products render newest first without reserving an empty third tile", async () => {
   const html = await homeMarkup([product("older"), product("newer", "2026-09-02")]);
   assert.ok(html.indexOf('href="/product/newer"') < html.indexOf('href="/product/older"'));
   assert.doesNotMatch(html, /grid-rows-2/);
+});
+
+test("homepage shows featured products ahead of newer, non-featured ones", async () => {
+  const html = await homeMarkup([
+    product("newest-plain", "2026-09-10"),
+    { ...product("featured-old", "2026-01-01"), featured: true },
+    { ...product("featured-new", "2026-05-01"), featured: true },
+  ]);
+  assert.ok(html.indexOf('href="/product/featured-new"') < html.indexOf('href="/product/featured-old"'));
+  assert.doesNotMatch(html, /href="\/product\/newest-plain"/);
+  assert.match(html, />Featured</);
 });
 
 test("empty shop explains availability, including when a category link was followed", () => {
