@@ -9,10 +9,10 @@ import { Ruler, ArrowRight } from "lucide-react";
 import {
   sizeChart,
   categoryLabels,
-  measurementSteps,
   fitTips,
   type SizeCategory,
 } from "@/lib/size-guide-data";
+import { HowToMeasureImage } from "@/components/size-guide-panel";
 
 const categories = Object.keys(sizeChart) as SizeCategory[];
 
@@ -52,24 +52,10 @@ function SizeGuideInner() {
           <p className="text-neutral/60 text-center mb-10 max-w-md mx-auto text-sm">
             Use a soft measuring tape and stand in front of a mirror for accuracy.
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            {measurementSteps.map((step) => (
-              <div
-                key={step.step}
-                className="rounded-2xl border border-neutral/10 p-6 bg-white hover:shadow-sm transition-shadow"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold mb-4">
-                  {step.step}
-                </div>
-                <h3 className="text-lg font-bold text-neutral mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-sm leading-6 text-neutral/60">
-                  {step.instruction}
-                </p>
-              </div>
-            ))}
-          </div>
+          <HowToMeasureImage className="mx-auto max-w-3xl" />
+          <p className="mt-3 text-center text-xs text-neutral/40">
+            Tap the image to open it full size.
+          </p>
         </div>
       </section>
 

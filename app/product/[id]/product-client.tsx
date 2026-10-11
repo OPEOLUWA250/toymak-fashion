@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useEffect, useState } from "react";
 import { recordProductView } from "@/lib/use-recently-viewed";
-import { Heart, Share2, ChevronDown, Star, Minus, Plus, Check } from "lucide-react";
+import { Heart, Share2, ChevronDown, Star, Minus, Plus, Check, Ruler } from "lucide-react";
+import { SizeGuideDialog } from "@/components/size-guide-panel";
 import { Product } from "@/lib/types";
 import { FitFinder } from "@/components/fit-finder";
 import { sizeChart, type SizeCategory } from "@/lib/size-guide-data";
@@ -43,6 +43,7 @@ export default function ProductClient({
   const [stockError, setStockError] = useState("");
   const [justAdded, setJustAdded] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
   const isWishlisted = isInWishlist(product.id);
@@ -173,15 +174,22 @@ export default function ProductClient({
           <label className="block text-sm font-semibold tracking-[0.16em] uppercase text-neutral">
             Select size
           </label>
-          {sizeCategory && (
-            <Link
-              href={`/size-guide?category=${sizeCategory}#size-chart`}
-              className="text-xs text-primary underline underline-offset-4"
-            >
-              Size Guide
-            </Link>
-          )}
+          <button
+            type="button"
+            onClick={() => setSizeGuideOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline underline-offset-4"
+          >
+            <Ruler size={14} />
+            Size Guide
+          </button>
         </div>
+        <SizeGuideDialog
+          open={sizeGuideOpen}
+          onClose={() => setSizeGuideOpen(false)}
+          productName={product.name}
+          sizeGuideImage={product.sizeGuideImage}
+          sizeCategory={sizeCategory}
+        />
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {product.sizes.map((size) => (
             <button

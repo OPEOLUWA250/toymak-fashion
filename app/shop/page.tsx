@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { useProducts } from '@/lib/use-products'
 import { cn } from '@/lib/utils'
 import { ProductCard } from '@/components/product-card'
+import { BannerCarousel, type Banner } from '@/components/banner-carousel'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Check,
@@ -17,6 +18,13 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react'
+
+const HERO_BANNERS: Banner[] = [
+  { src: '/hero/sculpt-your-curves.jpg', alt: 'Sculpt your curves. Shape beautifully. Feel confident.', href: '#products' },
+  { src: '/hero/smooth-sleek-stylish.jpg', alt: 'Smooth. Sleek. Stylish. Your perfect fit, every time.', href: '#products' },
+  { src: '/hero/effortlessly-flattering.jpg', alt: 'Effortlessly flattering. Comfort meets confidence.', href: '#products' },
+  { src: '/hero/love-your-shape.jpg', alt: 'Love your shape. Shapewear made for confidence.', href: '#products' },
+]
 
 const CATEGORY_DEFS = [
   { value: 'shapewear', label: 'Shapewear' },
@@ -42,11 +50,29 @@ function toggleInList<T>(list: T[], value: T) {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value]
 }
 
+// The header, hero and footer sit outside the Suspense boundary so they're
+// in the server-rendered HTML; only the filterable catalog (which reads the
+// URL's search params) waits for the client.
 export default function ShopPage() {
   return (
-    <Suspense fallback={null}>
-      <ShopPageInner />
-    </Suspense>
+    <main className="bg-white">
+      <Header />
+
+      {/* Hero banners: edge to edge on phones, contained on larger screens */}
+      <div className="mx-auto max-w-7xl sm:px-6 sm:pt-6 lg:px-8">
+        <BannerCarousel banners={HERO_BANNERS} width={1050} height={600} />
+      </div>
+
+      <Suspense
+        fallback={
+          <p role="status" className="py-20 text-center text-sm text-neutral/60">Loading products...</p>
+        }
+      >
+        <ShopPageInner />
+      </Suspense>
+
+      <Footer />
+    </main>
   )
 }
 
@@ -216,31 +242,18 @@ function ShopPageInner() {
   }
 
   return (
-    <main className="bg-white">
-      <Header />
-
-      {/* Page Header */}
-      <section className="bg-primary-light py-14 md:py-20">
+    <>
+      {/* Collection header — the banners' "Shop now" lands here */}
+      <section id="products" className="scroll-mt-32 pt-10 md:pt-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="mb-6 text-sm text-neutral/50">
-            <Link href="/" className="hover:text-primary transition">
-              Home
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-neutral">Shop</span>
-          </nav>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-primary">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-neutral/50">
                 The Collection
               </p>
-              <h1 className="text-4xl md:text-5xl font-bold text-neutral">
+              <h1 className="text-3xl font-bold text-neutral md:text-4xl">
                 Shop All Products
               </h1>
-              <p className="mt-3 max-w-xl text-neutral/60">
-                Premium shapewear, waist trainers, and fashion essentials designed for
-                confidence at every curve.
-              </p>
             </div>
             <p className="text-sm text-neutral/50">
               {sortedProducts.length} of {products.length} products
@@ -248,7 +261,7 @@ function ShopPageInner() {
           </div>
 
           {/* Quick category tabs */}
-          <div className="mt-10 -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          <div className="mt-6 -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-hide sm:mx-0 sm:flex-wrap sm:gap-3 sm:px-0">
             <button
               type="button"
               onClick={() => setSelectedCategories([])}
@@ -285,7 +298,7 @@ function ShopPageInner() {
       </section>
 
       {/* Shop Content */}
-      <section className="py-14 md:py-16">
+      <section className="pt-8 pb-14 md:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[260px_1fr]">
             {/* Desktop Sidebar */}
@@ -477,12 +490,12 @@ function ShopPageInner() {
                 <div className="rounded-3xl border border-neutral/10 bg-tertiary/20 px-6 py-20 text-center">
                   <h2 className="text-xl font-bold text-neutral">New arrivals are on the way</h2>
                   <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-neutral/60">There are no products available right now. Check back soon to explore our collection.</p>
-                  <Link href="/" className="mt-6 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white">Back to home</Link>
+                  <Link href="/size-guide" className="mt-6 inline-block rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white">Explore our size guide</Link>
                 </div>
               ) : sortedProducts.length > 0 ? (
                 <div
                   className={cn(
-                    'grid gap-x-6 gap-y-10 sm:grid-cols-2',
+                    'grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10',
                     density === 'compact' ? 'lg:grid-cols-4 lg:gap-8' : 'lg:grid-cols-3 lg:gap-x-8',
                   )}
                 >
@@ -552,9 +565,7 @@ function ShopPageInner() {
           </div>
         </div>
       )}
-
-      <Footer />
-    </main>
+    </>
   )
 }
 

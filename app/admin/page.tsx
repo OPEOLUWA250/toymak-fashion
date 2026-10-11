@@ -19,6 +19,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { deriveCustomers } from "@/lib/admin-data";
 import { useAdminProducts } from "@/lib/use-admin-products";
 import { useOrders } from "@/lib/use-orders";
@@ -222,7 +223,7 @@ export default function AdminPage() {
         )}
       >
         <div className="flex h-16 shrink-0 items-center border-b border-neutral-200 px-5">
-          <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+          <AdminBrand />
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
@@ -259,7 +260,7 @@ export default function AdminPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-neutral-200 p-5">
-              <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+              <AdminBrand />
               <button
                 className="border border-neutral-200 p-2"
                 onClick={() => setMobileMenuOpen(false)}
@@ -305,7 +306,7 @@ export default function AdminPage() {
             >
               <Menu size={20} />
             </button>
-            <p className="text-lg font-bold text-neutral-900">Toymak Admin</p>
+            <AdminBrand />
           </div>
 
           <div className="ml-auto flex items-center gap-3">
@@ -398,5 +399,16 @@ export default function AdminPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function AdminBrand() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <Logo className="h-7" />
+      <span className="border-l border-neutral-200 pl-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        Admin
+      </span>
+    </div>
   );
 }

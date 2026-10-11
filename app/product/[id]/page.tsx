@@ -1,5 +1,5 @@
 import { siteUrl } from "@/lib/site-url";
-import { StoreImage } from "@/components/store-image";
+import { ProductCard } from "@/components/product-card";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { getAllProducts, getProductById } from "@/lib/server/products";
@@ -86,10 +86,6 @@ export default async function ProductPage({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
         <nav className="text-sm text-neutral/50 mb-6 md:mb-8">
           <Link href="/" className="hover:text-primary transition">
-            Home
-          </Link>
-          <span className="mx-2">/</span>
-          <Link href="/shop" className="hover:text-primary transition">
             Shop
           </Link>
           <span className="mx-2">/</span>
@@ -115,30 +111,9 @@ export default async function ProductPage({
             <h2 className="text-3xl font-bold text-neutral mb-8">
               You May Also Like
             </h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
               {relatedProducts.map((related) => (
-                <Link
-                  key={related.id}
-                  href={`/product/${related.id}`}
-                  className="group"
-                >
-                  <div className="bg-tertiary/50 rounded-lg overflow-hidden mb-4 h-64">
-                    <StoreImage sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      src={related.images[0]}
-                      alt={related.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition"
-                    />
-                  </div>
-                  <h3 className="font-bold text-neutral group-hover:text-primary transition">
-                    {related.name}
-                  </h3>
-                  <p className="text-sm text-neutral/60 mb-2">
-                    {related.description}
-                  </p>
-                  <span className="text-primary font-bold">
-                    £{related.price_gbp}
-                  </span>
-                </Link>
+                <ProductCard key={related.id} product={related} />
               ))}
             </div>
           </section>

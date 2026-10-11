@@ -31,6 +31,8 @@ export interface Product {
   low_stock_threshold: number
   sku: string
   images: string[]
+  /** Product-specific size chart image; null once an admin removes it. */
+  sizeGuideImage?: string | null
   featured: boolean
   created_at: Date
   updated_at: Date

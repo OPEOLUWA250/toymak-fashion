@@ -52,26 +52,18 @@ export const categoryLabels: Record<SizeCategory, string> = {
   tops: "Tops",
 };
 
-export const measurementSteps = [
-  {
-    step: 1,
-    title: "Bust",
-    instruction:
-      "Measure around the fullest part of your bust, keeping the tape level and snug but not tight.",
-  },
-  {
-    step: 2,
-    title: "Waist",
-    instruction:
-      "Measure around your natural waistline — the narrowest part of your torso, usually just above the navel.",
-  },
-  {
-    step: 3,
-    title: "Hips",
-    instruction:
-      "Measure around the widest part of your hips and buttocks, keeping the tape parallel to the floor.",
-  },
-];
+/** The general six-step measuring guide, shown on the size guide page and every product. */
+export const howToMeasureImage = {
+  src: "/brand/how-to-measure.jpg",
+  width: 1080,
+  height: 1080,
+  alt:
+    "How to take your own body measurements. 1 Bust: measure around the fullest part of your chest, keeping the tape level. " +
+    "2 Underbust: measure just below your bust, around your ribcage. 3 Waist: measure around the narrowest part of your waist, usually above your belly button. " +
+    "4 Hips: measure around the fullest part of your hips and butt. 5 Inseam: measure from your crotch down to your ankle. " +
+    "6 Height: stand straight against a wall without shoes and measure from the top of your head to the floor. " +
+    "Tips: use a soft measuring tape, wear fitted clothes or underwear, stand straight and relaxed, and double check your measurements.",
+};
 
 export const fitTips = [
   {

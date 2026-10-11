@@ -46,6 +46,11 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   );
   const [sizes, setSizes] = useState<string[]>(product?.sizes ?? []);
   const [images, setImages] = useState<string[]>(product?.images ?? []);
+  // undefined = never set (left out of the save), null = removed.
+  const [sizeGuideImage, setSizeGuideImage] = useState<string | null | undefined>(product?.sizeGuideImage);
+  const [sizeGuideUploading, setSizeGuideUploading] = useState(false);
+  const [sizeGuideError, setSizeGuideError] = useState<string | null>(null);
+  const sizeGuideInputRef = useRef<HTMLInputElement>(null);
   const [colors, setColors] = useState<ColorDraft[]>(
     () => product?.colors.map((color, index) => ({ ...color, key: `existing-${index}` })) ?? [],
   );
@@ -85,16 +90,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     try {
       for (const file of files) {
         try {
-          if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
-            throw new Error("Use PNG, JPEG, WebP, or GIF images.");
-          }
-          if (file.size > 5 * 1024 * 1024) throw new Error("Each image must be under 5MB.");
-          const formData = new FormData();
-          formData.append("file", file);
-          const response = await fetch("/api/admin/upload-image", { method: "POST", body: formData });
-          const data = (await response.json()) as { url?: string; error?: string };
-          if (!response.ok || !data.url) throw new Error(data.error ?? "Upload failed");
-          const url = data.url;
+          const url = await uploadImage(file);
           setImages((current) => [...current, url]);
         } catch (error) {
           const message = `${file.name || "Pasted image"}: ${error instanceof Error ? error.message : "Upload failed"}`;
@@ -107,9 +103,23 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     }
   };
 
+  const handleSizeGuideSelect = async (file: File | undefined) => {
+    if (!file) return;
+    setSizeGuideUploading(true);
+    setSizeGuideError(null);
+    try {
+      setSizeGuideImage(await uploadImage(file));
+    } catch (error) {
+      setSizeGuideError(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setSizeGuideUploading(false);
+      if (sizeGuideInputRef.current) sizeGuideInputRef.current.value = "";
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (isUploading || isSaving) return;
+    if (isUploading || sizeGuideUploading || isSaving) return;
     setSaveError(null);
     setIsSaving(true);
     const now = new Date();
@@ -139,6 +149,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       low_stock_threshold: Number(lowStockThreshold) || 0,
       sizes,
       images,
+      sizeGuideImage,
       colors: parsedColors,
       featured,
     };
@@ -367,6 +378,59 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
             </div>
           </div>
 
+          <div className="space-y-3 border-t border-neutral-200 pt-4">
+            <div>
+              <p className="text-sm font-medium text-neutral-700">Size guide</p>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                Upload this product&apos;s size chart. Shoppers see it under &ldquo;Size Guide&rdquo; on the product page, together with the general how-to-measure guide.
+              </p>
+            </div>
+            {sizeGuideImage ? (
+              <div className="flex items-start gap-3">
+                <a href={sizeGuideImage} target="_blank" rel="noreferrer" className="block w-40 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+                  <StoreImage src={sizeGuideImage} alt="Size guide preview" sizes="160px" className="h-auto w-full object-contain" />
+                </a>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => sizeGuideInputRef.current?.click()}
+                    disabled={sizeGuideUploading}
+                    className="inline-flex items-center gap-2 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-primary hover:text-primary disabled:opacity-60"
+                  >
+                    {sizeGuideUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSizeGuideImage(null)}
+                    className="inline-flex items-center gap-2 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-red-300 hover:text-red-600"
+                  >
+                    <X size={14} />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => sizeGuideInputRef.current?.click()}
+                disabled={sizeGuideUploading}
+                className="inline-flex items-center gap-2 border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-primary hover:text-primary disabled:opacity-60"
+              >
+                {sizeGuideUploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                {sizeGuideUploading ? "Uploading…" : "Upload size chart"}
+              </button>
+            )}
+            <input
+              ref={sizeGuideInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => void handleSizeGuideSelect(e.target.files?.[0])}
+            />
+            {sizeGuideError && <p role="alert" className="text-xs text-red-600">{sizeGuideError}</p>}
+          </div>
+
           {saveError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{saveError}</p>}
           <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-5">
             <button
@@ -379,7 +443,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
             </button>
             <button
               type="submit"
-              disabled={isUploading || isSaving}
+              disabled={isUploading || sizeGuideUploading || isSaving}
               className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:opacity-50"
             >
               {isSaving ? "Saving..." : isEditing ? "Save Changes" : "Add Product"}
@@ -390,6 +454,19 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       </div>
     </div>
   );
+}
+
+async function uploadImage(file: File): Promise<string> {
+  if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) {
+    throw new Error("Use PNG, JPEG, WebP, or GIF images.");
+  }
+  if (file.size > 5 * 1024 * 1024) throw new Error("Each image must be under 5MB.");
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/admin/upload-image", { method: "POST", body: formData });
+  const data = (await response.json()) as { url?: string; error?: string };
+  if (!response.ok || !data.url) throw new Error(data.error ?? "Upload failed");
+  return data.url;
 }
 
 function Field({

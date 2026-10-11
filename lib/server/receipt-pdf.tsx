@@ -1,4 +1,5 @@
-import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { brandLogoDataUri } from "./brand-logo";
 import { Currency, Order } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
 
@@ -19,7 +20,7 @@ function formatPdfCurrency(amount: number, currency: Currency): string {
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: "#101820", fontFamily: "Helvetica" },
-  brand: { fontSize: 18, fontWeight: 700, letterSpacing: 1 },
+  brand: { width: 135, height: 30, marginBottom: 6 },
   eyebrow: { fontSize: 9, color: "#6b6b6b", marginTop: 4, textTransform: "uppercase", letterSpacing: 1 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 24 },
   metaLabel: { fontSize: 8, color: "#6b6b6b", textTransform: "uppercase", letterSpacing: 0.5 },
@@ -52,7 +53,7 @@ function ReceiptDocument({ order }: { order: Order }) {
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.brand}>TOYMAK</Text>
+            <Image style={styles.brand} src={brandLogoDataUri} />
             <Text style={styles.eyebrow}>Receipt</Text>
           </View>
           <View>

@@ -10,20 +10,12 @@ export const metadata: Metadata = {
   title: "Toymak - Premium Shapewear & Fashion",
   description:
     "Discover luxury shapewear and fashion designed for the modern woman. Premium quality, confidence-boosting styles.",
+  // The TM monogram sits on a white tile, so one set reads on both light
+  // and dark browser tabs.
   icons: {
     icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
     ],
     apple: "/apple-icon.png",
   },

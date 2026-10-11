@@ -1,4 +1,5 @@
 import { AbandonedCart } from "./abandoned-carts";
+import { siteUrl } from "@/lib/site-url";
 import { formatCurrency } from "@/lib/pricing";
 import { createEmailLinkToken } from "./email-links";
 import { isEmailConfigured, sendEmail } from "./email-sender";
@@ -52,7 +53,7 @@ function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): strin
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;overflow:hidden;">
       <tr>
         <td style="padding:32px 32px 8px;text-align:center;">
-          <span style="font-size:20px;font-weight:800;letter-spacing:0.02em;color:#101820;">TOYMAK</span>
+          <img src="${siteUrl}/brand/logo-black.png" alt="TOYMAK" width="180" height="40" style="display:inline-block;border:0;outline:none;height:40px;width:180px;font-size:20px;font-weight:800;letter-spacing:0.02em;color:#101820;" />
         </td>
       </tr>
       <tr>

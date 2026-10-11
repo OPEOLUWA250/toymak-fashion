@@ -20,6 +20,7 @@ interface ProductRow {
   low_stock_threshold: number;
   sku: string;
   images: string[];
+  size_guide_image?: string | null;
   featured: boolean;
   created_at: string;
   updated_at: string;
@@ -44,6 +45,7 @@ function rowToProduct(row: ProductRow): Product {
     low_stock_threshold: row.low_stock_threshold,
     sku: row.sku,
     images: row.images,
+    sizeGuideImage: row.size_guide_image,
     featured: row.featured,
     created_at: new Date(row.created_at),
     updated_at: new Date(row.updated_at),
@@ -79,6 +81,9 @@ function productToRow(product: Product) {
     stock_qty: variants.length ? variants.reduce((sum, v) => sum + v.stock, 0) : product.stock_qty,
     low_stock_threshold: product.low_stock_threshold,
     images: product.images,
+    // Only written when the form actually set or cleared it, so saving a
+    // product still works on databases that haven't run 0015 yet.
+    ...(product.sizeGuideImage !== undefined ? { size_guide_image: product.sizeGuideImage || null } : {}),
     featured: product.featured,
   };
 }

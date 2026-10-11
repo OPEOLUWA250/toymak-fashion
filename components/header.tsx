@@ -1,6 +1,7 @@
 "use client";
 
 import { StoreImage } from "@/components/store-image";
+import { Logo } from "@/components/logo";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -181,9 +182,10 @@ export default function Header({
     setSearchValue("");
   };
 
+  // The shop is the home page for now (the old landing page lives in
+  // app/_home-hidden), so "Shop All" points at "/".
   const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Shop All", href: "/shop" },
+    { label: "Shop All", href: "/" },
     { label: "Shapewear", href: "/shop?category=shapewear" },
     { label: "Waist Trainers", href: "/shop?category=waist-trainer" },
     { label: "New Arrivals", href: "/shop?sort=newest" },
@@ -222,15 +224,12 @@ export default function Header({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link href="/" className="flex-shrink-0">
-              <h1
-                className={cn(
-                  "font-bold text-2xl transition-colors duration-300",
-                  isTransparent ? "text-white" : "text-primary",
-                )}
-              >
-                TOYMAK
-              </h1>
+            <Link href="/" aria-label="Toymak Fashion home" className="flex-shrink-0">
+              <Logo
+                tone={isTransparent ? "light" : "dark"}
+                priority
+                className="h-7 sm:h-9"
+              />
             </Link>
 
             {/* Desktop Nav */}

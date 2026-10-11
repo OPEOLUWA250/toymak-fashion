@@ -43,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link href={`/product/${product.id}`} className="group block">
-      <div className="product-photo relative mb-4 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40">
+      <div className="product-photo relative mb-3 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40 sm:mb-4">
         <StoreImage sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           src={product.images[0]}
           alt={product.name}
@@ -61,24 +61,24 @@ export function ProductCard({ product }: { product: Product }) {
           />
         )}
 
-        <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+        <div className="absolute left-2 top-2 flex flex-col items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
           {onSale && (
-            <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
               -{discountPercent}%
             </span>
           )}
           {product.featured && (
-            <span className="rounded-full bg-neutral px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+            <span className="rounded-full bg-neutral px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
               Bestseller
             </span>
           )}
           {lowStock && (
-            <span className="rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
               Only {product.stock_qty} left
             </span>
           )}
           {outOfStock && (
-            <span className="rounded-full bg-neutral-400 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+            <span className="rounded-full bg-neutral-400 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
               Sold Out
             </span>
           )}
@@ -92,22 +92,22 @@ export function ProductCard({ product }: { product: Product }) {
             isWishlisted ? removeFromWishlist(product.id) : addToWishlist(product.id);
           }}
           aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-white/90 text-neutral shadow-sm backdrop-blur transition hover:text-primary"
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-white/90 sm:right-3 sm:top-3 sm:h-9 sm:w-9 text-neutral shadow-sm backdrop-blur transition hover:text-primary"
         >
           <Heart size={16} className={isWishlisted ? "fill-primary text-primary" : ""} />
         </button>
 
-        <div className="absolute inset-x-3 bottom-3 translate-y-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="absolute inset-x-3 bottom-3 hidden translate-y-2 opacity-0 sm:block transition duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           <span className="block rounded-xl bg-white/95 py-2.5 text-center text-xs font-semibold uppercase tracking-[0.14em] text-neutral shadow-sm backdrop-blur">
             View Product
           </span>
         </div>
       </div>
 
-      <h3 className="text-base font-bold text-neutral transition group-hover:text-primary">
+      <h3 className="line-clamp-2 text-sm font-bold leading-snug text-neutral transition group-hover:text-primary sm:text-base">
         {product.name}
       </h3>
-      <p className="mt-1 line-clamp-1 text-sm text-neutral/55">{product.description}</p>
+      <p className="mt-1 line-clamp-1 text-xs text-neutral/55 sm:text-sm">{product.description}</p>
 
       {count > 0 && (
         <div className="mt-1.5 flex items-center gap-1 text-xs text-neutral/55">
@@ -117,13 +117,13 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-y-1.5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-base font-bold text-primary">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:mt-3">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-sm font-bold text-primary sm:text-base">
             {formatCurrency(displayPrice, currency)}
           </span>
           {onSale && displayComparePrice !== undefined && (
-            <span className="text-sm text-neutral/40 line-through">
+            <span className="text-xs text-neutral/40 line-through sm:text-sm">
               {formatCurrency(displayComparePrice, currency)}
             </span>
           )}
@@ -132,7 +132,7 @@ export function ProductCard({ product }: { product: Product }) {
           {product.colors.slice(0, 4).map((color) => (
             <span
               key={color.name}
-              className="h-3.5 w-3.5 rounded-full border border-neutral/20"
+              className="h-3 w-3 rounded-full border border-neutral/20 sm:h-3.5 sm:w-3.5"
               style={{ backgroundColor: color.hex }}
               title={color.name}
             />

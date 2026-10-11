@@ -21,7 +21,7 @@ export function RecentlyViewed({ excludeId, title = "Recently Viewed" }: { exclu
   return (
     <section className="mt-20 border-t pt-20">
       <h2 className="mb-8 text-3xl font-bold text-neutral">{title}</h2>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
         {viewedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

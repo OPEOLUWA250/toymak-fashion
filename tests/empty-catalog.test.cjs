@@ -39,8 +39,9 @@ function product(id, date = "2026-09-01") {
   };
 }
 
+// The original landing page, switched off while the shop is the home page.
 async function homeMarkup(products) {
-  const Home = loadPage("app/page.tsx", {
+  const Home = loadPage("app/_home-hidden/page.tsx", {
     ...shellMocks,
     "@/lib/server/products": { getAllProducts: async () => products },
     "@/lib/server/reviews": { getAllApprovedReviews: async () => [] },
@@ -64,6 +65,9 @@ function shopMarkup({ products = [], isLoading = false, error = null, query = ""
     "@/lib/use-products": { useProducts: () => ({ products, isLoading, error }) },
     "@/lib/utils": { cn: (...parts) => parts.filter(Boolean).join(" ") },
     "@/components/product-card": { ProductCard: ({ product }) => React.createElement("div", null, product.name) },
+    "@/components/banner-carousel": {
+      BannerCarousel: ({ banners }) => React.createElement("div", null, banners.map((b) => React.createElement("a", { key: b.src, href: b.href }, b.alt))),
+    },
   });
   return renderToStaticMarkup(React.createElement(Shop));
 }
@@ -98,6 +102,26 @@ test("homepage shows featured products ahead of newer, non-featured ones", async
   assert.ok(html.indexOf('href="/product/featured-new"') < html.indexOf('href="/product/featured-old"'));
   assert.doesNotMatch(html, /href="\/product\/newest-plain"/);
   assert.match(html, />Featured</);
+});
+
+test("the home page is the shop, with the first-order popup", () => {
+  const Root = loadPage("app/page.tsx", {
+    ...shellMocks,
+    "./shop/page": { __esModule: true, default: () => React.createElement("main", null, "Shop page") },
+    "@/components/first-order-popup": { FirstOrderPopup: () => React.createElement("aside", null, "First order popup") },
+  });
+  const html = renderToStaticMarkup(React.createElement(Root));
+  assert.match(html, /Shop page/);
+  assert.match(html, /First order popup/);
+});
+
+test("shop opens with the hero banners, which link to the products", () => {
+  const html = shopMarkup({ products: [product("one")] });
+  assert.match(html, /Sculpt your curves/);
+  assert.match(html, /Love your shape/);
+  assert.match(html, /href="#products"/);
+  assert.match(html, /id="products"/);
+  assert.ok(html.indexOf("Sculpt your curves") < html.indexOf("Product one"));
 });
 
 test("empty shop explains availability, including when a category link was followed", () => {
