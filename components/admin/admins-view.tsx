@@ -36,6 +36,7 @@ const inputClass =
 
 /** Shown once after creating an admin or resetting a password. */
 interface Handover {
+  kind: "added" | "reset";
   email: string;
   password: string;
 }
@@ -98,7 +99,7 @@ export function AdminsView() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not add this admin.");
-      showHandover({ email: email.trim().toLowerCase(), password });
+      showHandover({ kind: "added", email: email.trim().toLowerCase(), password });
       setEmail("");
       setPassword("");
       setNewRole("admin");
@@ -124,7 +125,7 @@ export function AdminsView() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not reset the password.");
-      showHandover({ email: admin.email, password: temporary });
+      showHandover({ kind: "reset", email: admin.email, password: temporary });
       await load();
     } catch (error) {
       setRowError(error instanceof Error ? error.message : "Could not reset the password.");
@@ -195,12 +196,10 @@ export function AdminsView() {
     <div className="space-y-6">
       {handover && (
         <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-          <p className="font-semibold">Temporary password for {handover.email}</p>
-          <p className="mt-1 leading-6">
-            Share it privately (not in the same message as the email address, ideally). They&apos;ll sign in at{" "}
-            <span className="font-medium">/admin/login</span> and must choose their own password straight away.
-            This is the only time it&apos;s shown.
+          <p className="font-semibold">
+            {handover.kind === "added" ? "Admin added successfully" : "Password reset successfully"}
           </p>
+          <p className="mt-1 break-all">Temporary password for {handover.email}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <code className="break-all rounded-lg border border-emerald-200 bg-white px-3 py-2 font-mono text-sm text-neutral-900">
               {handover.password}

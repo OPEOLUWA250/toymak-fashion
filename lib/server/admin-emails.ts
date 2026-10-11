@@ -7,8 +7,9 @@
  */
 export function getSuperAdminEmails(): string[] {
   return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
+    .split(/[,;\s]+/)
+    // Hosting dashboards store quotes literally if they're typed in.
+    .map((email) => email.replace(/^["']+|["']+$/g, "").trim().toLowerCase())
     .filter(Boolean);
 }
 

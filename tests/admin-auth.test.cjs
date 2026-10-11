@@ -297,3 +297,8 @@ test('resetting an admin password forces them to choose a new one', withAdmins('
   assert.equal((await route.PATCH(body({ id: 'u-staff', password: 'another-temp-12' }))).status, 200);
   assert.deepEqual(calls[0], ['updateUser', 'u-staff', { password: 'another-temp-12', app_metadata: { must_change_password: true } }]);
 }));
+
+test('owner list tolerates quotes, semicolons and line breaks pasted into the hosting dashboard', withAdmins(' "Owner@Example.com" ; \'staff@example.com\'\nthird@example.com ', () => {
+  const { getSuperAdminEmails } = load('lib/server/admin-emails.ts');
+  assert.deepEqual(getSuperAdminEmails(), ['owner@example.com', 'staff@example.com', 'third@example.com']);
+}));
