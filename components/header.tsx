@@ -14,6 +14,7 @@ import { useProducts } from "@/lib/use-products";
 import { currencySymbols, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { Currency, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { goToShop, handleShopLinkClick, shopHref } from "@/lib/shop-navigation";
 
 const currencyOptions: { value: Currency; label: string }[] = [
   { value: "GBP", label: "GBP — UK" },
@@ -70,8 +71,11 @@ function SearchSuggestions({
         ))
       )}
       <Link
-        href={`/shop?q=${encodeURIComponent(query)}`}
-        onClick={onSelect}
+        href={shopHref({ q: query })}
+        onClick={(event) => {
+          handleShopLinkClick(event, shopHref({ q: query }));
+          onSelect();
+        }}
         className="mt-1 block rounded-lg px-3 py-2.5 text-center text-sm font-semibold text-primary transition hover:bg-primary/5"
       >
         See all results for &ldquo;{query}&rdquo;
@@ -175,7 +179,7 @@ export default function Header({
     event.preventDefault();
     const trimmed = searchValue.trim();
     if (trimmed) {
-      router.push(`/shop?q=${encodeURIComponent(trimmed)}`);
+      goToShop(shopHref({ q: trimmed }), (href) => router.push(href));
     }
     setSearchOpen(false);
     setMobileMenuOpen(false);
@@ -183,12 +187,12 @@ export default function Header({
   };
 
   // The shop is the home page for now (the old landing page lives in
-  // app/_home-hidden), so "Shop All" points at "/".
+  // app/_home-hidden); these all land on its product list.
   const navItems = [
-    { label: "Shop All", href: "/" },
-    { label: "Shapewear", href: "/shop?category=shapewear" },
-    { label: "Waist Trainers", href: "/shop?category=waist-trainer" },
-    { label: "New Arrivals", href: "/shop?sort=newest" },
+    { label: "Shop All", href: shopHref() },
+    { label: "Shapewear", href: shopHref({ category: "shapewear" }) },
+    { label: "Waist Trainers", href: shopHref({ category: "waist-trainer" }) },
+    { label: "New Arrivals", href: shopHref({ sort: "newest" }) },
   ];
 
   return (
@@ -224,7 +228,12 @@ export default function Header({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link href="/" aria-label="Toymak Fashion home" className="flex-shrink-0">
+            <Link
+              href="/"
+              aria-label="Toymak Fashion home"
+              onClick={(event) => handleShopLinkClick(event, "/")}
+              className="flex-shrink-0"
+            >
               <Logo
                 tone={isTransparent ? "light" : "dark"}
                 priority
@@ -238,6 +247,7 @@ export default function Header({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={(event) => handleShopLinkClick(event, item.href)}
                   className={cn(
                     "text-sm font-medium transition",
                     isTransparent
@@ -505,7 +515,10 @@ export default function Header({
                 key={item.href}
                 href={item.href}
                 className="flex items-center justify-between border-b border-neutral-100 py-4 text-base font-medium text-neutral transition hover:text-primary"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(event) => {
+                  handleShopLinkClick(event, item.href);
+                  setMobileMenuOpen(false);
+                }}
                 tabIndex={mobileMenuOpen ? 0 : -1}
               >
                 {item.label}

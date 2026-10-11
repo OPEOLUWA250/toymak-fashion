@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Mail, MapPin, Phone, Clock } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { ShopLink } from "@/components/shop-link";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -49,33 +50,24 @@ export default function Footer() {
             <h5 className="font-medium mb-4">Shop</h5>
             <ul className="space-y-2 text-sm text-white/70">
               <li>
-                <Link href="/shop" className="hover:text-white transition">
+                <ShopLink className="hover:text-white transition">
                   All Products
-                </Link>
+                </ShopLink>
               </li>
               <li>
-                <Link
-                  href="/shop?category=shapewear"
-                  className="hover:text-white transition"
-                >
+                <ShopLink params={{ category: "shapewear" }} className="hover:text-white transition">
                   Shapewear
-                </Link>
+                </ShopLink>
               </li>
               <li>
-                <Link
-                  href="/shop?category=waist-trainer"
-                  className="hover:text-white transition"
-                >
+                <ShopLink params={{ category: "waist-trainer" }} className="hover:text-white transition">
                   Waist Trainers
-                </Link>
+                </ShopLink>
               </li>
               <li>
-                <Link
-                  href="/shop?category=bra"
-                  className="hover:text-white transition"
-                >
+                <ShopLink params={{ category: "bra" }} className="hover:text-white transition">
                   Bras
-                </Link>
+                </ShopLink>
               </li>
             </ul>
           </div>

@@ -3,8 +3,10 @@
 import Header from '@/components/header'
 import Footer from '@/components/footer'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import { useProducts } from '@/lib/use-products'
+import { SHOP_NAVIGATE_EVENT } from '@/lib/shop-navigation'
+import type { Product } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ProductCard } from '@/components/product-card'
 import { BannerCarousel, type Banner } from '@/components/banner-carousel'
@@ -20,10 +22,10 @@ import {
 } from 'lucide-react'
 
 const HERO_BANNERS: Banner[] = [
-  { src: '/hero/sculpt-your-curves.jpg', alt: 'Sculpt your curves. Shape beautifully. Feel confident.', href: '#products' },
-  { src: '/hero/smooth-sleek-stylish.jpg', alt: 'Smooth. Sleek. Stylish. Your perfect fit, every time.', href: '#products' },
-  { src: '/hero/effortlessly-flattering.jpg', alt: 'Effortlessly flattering. Comfort meets confidence.', href: '#products' },
-  { src: '/hero/love-your-shape.jpg', alt: 'Love your shape. Shapewear made for confidence.', href: '#products' },
+  { src: '/hero/sculpt-your-curves-2x.jpg', alt: 'Sculpt your curves. Shape beautifully. Feel confident.', href: '#products' },
+  { src: '/hero/smooth-sleek-stylish-2x.jpg', alt: 'Smooth. Sleek. Stylish. Your perfect fit, every time.', href: '#products' },
+  { src: '/hero/effortlessly-flattering-2x.jpg', alt: 'Effortlessly flattering. Comfort meets confidence.', href: '#products' },
+  { src: '/hero/love-your-shape-2x.jpg', alt: 'Love your shape. Shapewear made for confidence.', href: '#products' },
 ]
 
 const CATEGORY_DEFS = [
@@ -68,7 +70,7 @@ export default function ShopPage() {
           <p role="status" className="py-20 text-center text-sm text-neutral/60">Loading products...</p>
         }
       >
-        <ShopPageInner />
+        <ShopCatalog />
       </Suspense>
 
       <Footer />
@@ -76,9 +78,67 @@ export default function ShopPage() {
   )
 }
 
-function ShopPageInner() {
+/**
+ * Loads the catalog once and remounts the filter panel from the URL on every
+ * shop navigation (menu links, header search), so "Shapewear" from the menu
+ * always shows shapewear — even when the visitor is already on the shop, and
+ * even when the URL hasn't changed. The products aren't refetched.
+ */
+function ShopCatalog() {
   const searchParams = useSearchParams()
   const { products, isLoading, error } = useProducts()
+  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
+  const [visit, setVisit] = useState(0)
+  const paramsKey = searchParams.toString()
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    const handleNavigate = () => setVisit((count) => count + 1)
+    window.addEventListener(SHOP_NAVIGATE_EVENT, handleNavigate)
+    return () => window.removeEventListener(SHOP_NAVIGATE_EVENT, handleNavigate)
+  }, [])
+
+  // Shop links end in "#products". The browser can't jump there by itself on
+  // a fresh load (the catalog renders on the client), and Next.js may not
+  // when the URL is unchanged, so bring the product list into view here.
+  useEffect(() => {
+    const firstRender = isFirstRender.current
+    isFirstRender.current = false
+    if (window.location.hash !== '#products') return
+    document.getElementById('products')?.scrollIntoView({
+      behavior: firstRender ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, [paramsKey, visit])
+
+  return (
+    <ShopPageInner
+      key={`${paramsKey}|${visit}`}
+      searchParams={searchParams}
+      products={products}
+      isLoading={isLoading}
+      error={error}
+      density={density}
+      setDensity={setDensity}
+    />
+  )
+}
+
+function ShopPageInner({
+  searchParams,
+  products,
+  isLoading,
+  error,
+  density,
+  setDensity,
+}: {
+  searchParams: URLSearchParams | ReadonlyURLSearchParams
+  products: Product[]
+  isLoading: boolean
+  error: string | null
+  density: 'comfortable' | 'compact'
+  setDensity: (density: 'comfortable' | 'compact') => void
+}) {
 
   // Falls back to a sane default range while products are still loading
   // (an empty array would otherwise give Math.min/max of Infinity/-Infinity).
@@ -127,7 +187,6 @@ function ShopPageInner() {
     const validSorts: SortValue[] = ['featured', 'newest', 'price-low', 'price-high', 'name-asc']
     return validSorts.includes(sort as SortValue) ? (sort as SortValue) : 'featured'
   })
-  const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable')
   const [sortOpen, setSortOpen] = useState(false)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [priceTouched, setPriceTouched] = useState(false)

@@ -63,6 +63,7 @@ function shopMarkup({ products = [], isLoading = false, error = null, query = ""
     ...shellMocks,
     "next/navigation": { useSearchParams: () => new URLSearchParams(query) },
     "@/lib/use-products": { useProducts: () => ({ products, isLoading, error }) },
+    "@/lib/shop-navigation": require("./helpers.cjs").load("lib/shop-navigation.ts"),
     "@/lib/utils": { cn: (...parts) => parts.filter(Boolean).join(" ") },
     "@/components/product-card": { ProductCard: ({ product }) => React.createElement("div", null, product.name) },
     "@/components/banner-carousel": {
@@ -144,4 +145,11 @@ test("shop distinguishes loading, request failure, and filters with no matches",
   const filtered = shopMarkup({ products: [product("one")], query: "q=not-in-catalog" });
   assert.match(filtered, /No products match your filters/);
   assert.doesNotMatch(filtered, /New arrivals are on the way/);
+});
+
+test("menu and footer shop links land on the product list", () => {
+  const { shopHref } = require("./helpers.cjs").load("lib/shop-navigation.ts");
+  assert.equal(shopHref(), "/#products");
+  assert.equal(shopHref({ category: "waist-trainer" }), "/?category=waist-trainer#products");
+  assert.equal(shopHref({ q: "high waist & tummy" }), "/?q=high+waist+%26+tummy#products");
 });
