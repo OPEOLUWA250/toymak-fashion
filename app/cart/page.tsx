@@ -6,6 +6,9 @@ import Footer from "@/components/footer";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { useSettings } from "@/lib/use-settings";
+import { useProducts } from "@/lib/use-products";
+import { useRegion } from "@/lib/region-context";
+import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { Trash2 } from "lucide-react";
 import { Suspense } from "react";
 import { CartRestorer } from "@/components/cart-restorer";
@@ -22,14 +25,14 @@ export default function CartPage() {
 }
 
 function CartContent() {
-  const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
+  const { items, removeItem, updateQuantity } = useCart();
   const { settings } = useSettings();
-
-  const subtotal = getTotal();
-  const shippingThreshold = settings.shippingThreshold.GBP;
-  const shipping = subtotal > shippingThreshold ? 0 : settings.shippingCost.GBP;
-  const tax = subtotal * (settings.tax.GBP / 100);
-  const total = subtotal + shipping + tax;
+  const { products, isLoading, error } = useProducts();
+  const { currency } = useRegion();
+  const shippingThreshold = settings.shippingThreshold[currency];
+  const { subtotal, shipping, tax, total } = calculateOrderTotals(items, currency, products, settings);
+  const pricesReady = !isLoading && !error;
+  const priceLabel = (amount: number) => pricesReady ? formatCurrency(amount, currency) : "—";
 
   if (items.length === 0) {
     return (
@@ -118,7 +121,7 @@ function CartContent() {
                       </button>
                     </div>
                     <span className="font-bold text-primary">
-                      £{(item.price_at_addition * item.quantity).toFixed(2)}
+                      {priceLabel(getProductPriceForCurrency(products.find(product => product.id === item.product_id), currency) * item.quantity)}
                     </span>
                   </div>
                 </div>
@@ -146,7 +149,7 @@ function CartContent() {
             <div className="space-y-3 border-b border-neutral/10 pb-4 text-sm text-neutral">
               <div className="flex justify-between gap-4">
                 <span>Subtotal</span>
-                <span className="font-medium">£{subtotal.toFixed(2)}</span>
+                <span className="font-medium">{priceLabel(subtotal)}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span>Shipping</span>
@@ -155,22 +158,22 @@ function CartContent() {
                     shipping === 0 ? "text-primary font-medium" : "font-medium"
                   }
                 >
-                  {shipping === 0 ? "FREE" : `£${shipping.toFixed(2)}`}
+                  {pricesReady && shipping === 0 ? "FREE" : priceLabel(shipping)}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
                 <span>Tax (VAT)</span>
-                <span className="font-medium">£{tax.toFixed(2)}</span>
+                <span className="font-medium">{priceLabel(tax)}</span>
               </div>
             </div>
 
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span className="text-primary">£{total.toFixed(2)}</span>
+              <span className="text-primary">{priceLabel(total)}</span>
             </div>
 
             <p className="text-xs text-neutral/60">
-              Have a discount code? Enter it at checkout.
+              {error ? "Prices could not be loaded. Please refresh to try again." : isLoading ? "Loading current prices…" : "Estimated total. Delivery country and discounts are confirmed at checkout."}
             </p>
 
             {/* Checkout */}
@@ -191,7 +194,7 @@ function CartContent() {
             <div className="pt-4 border-t border-neutral/10 space-y-2 text-xs text-neutral/60">
               <p>✓ 30-day returns</p>
               <p>✓ Secure checkout</p>
-              <p>✓ Free shipping over £50</p>
+              <p>✓ Free shipping from {formatCurrency(shippingThreshold, currency)}</p>
             </div>
           </div>
         </div>

@@ -175,6 +175,12 @@ export default function Header({
     };
   }, [currencyOpen]);
 
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const closeMobileMenu = () => { if (desktop.matches) setMobileMenuOpen(false); };
+    desktop.addEventListener('change', closeMobileMenu);
+    return () => desktop.removeEventListener('change', closeMobileMenu);
+  }, []);
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = searchValue.trim();
@@ -242,7 +248,7 @@ export default function Header({
             </Link>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center space-x-8">
+            <nav className="hidden lg:flex items-center space-x-8">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
@@ -261,7 +267,7 @@ export default function Header({
             </nav>
 
             {/* Desktop Icons */}
-            <div className="hidden md:flex items-center space-x-3">
+            <div className="hidden lg:flex items-center space-x-3">
               <div className="relative" ref={currencyRef}>
                 <button
                   type="button"
@@ -412,7 +418,7 @@ export default function Header({
             </div>
 
             {/* Mobile Icons + Menu Button */}
-            <div className="flex items-center gap-0.5 md:hidden">
+            <div className="flex items-center gap-0.5 lg:hidden">
               <Link
                 href="/wishlist"
                 className={cn(
@@ -457,6 +463,8 @@ export default function Header({
                 className="p-2"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="mobile-navigation"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -469,12 +477,14 @@ export default function Header({
       {/* Mobile Menu */}
       <div
         className={cn(
-          "fixed inset-0 z-30 flex flex-col bg-white transition-all duration-300 ease-out md:hidden",
+          "fixed inset-0 z-30 flex flex-col bg-white transition-all duration-300 ease-out lg:hidden",
           bannerVisible ? "top-[116px]" : "top-20",
           mobileMenuOpen
             ? "translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-3 opacity-0",
         )}
+        id="mobile-navigation"
+        inert={!mobileMenuOpen}
         aria-hidden={!mobileMenuOpen}
       >
         <nav className="flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-6">

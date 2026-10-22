@@ -53,6 +53,12 @@ export function FirstOrderPopup() {
   const [signup, setSignup] = useState<PopupSignup | null>(null);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
 
+  const dismiss = () => {
+    setEntered(false);
+    rememberDismissed();
+    setTimeout(() => setVisible(false), 200);
+  };
+
   useEffect(() => {
     // ?popup=1 forces it to show, for testing after it's been dismissed.
     const forced = new URLSearchParams(window.location.search).get("popup") === "1";
@@ -77,12 +83,6 @@ export function FirstOrderPopup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const dismiss = () => {
-    setEntered(false);
-    rememberDismissed();
-    setTimeout(() => setVisible(false), 200);
-  };
-
   // The code only ever appears in the email — never on screen — so sending
   // has to be able to fail without stranding the customer. This is used
   // both for the initial send and the "Try again" / "Resend" retry.
@@ -104,6 +104,7 @@ export function FirstOrderPopup() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (emailStatus === "sending") return;
     setEmailStatus("sending");
 
     let newSignup: PopupSignup;
@@ -147,7 +148,7 @@ export function FirstOrderPopup() {
       aria-label="First order discount offer"
     >
       <div
-        className={`relative w-full max-w-md overflow-hidden rounded-2xl shadow-2xl transition-all duration-300 ease-out ${
+        className={`relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl shadow-2xl transition-all duration-300 ease-out ${
           entered ? "scale-100 translate-y-0 opacity-100" : "scale-95 translate-y-3 opacity-0"
         }`}
         onClick={(event) => event.stopPropagation()}
@@ -290,10 +291,12 @@ export function FirstOrderPopup() {
                   />
                   <button
                     type="submit"
+                    disabled={emailStatus === 'sending'}
                     className="w-full rounded-md bg-primary py-3 text-sm font-semibold text-white transition hover:bg-opacity-90"
                   >
-                    Claim My Code
+                    {emailStatus === "sending" ? "Sending…" : "Claim My Code"}
                   </button>
+                  {emailStatus === 'failed' && <p role="alert" className="text-sm text-white">We couldn&apos;t complete your signup. Please try again.</p>}
                 </form>
 
                 <button

@@ -34,8 +34,7 @@ export default function TermsPage() {
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">1. About Toymak</h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            Toymak Enterprise is registered at 26 The Close Harbone, Birmingham, B17 8TU,
-            United Kingdom. We design and sell premium shapewear, waist trainers, bras, tops,
+            Toymak Enterprise is registered in the United Kingdom. We design and sell premium shapewear, waist trainers, bras, tops,
             and accessories.
           </p>
 
@@ -182,8 +181,8 @@ export default function TermsPage() {
             Questions about these Terms? Reach us at{" "}
             <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
               hello@toymak.com
-            </a>{" "}
-            or by post at 26 The Close Harbone, Birmingham, B17 8TU, United Kingdom. See also
+            </a>
+            . See also
             our{" "}
             <Link href="/privacy" className="text-primary hover:underline">
               Privacy Policy

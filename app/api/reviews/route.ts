@@ -33,10 +33,13 @@ interface SubmitReviewBody {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as Partial<SubmitReviewBody>;
+  const body = (await request.json().catch(() => null)) as Partial<SubmitReviewBody> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Enter valid review details." }, { status: 400 });
+  }
   const { productId, customerName, rating, comment } = body;
 
-  if (!productId || !customerName?.trim() || !comment?.trim()) {
+  if (typeof productId !== "string" || !productId.trim() || typeof customerName !== "string" || !customerName.trim() || typeof comment !== "string" || !comment.trim()) {
     return NextResponse.json({ error: "Name, rating, and a comment are required." }, { status: 400 });
   }
   if (!Number.isInteger(rating) || rating! < 1 || rating! > 5) {

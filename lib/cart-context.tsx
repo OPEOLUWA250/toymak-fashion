@@ -24,13 +24,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem(CART_STORAGE_KEY)
-    if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error('[v0] Error loading cart:', error)
-      }
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]')
+      setItems(Array.isArray(saved) ? saved.filter((item): item is CartItem =>
+        item !== null && typeof item === 'object' &&
+        ['product_id', 'product_name', 'size', 'color', 'image_url'].every(key => typeof item[key] === 'string') &&
+        Number.isSafeInteger(item.quantity) && item.quantity > 0 &&
+        Number.isFinite(item.price_at_addition) && item.price_at_addition >= 0
+      ) : [])
+    } catch {
+      // Invalid or unavailable storage must not prevent shopping.
     }
     setIsHydrated(true)
   }, [])
@@ -38,7 +41,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (isHydrated) {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+      try {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+      } catch {
+        // Keep the cart usable in memory when browser storage is blocked or full.
+      }
     }
   }, [items, isHydrated])
 

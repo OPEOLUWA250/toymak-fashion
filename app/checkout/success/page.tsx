@@ -155,8 +155,10 @@ function CheckoutSuccessContent() {
               Payment wasn&apos;t completed
             </h1>
             <p className="mt-2 max-w-md text-sm leading-6 text-neutral/60">
-              {gatewayLabels[gateway]} reported this transaction as unsuccessful. You
-              haven&apos;t been charged, and your cart is exactly as you left it.
+              {gatewayLabels[gateway]} has not confirmed a completed payment yet.
+              If your payment is pending or you see a debit, refresh this page or
+              contact us with your payment reference before trying again.
+              Your cart has been kept.
             </p>
             <Link
               href="/checkout"

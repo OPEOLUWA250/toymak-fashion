@@ -35,7 +35,7 @@ export default function PrivacyPage() {
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">1. Who We Are</h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            Toymak Enterprise, 26 The Close Harbone, Birmingham, B17 8TU, United Kingdom, is
+            Toymak Enterprise, United Kingdom, is
             the data controller responsible for your personal information. If you have any
             questions about this policy or how we handle your data, contact us at{" "}
             <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
@@ -231,8 +231,8 @@ export default function PrivacyPage() {
             reach out to us at{" "}
             <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
               hello@toymak.com
-            </a>{" "}
-            or by post at 26 The Close Harbone, Birmingham, B17 8TU, United Kingdom. See
+            </a>
+            . See
             also our{" "}
             <Link href="/terms" className="text-primary hover:underline">
               Terms of Service

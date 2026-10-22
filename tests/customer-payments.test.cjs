@@ -32,6 +32,27 @@ test('Stripe paid sessions validate the snapshot using gateway amount and curren
   const {verifyStripeSession}=load('lib/server/stripe-orders.ts',{stripe:Stripe,'./checkout-snapshots':{verifyCheckoutSnapshot:async(...a)=>{args=a;return {total:12.34}}}});
   assert.equal((await verifyStripeSession('session')).total,12.34);assert.deepEqual(args,['snapshot','stripe',1234,'gbp']);
 });
+
+test('Paystack verification outages throw so paid webhooks can be retried', async () => {
+  const originalFetch = global.fetch;
+  const originalKey = process.env.PAYSTACK_SECRET_KEY;
+  process.env.PAYSTACK_SECRET_KEY = 'test-only';
+  try {
+    const { verifyPaystackTransaction } = load('lib/server/paystack-orders.ts', { './checkout-snapshots': {} });
+    for (const result of [
+      { ok: false, body: { status: false, message: 'Service unavailable' } },
+      { ok: true, body: { status: false } },
+      { ok: true, body: { status: true, data: {} } },
+    ]) {
+      global.fetch = async () => ({ ok: result.ok, json: async () => result.body });
+      await assert.rejects(verifyPaystackTransaction('paid-reference'), /temporarily unavailable/);
+    }
+  } finally {
+    global.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.PAYSTACK_SECRET_KEY;
+    else process.env.PAYSTACK_SECRET_KEY = originalKey;
+  }
+});
 test('email provider failure is retryable and retries use the same prepared payload/key',async()=>{
   let fail=true;const sends=[];class Resend { emails={send:async(payload,options)=>{sends.push({payload,options});return {error:fail?{message:'temporary'}:null}}} }
   process.env.RESEND_API_KEY='test-only';

@@ -23,10 +23,13 @@ interface ConfirmRequestBody {
  * order.
  */
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as Partial<ConfirmRequestBody>;
+  const body = (await request.json().catch(() => null)) as Partial<ConfirmRequestBody> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "gateway and paymentId are required." }, { status: 400 });
+  }
   const { gateway, paymentId } = body;
 
-  if (!paymentId || (gateway !== "stripe" && gateway !== "paystack")) {
+  if (typeof paymentId !== "string" || !paymentId.trim() || paymentId.length > 255 || (gateway !== "stripe" && gateway !== "paystack")) {
     return NextResponse.json(
       { error: "gateway and paymentId are required." },
       { status: 400 },

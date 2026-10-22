@@ -16,3 +16,6 @@ node_modules
 
 # Runtime data (webhook-recorded orders — contains customer PII, never commit)
 /data/
+# Local audit output
+/artifacts/
+/lint-results.json

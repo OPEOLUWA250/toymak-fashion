@@ -34,11 +34,11 @@ export function ProductCard({ product }: { product: Product }) {
 
   // The sale badge/compare-at price are only ever set in GBP in the admin
   // (compare_at_price_gbp), so the strike-through price converts along with
-  // the currency switcher using the same discount percent it represents.
+  // the currency switcher using the exact price ratio, not the rounded badge.
   const displayPrice = getProductPriceForCurrency(product, currency);
   const displayComparePrice =
-    onSale && product.compare_at_price_gbp !== undefined
-      ? displayPrice / (1 - discountPercent / 100)
+    onSale && product.compare_at_price_gbp !== undefined && product.price_gbp > 0
+      ? displayPrice * (product.compare_at_price_gbp / product.price_gbp)
       : undefined;
 
   return (

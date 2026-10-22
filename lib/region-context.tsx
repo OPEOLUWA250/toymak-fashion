@@ -25,16 +25,24 @@ export function RegionProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === "GBP" || saved === "NGN" || saved === "USD") {
       setCurrencyState(saved);
+    }
+    } catch {
+      // Keep the default currency when storage is unavailable.
     }
     setIsHydrated(true);
   }, []);
 
   const setCurrency = (next: Currency) => {
     setCurrencyState(next);
-    localStorage.setItem(STORAGE_KEY, next);
+    try {
+      localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // The selected currency still works for this visit.
+    }
   };
 
   return (

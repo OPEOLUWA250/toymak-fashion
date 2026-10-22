@@ -26,7 +26,12 @@ export async function verifyPaystackTransaction(
   );
   const data = await response.json();
 
-  if (!response.ok || !data.status || data.data?.status !== "success") {
+  // A failed verification request is not evidence of an unpaid transaction.
+  // Throw so the webhook returns 500 and Paystack retries delivery.
+  if (!response.ok || data.status !== true || typeof data.data?.status !== "string") {
+    throw new Error("Payment verification is temporarily unavailable. Please try again.");
+  }
+  if (data.data.status !== "success") {
     return null;
   }
 

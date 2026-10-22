@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 // Shared by the mobile carousel's first slide and the desktop main image, so
 // the browser picks the same file for both and only downloads it once.
-const MAIN_IMAGE_SIZES = "(max-width: 1024px) 100vw, 50vw";
+const MAIN_IMAGE_SIZES = "(max-width: 1024px) 100vw, 40vw";
 
 export function ProductGallery({
   images,
@@ -25,8 +25,8 @@ export function ProductGallery({
       <MobileCarousel images={images} alt={alt} badge={badge} />
 
       {/* Desktop: main image with clickable thumbnails */}
-      <div className="hidden space-y-4 lg:block">
-        <div className="product-photo relative bg-tertiary/40 rounded-2xl overflow-hidden min-h-[40rem] flex items-center justify-center">
+      <div className="hidden space-y-3 lg:block">
+        <div className="product-photo relative bg-tertiary/40 rounded-2xl overflow-hidden aspect-[4/5] max-h-[34rem] w-full flex items-center justify-center">
           <StoreImage sizes={MAIN_IMAGE_SIZES}
             fill
             loading="eager"
@@ -39,7 +39,7 @@ export function ProductGallery({
         </div>
 
         {images.length > 1 && (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-5 gap-2">
             {images.map((image, index) => (
               <button
                 key={image + index}
@@ -48,11 +48,11 @@ export function ProductGallery({
                 aria-label={`Show image ${index + 1} of ${alt}`}
                 aria-current={activeIndex === index}
                 className={cn(
-                  "product-photo bg-tertiary/40 rounded-xl overflow-hidden h-44 ring-2 transition",
+                  "product-photo bg-tertiary/40 rounded-lg overflow-hidden aspect-square ring-2 transition",
                   activeIndex === index ? "ring-primary" : "ring-transparent hover:ring-primary/30",
                 )}
               >
-                <StoreImage sizes="25vw"
+                <StoreImage sizes="10vw"
                   src={image}
                   alt={`${alt} view ${index + 1}`}
                   className="w-full h-full object-cover"
@@ -109,7 +109,7 @@ function MobileCarousel({ images, alt, badge }: { images: string[]; alt: string;
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} of ${images.length}`}
-              className="product-photo relative aspect-[4/5] w-full shrink-0 snap-center snap-always bg-tertiary/40"
+              className="product-photo relative aspect-[4/5] max-h-[50vh] w-full shrink-0 snap-center snap-always bg-tertiary/40"
             >
               <StoreImage
                 fill

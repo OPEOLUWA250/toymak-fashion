@@ -1,1 +1,1 @@
-export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://toymakenterprise.co.uk').replace(/\/$/, '');
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://toymakfashion.com').replace(/\/$/, '');

@@ -108,7 +108,7 @@ export default function Footer() {
           </div>
 
           {/* Contact */}
-          <div>
+          <div id="contact" className="scroll-mt-28">
             <h5 className="font-medium mb-4">Get in Touch</h5>
             <ul className="space-y-3 text-sm text-white/70">
               <li className="flex gap-3">
@@ -145,10 +145,7 @@ export default function Footer() {
               </li>
               <li className="flex gap-3">
                 <MapPin size={16} className="shrink-0 mt-0.5" />
-                <div>
-                  <p>26, The Close Harbone, Birmingham.</p>
-                  <p>B17 8TU, United Kingdom</p>
-                </div>
+                <p>United Kingdom</p>
               </li>
               <li className="flex gap-3">
                 <Clock size={16} className="shrink-0 mt-0.5" />

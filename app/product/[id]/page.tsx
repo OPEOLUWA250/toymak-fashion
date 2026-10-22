@@ -92,7 +92,7 @@ export default async function ProductPage({
           <span className="text-neutral">{product.name}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-10 xl:gap-16 items-start">
+        <div className="grid lg:grid-cols-[2fr_3fr] gap-10 xl:gap-16 items-start">
           <ProductGallery
             images={product.images}
             alt={product.name}

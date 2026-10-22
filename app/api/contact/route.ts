@@ -18,7 +18,10 @@ function clean(value: unknown, maxLength: number): string {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json()) as Partial<ContactRequestBody>;
+  const body = (await request.json().catch(() => null)) as Partial<ContactRequestBody> | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Enter valid contact details." }, { status: 400 });
+  }
 
   const name = clean(body.name, 100);
   const email = clean(body.email, 200);
