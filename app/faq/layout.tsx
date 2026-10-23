@@ -1,12 +1,11 @@
-import { siteUrl } from "@/lib/site-url";
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  alternates: { canonical: `${siteUrl}/faq` },
-  title: "Frequently Asked Questions | Toymak",
-  description: "Find answers to questions about Toymak orders, sizing, shipping, returns and product care.",
-
-};
+export const metadata = pageMetadata({
+  title: "Shapewear FAQs: Orders, Sizing, Shipping & Returns",
+  description:
+    "Answers to common questions about Toymak Fashion orders, shapewear sizing, UK and international shipping, returns, exchanges and garment care.",
+  path: "/faq",
+});
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;

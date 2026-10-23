@@ -1,13 +1,16 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
+import { contactEmail } from "@/lib/site-info";
 
 const LAST_UPDATED = "22 August 2026";
 
-export const metadata = {
-  title: "Terms of Service — Toymak",
-  description: "The terms and conditions that apply when you shop with Toymak.",
-};
+export const metadata = pageMetadata({
+  title: "Terms of Service",
+  description: "The terms and conditions that apply when you browse toymakfashion.com and shop with Toymak Fashion.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (
@@ -26,7 +29,7 @@ export default function TermsPage() {
       <section className="py-16 md:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            These Terms of Service (&quot;Terms&quot;) govern your use of toymak.com and any
+            These Terms of Service (&quot;Terms&quot;) govern your use of toymakfashion.com and any
             purchase you make from Toymak Enterprise (&quot;Toymak&quot;, &quot;we&quot;,
             &quot;us&quot;, or &quot;our&quot;). By browsing our site or placing an order, you
             agree to these Terms. Please read them carefully.
@@ -120,7 +123,7 @@ export default function TermsPage() {
             9. Intellectual Property
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            Everything on toymak.com — including our name, logo, product photography, and
+            Everything on toymakfashion.com — including our name, logo, product photography, and
             site content — belongs to Toymak or our licensors and is protected by
             intellectual property law. You may not copy, reproduce, or use any of it
             commercially without our written permission.
@@ -160,7 +163,7 @@ export default function TermsPage() {
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             These Terms are governed by the laws of England and Wales. Any dispute arising
-            from these Terms or your use of toymak.com will be subject to the exclusive
+            from these Terms or your use of toymakfashion.com will be subject to the exclusive
             jurisdiction of the courts of England and Wales. If you&apos;re a consumer
             resident elsewhere, you may also have the right to rely on mandatory consumer
             protection laws in your own country of residence.
@@ -179,8 +182,8 @@ export default function TermsPage() {
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">15. Contact Us</h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             Questions about these Terms? Reach us at{" "}
-            <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
-              hello@toymak.com
+            <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+              {contactEmail}
             </a>
             . See also
             our{" "}

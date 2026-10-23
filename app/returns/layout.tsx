@@ -1,12 +1,11 @@
-import { siteUrl } from "@/lib/site-url";
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  alternates: { canonical: `${siteUrl}/returns` },
-  title: "Returns and Exchanges | Toymak",
-  description: "Learn how to request a return or size exchange for your Toymak order and review return requirements.",
-
-};
+export const metadata = pageMetadata({
+  title: "Returns & Exchanges",
+  description:
+    "Return or exchange your Toymak Fashion order within 30 days of delivery. See how to start a return, what qualifies and when refunds are processed.",
+  path: "/returns",
+});
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;

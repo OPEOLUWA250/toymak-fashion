@@ -1,13 +1,16 @@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
+import { contactEmail } from "@/lib/site-info";
 
 const LAST_UPDATED = "22 August 2026";
 
-export const metadata = {
-  title: "Privacy Policy — Toymak",
-  description: "How Toymak collects, uses, and protects your personal information.",
-};
+export const metadata = pageMetadata({
+  title: "Privacy Policy",
+  description: "How Toymak Fashion collects, uses and protects your personal information when you browse toymakfashion.com or place an order.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (
@@ -29,7 +32,7 @@ export default function PrivacyPage() {
             Toymak Enterprise (&quot;Toymak&quot;, &quot;we&quot;, &quot;us&quot;, or
             &quot;our&quot;) respects your privacy and is committed to protecting your
             personal data. This policy explains what information we collect when you visit
-            toymak.com or place an order, why we collect it, who we share it with, and the
+            toymakfashion.com or place an order, why we collect it, who we share it with, and the
             choices and rights you have over it.
           </p>
 
@@ -38,8 +41,8 @@ export default function PrivacyPage() {
             Toymak Enterprise, United Kingdom, is
             the data controller responsible for your personal information. If you have any
             questions about this policy or how we handle your data, contact us at{" "}
-            <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
-              hello@toymak.com
+            <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+              {contactEmail}
             </a>
             .
           </p>
@@ -80,7 +83,7 @@ export default function PrivacyPage() {
           </h3>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             Like most websites, we automatically collect some technical information when you
-            browse toymak.com — your IP address, browser and device type, pages viewed, and
+            browse toymakfashion.com — your IP address, browser and device type, pages viewed, and
             how you arrived at the site — through privacy-conscious analytics. This helps us
             understand how the store is used and fix problems.
           </p>
@@ -192,8 +195,8 @@ export default function PrivacyPage() {
             object to certain processing; receive your data in a portable format; and
             withdraw consent at any time where we rely on it. To exercise any of these
             rights, email{" "}
-            <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
-              hello@toymak.com
+            <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+              {contactEmail}
             </a>
             . You also have the right to lodge a complaint with the UK Information
             Commissioner&apos;s Office (ICO) at{" "}
@@ -229,8 +232,8 @@ export default function PrivacyPage() {
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             If you have any questions about this Privacy Policy or how we handle your data,
             reach out to us at{" "}
-            <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
-              hello@toymak.com
+            <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
+              {contactEmail}
             </a>
             . See
             also our{" "}

@@ -4,12 +4,27 @@ import Script from "next/script";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import { RegionProvider } from "@/lib/region-context";
+import { siteName } from "@/lib/site-info";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 
+const defaultDescription =
+  "Premium shapewear, waist trainers and bras designed for the modern woman. Sculpt, smooth and feel confident with Toymak Fashion.";
+
+// Indexable pages set their own canonical URL and social cards through
+// pageMetadata() in lib/seo.ts; these are the fallbacks for everything else.
 export const metadata: Metadata = {
-  title: "Toymak - Premium Shapewear & Fashion",
-  description:
-    "Discover luxury shapewear and fashion designed for the modern woman. Premium quality, confidence-boosting styles.",
+  metadataBase: new URL(siteUrl),
+  title: { default: `${siteName} | Premium Shapewear & Fashion`, template: `%s | ${siteName}` },
+  description: defaultDescription,
+  applicationName: siteName,
+  openGraph: { type: "website", siteName, locale: "en_GB", description: defaultDescription },
+  twitter: { card: "summary_large_image" },
+  // Paste the token from Google Search Console's "HTML tag" method into
+  // GOOGLE_SITE_VERIFICATION (or verify through DNS and leave it unset).
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   // The TM monogram sits on a white tile, so one set reads on both light
   // and dark browser tabs.
   icons: {
@@ -35,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="light bg-background">
+    <html lang="en-GB" className="light bg-background">
       <head>
         {/* Satoshi isn't a real Google Fonts family - Google silently drops
             that part of the request, so body text actually renders via the

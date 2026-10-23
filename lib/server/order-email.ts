@@ -3,6 +3,7 @@ import { siteUrl } from "@/lib/site-url";
 import { formatCurrency } from "@/lib/pricing";
 import { generateReceiptPdf } from "./receipt-pdf";
 import { emailSender, sendEmail } from "./email-sender";
+import { contactEmail } from "@/lib/site-info";
 
 function escapeHtml(value: string): string {
   return value
@@ -94,7 +95,7 @@ function buildOrderEmailHtml(order: Order, origin: string): string {
             Track My Order
           </a>
           <p style="margin:20px 0 0;font-size:12px;color:rgba(16,24,32,0.4);">
-            Questions? Reach us at hello@toymak.com — Toymak, premium shapewear for the modern woman.
+            Questions? Reach us at ${contactEmail} — Toymak, premium shapewear for the modern woman.
           </p>
         </td>
       </tr>

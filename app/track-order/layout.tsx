@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Track Your Order | Toymak",
+  title: "Track Your Order",
   description: "Track your Toymak order and download your receipt — no account needed.",
   robots: { index: false, follow: false },
 };

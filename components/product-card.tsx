@@ -9,6 +9,7 @@ import { useWishlist } from "@/lib/wishlist-context";
 import { useProductRatings } from "@/lib/use-reviews";
 import { useRegion } from "@/lib/region-context";
 import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { productPath } from "@/lib/product-url";
 
 export function ProductCard({ product }: { product: Product }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -42,7 +43,7 @@ export function ProductCard({ product }: { product: Product }) {
       : undefined;
 
   return (
-    <Link href={`/product/${product.id}`} className="group block">
+    <Link href={productPath(product)} className="group block">
       <div className="product-photo relative mb-3 aspect-[4/5] overflow-hidden rounded-2xl bg-tertiary/40 sm:mb-4">
         <StoreImage sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           src={product.images[0]}

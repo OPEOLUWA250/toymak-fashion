@@ -3,6 +3,7 @@ import { siteUrl } from "@/lib/site-url";
 import { formatCurrency } from "@/lib/pricing";
 import { createEmailLinkToken } from "./email-links";
 import { isEmailConfigured, sendEmail } from "./email-sender";
+import { contactEmail } from "@/lib/site-info";
 
 /** Links that work on any device: restore the bag, or stop these emails. */
 function cartEmailLinks(cart: AbandonedCart, origin: string) {
@@ -85,7 +86,7 @@ function buildAbandonedCartEmailHtml(cart: AbandonedCart, origin: string): strin
             Return To My Bag
           </a>
           <p style="margin:20px 0 0;font-size:12px;color:rgba(16,24,32,0.4);">
-            Questions? Reach us at hello@toymak.com — Toymak, premium shapewear for the modern woman.
+            Questions? Reach us at ${contactEmail} — Toymak, premium shapewear for the modern woman.
           </p>
           <p style="margin:12px 0 0;font-size:11px;color:rgba(16,24,32,0.4);">
             Don&#39;t want bag reminders?

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Loader2, MailX } from "lucide-react";
+import { contactEmail } from "@/lib/site-info";
 
 type Status = "idle" | "working" | "done" | "error";
 
@@ -54,7 +55,7 @@ function UnsubscribeContent() {
           <>
             <h1 className="mt-6 text-3xl font-bold text-neutral">Link incomplete</h1>
             <p className="mt-3 text-sm leading-6 text-neutral/60">
-              Please use the unsubscribe link from your email, or write to hello@toymak.com.
+              Please use the unsubscribe link from your email, or write to {contactEmail}.
             </p>
           </>
         ) : (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Unsubscribe | Toymak",
+  title: "Unsubscribe",
   description: "Stop bag reminder emails from Toymak.",
   robots: { index: false, follow: false },
 };

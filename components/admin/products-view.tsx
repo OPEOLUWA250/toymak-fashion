@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ExternalLink, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Product, ProductCategory } from "@/lib/types";
 import { ProductFormModal } from "./product-form-modal";
+import { productPath } from "@/lib/product-url";
 
 const categoryLabels: Record<ProductCategory, string> = {
   shapewear: "Shapewear",
@@ -222,7 +223,7 @@ export function ProductsView({
                     <td className="px-4 py-4 align-middle">
                       <div className="flex items-center gap-3">
                         <Link
-                          href={`/product/${product.id}`}
+                          href={productPath(product)}
                           target="_blank"
                           className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
                         >

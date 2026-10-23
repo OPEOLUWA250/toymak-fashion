@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Mail, MapPin, Phone, Clock } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ShopLink } from "@/components/shop-link";
+import { contactEmail } from "@/lib/site-info";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -114,10 +115,10 @@ export default function Footer() {
               <li className="flex gap-3">
                 <Mail size={16} className="shrink-0 mt-0.5" />
                 <a
-                  href="mailto:hello@toymak.com"
+                  href={`mailto:${contactEmail}`}
                   className="hover:text-white transition"
                 >
-                  hello@toymak.com
+                  {contactEmail}
                 </a>
               </li>
               <li className="flex gap-3">

@@ -4,6 +4,7 @@ import Header from '@/components/header'
 import Footer from '@/components/footer'
 import Link from 'next/link'
 import { Package, RefreshCw, Clock, CheckCircle, Shield, Mail, ArrowRight } from 'lucide-react'
+import { contactEmail } from '@/lib/site-info'
 
 const policyHighlights = [
   {
@@ -28,7 +29,7 @@ const returnSteps = [
     step: 1,
     title: 'Contact Us',
     description:
-      'Email hello@toymak.com with your order number and a brief reason for your return or exchange. You\'ll hear from us within 24 hours.',
+      `Email ${contactEmail} with your order number and a brief reason for your return or exchange. You'll hear from us within 24 hours.`,
   },
   {
     step: 2,
@@ -194,7 +195,7 @@ export default function ReturnsPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
-              href="mailto:hello@toymak.com"
+              href={`mailto:${contactEmail}`}
               className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-sm text-sm font-medium hover:bg-primary/90 transition"
             >
               <Mail size={16} />

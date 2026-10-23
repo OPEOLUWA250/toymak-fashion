@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useProducts } from "@/lib/use-products";
 import { useWishlist } from "@/lib/wishlist-context";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
+import { productPath } from "@/lib/product-url";
 
 export default function WishlistPage() {
   const { syncError, productIds, removeFromWishlist, clearWishlist } = useWishlist();
@@ -94,7 +95,7 @@ export default function WishlistPage() {
                       Remove
                     </button>
                     <Link
-                      href={`/product/${product.id}`}
+                      href={productPath(product)}
                       className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-opacity-90"
                     >
                       <ShoppingBag size={16} />

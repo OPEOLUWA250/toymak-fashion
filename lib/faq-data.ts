@@ -1,3 +1,5 @@
+import { contactEmail } from '@/lib/site-info'
+
 export interface FaqQuestion {
   q: string
   a: string
@@ -56,7 +58,7 @@ export const faqSections: FaqSection[] = [
       },
       {
         q: 'How do I start a return?',
-        a: 'Simply email us at hello@toymak.com with your order number and reason for return. We\'ll send you a prepaid return label within 24 hours.',
+        a: `Simply email us at ${contactEmail} with your order number and reason for return. We'll send you a prepaid return label within 24 hours.`,
       },
       {
         q: 'Can I exchange an item for a different size?',

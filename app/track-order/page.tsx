@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/pricing";
 import { normalizeExternalUrl } from "@/lib/utils";
 import { useProducts } from "@/lib/use-products";
 import { Order, OrderStatus } from "@/lib/types";
+import { contactEmail } from "@/lib/site-info";
 import {
   ExternalLink,
   Loader2,
@@ -247,7 +248,7 @@ function TrackOrderContent() {
             <div className="mt-6 flex items-center gap-3 rounded-2xl border border-neutral/10 bg-tertiary/30 px-5 py-4 text-sm text-neutral/70">
               <ShieldOff size={18} className="shrink-0 text-neutral/40" />
               We couldn&apos;t find an order matching that email and order number. Double-check for typos, or{" "}
-              <a href="mailto:hello@toymak.com" className="text-primary hover:underline">
+              <a href={`mailto:${contactEmail}`} className="text-primary hover:underline">
                 email us
               </a>{" "}
               for help.

@@ -24,6 +24,10 @@ function loadPage(file, mocks) {
   return loaded.exports.default;
 }
 
+const { load } = require("./helpers.cjs");
+// Product links are /product/<name-slug>-<id>; product(id) is named "Product <id>".
+const productHref = (id) => `href="/product/product-${id}-${id}"`;
+
 const shellMocks = {
   "@/lib/site-url": { siteUrl: "https://example.com" },
   "@/components/header": () => React.createElement("header", null, "Site navigation"),
@@ -54,23 +58,24 @@ async function homeMarkup(products) {
     "@/components/contact-faq-section": { ContactFaqSection: () => React.createElement("section", null, "Contact and FAQ") },
     "@/components/first-order-popup": { FirstOrderPopup: () => null },
     "@/components/recently-viewed": { RecentlyViewed: () => null },
+    "@/lib/product-url": load("lib/product-url.ts"),
   });
   return renderToStaticMarkup(await Home());
 }
 
 function shopMarkup({ products = [], isLoading = false, error = null, query = "" } = {}) {
-  const Shop = loadPage("app/shop/page.tsx", {
+  const Shop = loadPage("components/shop-view.tsx", {
     ...shellMocks,
     "next/navigation": { useSearchParams: () => new URLSearchParams(query) },
     "@/lib/use-products": { useProducts: () => ({ products, isLoading, error }) },
-    "@/lib/shop-navigation": require("./helpers.cjs").load("lib/shop-navigation.ts"),
+    "@/lib/shop-navigation": load("lib/shop-navigation.ts"),
     "@/lib/utils": { cn: (...parts) => parts.filter(Boolean).join(" ") },
     "@/components/product-card": { ProductCard: ({ product }) => React.createElement("div", null, product.name) },
     "@/components/banner-carousel": {
       BannerCarousel: ({ banners }) => React.createElement("div", null, banners.map((b) => React.createElement("a", { key: b.src, href: b.href }, b.alt))),
     },
   });
-  return renderToStaticMarkup(React.createElement(Shop));
+  return renderToStaticMarkup(React.createElement(Shop, { initialProducts: products }));
 }
 
 test("empty homepage retains navigation, hero, informational sections, and footer", async () => {
@@ -84,13 +89,13 @@ test("empty homepage retains navigation, hero, informational sections, and foote
 
 test("one product renders without an empty second column", async () => {
   const html = await homeMarkup([product("one")]);
-  assert.match(html, /href="\/product\/one"/);
+  assert.ok(html.includes(productHref("one")));
   assert.doesNotMatch(html, /Featured products are on the way|lg:grid-cols-\[1\.3fr_1fr\]/);
 });
 
 test("two products render newest first without reserving an empty third tile", async () => {
   const html = await homeMarkup([product("older"), product("newer", "2026-09-02")]);
-  assert.ok(html.indexOf('href="/product/newer"') < html.indexOf('href="/product/older"'));
+  assert.ok(html.indexOf(productHref("newer")) < html.indexOf(productHref("older")));
   assert.doesNotMatch(html, /grid-rows-2/);
 });
 
@@ -100,20 +105,38 @@ test("homepage shows featured products ahead of newer, non-featured ones", async
     { ...product("featured-old", "2026-01-01"), featured: true },
     { ...product("featured-new", "2026-05-01"), featured: true },
   ]);
-  assert.ok(html.indexOf('href="/product/featured-new"') < html.indexOf('href="/product/featured-old"'));
-  assert.doesNotMatch(html, /href="\/product\/newest-plain"/);
+  assert.ok(html.indexOf(productHref("featured-new")) < html.indexOf(productHref("featured-old")));
+  assert.ok(!html.includes(productHref("newest-plain")));
   assert.match(html, />Featured</);
 });
 
-test("the home page is the shop, with the first-order popup", () => {
-  const Root = loadPage("app/page.tsx", {
+function rootPage(getAllProducts) {
+  return loadPage("app/page.tsx", {
     ...shellMocks,
-    "./shop/page": { __esModule: true, default: () => React.createElement("main", null, "Shop page") },
+    "@/lib/server/products": { getAllProducts },
+    "@/lib/seo": load("lib/seo.ts"),
+    "@/lib/site-info": load("lib/site-info.ts"),
+    "@/components/shop-view": {
+      __esModule: true,
+      default: ({ initialProducts }) => React.createElement("main", null, `Shop page: ${initialProducts.map((p) => p.name).join(", ")}`),
+    },
     "@/components/first-order-popup": { FirstOrderPopup: () => React.createElement("aside", null, "First order popup") },
   });
-  const html = renderToStaticMarkup(React.createElement(Root));
-  assert.match(html, /Shop page/);
+}
+
+test("the home page is the shop, with the first-order popup", async () => {
+  const Root = rootPage(async () => [product("one")]);
+  const html = renderToStaticMarkup(await Root());
+  // Products come from the server, so the catalog is in the page's HTML.
+  assert.match(html, /Shop page: Product one/);
   assert.match(html, /First order popup/);
+  assert.match(html, /"@type":"Organization"/);
+});
+
+test("the home page still renders when the catalog can't be read", async () => {
+  const Root = rootPage(async () => { throw new Error("Database unreachable"); });
+  const html = renderToStaticMarkup(await Root());
+  assert.match(html, /Shop page: </);
 });
 
 test("shop opens with the hero banners, which link to the products", () => {
@@ -148,7 +171,7 @@ test("shop distinguishes loading, request failure, and filters with no matches",
 });
 
 test("menu and footer shop links land on the product list", () => {
-  const { shopHref } = require("./helpers.cjs").load("lib/shop-navigation.ts");
+  const { shopHref } = load("lib/shop-navigation.ts");
   assert.equal(shopHref(), "/#products");
   assert.equal(shopHref({ category: "waist-trainer" }), "/?category=waist-trainer#products");
   assert.equal(shopHref({ q: "high waist & tummy" }), "/?q=high+waist+%26+tummy#products");

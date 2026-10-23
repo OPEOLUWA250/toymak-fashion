@@ -15,6 +15,7 @@ import { currencySymbols, formatCurrency, getProductPriceForCurrency } from "@/l
 import { Currency, Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { goToShop, handleShopLinkClick, shopHref } from "@/lib/shop-navigation";
+import { productPath } from "@/lib/product-url";
 
 const currencyOptions: { value: Currency; label: string }[] = [
   { value: "GBP", label: "GBP — UK" },
@@ -51,7 +52,7 @@ function SearchSuggestions({
         matches.map((product) => (
           <Link
             key={product.id}
-            href={`/product/${product.id}`}
+            href={productPath(product)}
             role="option"
             onClick={onSelect}
             className="flex items-center gap-3 rounded-lg p-2 transition hover:bg-neutral-100"

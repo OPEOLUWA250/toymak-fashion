@@ -4,6 +4,7 @@ import { StoreImage } from "@/components/store-image";
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { useSettings } from "@/lib/use-settings";
+import { contactEmail } from "@/lib/site-info";
 
 // Bump the version to show the popup again on every device, including ones
 // where it was already dismissed (the old key is simply ignored).
@@ -206,8 +207,8 @@ export function FirstOrderPopup() {
                     <>
                       We couldn&apos;t send your code just now. Try again below, or reach us
                       at{" "}
-                      <a href="mailto:hello@toymak.com" className="text-white underline">
-                        hello@toymak.com
+                      <a href={`mailto:${contactEmail}`} className="text-white underline">
+                        {contactEmail}
                       </a>
                       .
                     </>

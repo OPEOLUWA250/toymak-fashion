@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Order Confirmation | Toymak",
+  title: "Order Confirmation",
   description: "Check your Toymak payment confirmation and find your order details and next steps.",
   robots: { index: false, follow: false },
 };

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, Mail, ArrowRight, Loader2, Send } from "lucide-react";
+import { contactEmail } from "@/lib/site-info";
 
 interface FaqItem {
   q: string;
@@ -62,10 +63,10 @@ export function ContactFaqSection({ faqs }: { faqs: FaqItem[] }) {
               <div>
                 <p className="text-xs uppercase tracking-wide text-neutral/50">Email Us</p>
                 <a
-                  href="mailto:hello@toymak.com"
+                  href={`mailto:${contactEmail}`}
                   className="font-medium text-neutral hover:text-primary transition"
                 >
-                  hello@toymak.com
+                  {contactEmail}
                 </a>
               </div>
             </div>
@@ -127,7 +128,7 @@ export function ContactFaqSection({ faqs }: { faqs: FaqItem[] }) {
               {status === "failed" && (
                 <p className="text-sm text-red-600" role="status">
                   Something went wrong sending that — please try again, or email us directly
-                  at hello@toymak.com.
+                  at {contactEmail}.
                 </p>
               )}
             </form>

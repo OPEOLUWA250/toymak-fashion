@@ -1,11 +1,18 @@
 import { siteUrl } from "@/lib/site-url";
+import { siteName } from "@/lib/site-info";
 import { ProductCard } from "@/components/product-card";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { getAllProducts, getProductById } from "@/lib/server/products";
+import { ShopLink } from "@/components/shop-link";
+import { getAllProducts } from "@/lib/server/products";
 import { getApprovedReviewsForProduct } from "@/lib/server/reviews";
-import { notFound } from "next/navigation";
+import { findProductBySlug, productPath, productSlug } from "@/lib/product-url";
+import { absoluteUrl, jsonLd, metaDescription, pageMetadata, plainText } from "@/lib/seo";
+import { CATEGORY_LABELS } from "@/lib/shop-navigation";
+import type { Product, Review } from "@/lib/types";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
+import { cache } from "react";
 import ProductClient from "./product-client";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductReviews } from "@/components/product-reviews";
@@ -17,10 +24,13 @@ import type { Metadata } from "next";
 // page until the next deploy.
 export const revalidate = 60;
 
+// One catalog read per request, shared by generateMetadata and the page.
+const loadCatalog = cache(() => getAllProducts());
+
 export async function generateStaticParams() {
   const products = await getAllProducts();
   return products.map((product) => ({
-    id: product.id,
+    id: productSlug(product),
   }));
 }
 
@@ -30,7 +40,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProductById(id);
+  const product = findProductBySlug(await loadCatalog(), id);
 
   if (!product) {
     return {
@@ -38,11 +48,74 @@ export async function generateMetadata({
     };
   }
 
+  return pageMetadata({
+    title: product.name,
+    description: metaDescription(product.longDescription?.trim() || product.description?.trim() ||
+      `Shop ${product.name} at Toymak Fashion. Explore product details, available options, and delivery information.`),
+    path: productPath(product),
+    images: product.images.slice(0, 4).map((src) => ({ url: absoluteUrl(src), alt: product.name })),
+  });
+}
+
+function productJsonLd(product: Product, reviews: Review[], average: number) {
+  const url = siteUrl + productPath(product);
+  const category = CATEGORY_LABELS[product.category] ?? "Shop";
+  const onSale = product.compare_at_price_gbp !== undefined && product.compare_at_price_gbp > product.price_gbp;
+
   return {
-    alternates: { canonical: `${siteUrl}/product/${encodeURIComponent(product.id)}` },
-    title: `${product.name} | Toymak Fashion`,
-    description: (product.longDescription?.trim() || product.description?.trim() ||
-      `Shop ${product.name} at Toymak. Explore product details, available options, and delivery information.`).slice(0, 160),
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${url}#product`,
+        name: product.name,
+        description: plainText(product.description || product.longDescription || product.name).slice(0, 5000),
+        image: product.images.map(absoluteUrl),
+        url,
+        sku: product.sku || undefined,
+        category,
+        color: product.colors.length ? product.colors.map((c) => c.name).join(", ") : undefined,
+        brand: { "@type": "Brand", name: siteName },
+        offers: {
+          "@type": "Offer",
+          url,
+          priceCurrency: "GBP",
+          price: product.price_gbp.toFixed(2),
+          availability: product.stock_qty > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          seller: { "@type": "Organization", name: siteName, url: siteUrl },
+          // The returns page covers full-price items only.
+          ...(onSale ? {} : {
+            hasMerchantReturnPolicy: {
+              "@type": "MerchantReturnPolicy",
+              applicableCountry: "GB",
+              returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+              merchantReturnDays: 30,
+              returnMethod: "https://schema.org/ReturnByMail",
+              returnFees: "https://schema.org/FreeReturn",
+            },
+          }),
+        },
+        ...(reviews.length ? {
+          aggregateRating: { "@type": "AggregateRating", ratingValue: average, reviewCount: reviews.length, bestRating: 5 },
+          review: reviews.slice(0, 5).map((review) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: review.customer_name },
+            datePublished: new Date(review.created_at).toISOString().slice(0, 10),
+            reviewBody: review.comment,
+            reviewRating: { "@type": "Rating", ratingValue: review.rating, bestRating: 5 },
+          })),
+        } : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Shop", item: siteUrl },
+          { "@type": "ListItem", position: 2, name: category, item: `${siteUrl}/?category=${product.category}` },
+          { "@type": "ListItem", position: 3, name: product.name, item: url },
+        ],
+      },
+    ],
   };
 }
 
@@ -52,13 +125,19 @@ export default async function ProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProductById(id);
+  const allProducts = await loadCatalog();
+  const product = findProductBySlug(allProducts, id);
 
   if (!product) {
     notFound();
   }
 
-  const allProducts = await getAllProducts();
+  // Bare ids (older links and emails) and pre-rename slugs move to the
+  // current URL so search engines index one address per product.
+  if (id !== productSlug(product)) {
+    permanentRedirect(productPath(product));
+  }
+
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
@@ -72,24 +151,24 @@ export default async function ProductPage({
 
   return (
     <main className="bg-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-        "@context": "https://schema.org", "@type": "Product", name: product.name,
-        description: product.description, image: product.images, sku: product.sku,
-        brand: { "@type": "Brand", name: "Toymak" },
-        offers: { "@type": "Offer", priceCurrency: "GBP", price: product.price_gbp,
-          url: `${siteUrl}/product/${encodeURIComponent(product.id)}`,
-          availability: product.stock_qty > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
-        ...(count ? { aggregateRating: { "@type": "AggregateRating", ratingValue: average, reviewCount: count } } : {}),
-      }).replace(/</g, "\\u003c") }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product, reviews, average)) }} />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
-        <nav className="text-sm text-neutral/50 mb-6 md:mb-8">
+        <nav aria-label="Breadcrumb" className="text-sm text-neutral/50 mb-6 md:mb-8">
           <Link href="/" className="hover:text-primary transition">
             Shop
           </Link>
+          {CATEGORY_LABELS[product.category] && (
+            <>
+              <span className="mx-2">/</span>
+              <ShopLink params={{ category: product.category }} className="hover:text-primary transition">
+                {CATEGORY_LABELS[product.category]}
+              </ShopLink>
+            </>
+          )}
           <span className="mx-2">/</span>
-          <span className="text-neutral">{product.name}</span>
+          <span className="text-neutral" aria-current="page">{product.name}</span>
         </nav>
 
         <div className="grid lg:grid-cols-[2fr_3fr] gap-10 xl:gap-16 items-start">

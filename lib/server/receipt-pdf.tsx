@@ -2,6 +2,7 @@ import { Document, Image, Page, Text, View, StyleSheet, renderToBuffer } from "@
 import { brandLogoDataUri } from "./brand-logo";
 import { Currency, Order } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
+import { contactEmail } from "@/lib/site-info";
 
 /**
  * The PDF's base font (Helvetica, the PDF spec's built-in default) only
@@ -133,7 +134,7 @@ function ReceiptDocument({ order }: { order: Order }) {
 
         <Text style={styles.footer}>
           Toymak — premium shapewear for the modern woman. Questions about this order? Reach us
-          at hello@toymak.com, quoting order {order.tracking_id}.
+          at {contactEmail}, quoting order {order.tracking_id}.
         </Text>
       </Page>
     </Document>

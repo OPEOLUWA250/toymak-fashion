@@ -19,6 +19,7 @@ import { ArrowRight, Ruler } from "lucide-react";
 import { getAllProducts } from "@/lib/server/products";
 import { getAllApprovedReviews } from "@/lib/server/reviews";
 import { faqSections } from "@/lib/faq-data";
+import { productPath } from "@/lib/product-url";
 
 // Otherwise Next.js bakes this page (including product data) at build time
 // and it goes stale until the next deploy — a sold-out product could still
@@ -131,7 +132,7 @@ export default async function HomePage() {
           <div className={`grid gap-px bg-neutral/10 ${sideProducts.length > 0 ? "lg:grid-cols-[1.3fr_1fr]" : ""}`}>
             {/* Lead product, editorial feature tile */}
             <Link
-              href={`/product/${leadProduct.id}`}
+              href={productPath(leadProduct)}
               className="product-photo group relative min-h-[460px] overflow-hidden bg-tertiary/40 lg:min-h-[600px]"
             >
               <StoreImage sizes="(max-width: 1024px) 100vw, 55vw"
@@ -158,7 +159,7 @@ export default async function HomePage() {
               {sideProducts.map((product) => (
                 <Link
                   key={product.id}
-                  href={`/product/${product.id}`}
+                  href={productPath(product)}
                   className="product-photo group relative min-h-[220px] overflow-hidden bg-tertiary/40 lg:min-h-0"
                 >
                   <StoreImage sizes="(max-width: 1024px) 100vw, 45vw"

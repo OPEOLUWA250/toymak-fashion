@@ -1,13 +1,12 @@
-import { siteUrl } from "@/lib/site-url";
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  // Same page as the home page, which is the canonical copy.
-  alternates: { canonical: siteUrl },
-  title: "Shop All Products | Toymak",
-  description: "Explore Toymak shapewear, waist trainers, bras, tops and accessories. Filter by size, color and price to find your fit.",
-
-};
+// Same page as the home page, which is the canonical copy.
+export const metadata = pageMetadata({
+  title: "Shop Shapewear, Waist Trainers & Bras",
+  description:
+    "Shop the full Toymak Fashion collection of shapewear, waist trainers, bodysuits, bras and tops. Filter by size, colour and price to find your fit.",
+  path: "/",
+});
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return children;
