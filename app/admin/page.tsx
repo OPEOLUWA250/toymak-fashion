@@ -172,7 +172,7 @@ export default function AdminPage() {
   const bottomNavItems = isSuperAdmin ? [adminsNavItem, settingsNavItem] : [settingsNavItem];
 
   const { products, isLoading: productsLoading, error: productsError, addProduct, updateProduct, removeProduct } = useAdminProducts();
-  const { orders, isLoading: ordersLoading, error: ordersError, addOrder, updateOrderStatus } = useOrders();
+  const { orders, isLoading: ordersLoading, error: ordersError, addOrder, updateOrderStatus, refresh: refreshOrders } = useOrders();
   const { signups } = useSignups();
   const { reviews: allReviews, setApproval: setReviewApproval, removeReview } = useAdminReviews();
   const {
@@ -182,9 +182,16 @@ export default function AdminPage() {
     markAsRead: markMessageAsRead,
     receiveMessage,
   } = useContactMessages();
-  // Real-time push: new orders and contact messages land here the instant
-  // they're confirmed/submitted elsewhere, no refresh needed.
-  useAdminLiveEvents({ onOrder: addOrder, onContactMessage: receiveMessage });
+  // New orders and contact messages: pushed instantly when the stream
+  // carries them, otherwise picked up by the once-a-minute resync.
+  useAdminLiveEvents({
+    onOrder: addOrder,
+    onContactMessage: receiveMessage,
+    onResync: () => {
+      void refreshOrders();
+      void refreshMessages();
+    },
+  });
 
   const customers = useMemo(() => deriveCustomers(orders), [orders]);
   const lowStockProducts = useMemo(

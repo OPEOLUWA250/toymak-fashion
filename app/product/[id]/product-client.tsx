@@ -96,7 +96,7 @@ export default function ProductClient({
       {shareError && <p role="alert" className="text-sm text-red-600">{shareError}</p>}
       <div>
         <p className="text-xs uppercase tracking-[0.22em] text-primary font-semibold mb-3">
-          {product.category.replace("-", " ")}
+          {product.category.replace(/-/g, " ")}
         </p>
         <h1 className="text-4xl md:text-5xl font-bold text-neutral leading-tight mb-3">
           {product.name}

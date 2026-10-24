@@ -1,4 +1,10 @@
-export type ProductCategory = 'shapewear' | 'waist-trainer' | 'bra' | 'accessories' | 'tops'
+// Category ids (slugs) are managed by admins — see lib/categories.ts.
+export type ProductCategory = string
+
+export interface Category {
+  id: string
+  label: string
+}
 // Only tracks up to "shipped" — once an order ships, the carrier's own
 // tracking link (order.tracking_link) covers out-for-delivery/delivered.
 export type OrderStatus = 'unshipped' | 'shipped'

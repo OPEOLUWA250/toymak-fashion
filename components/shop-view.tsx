@@ -5,8 +5,10 @@ import Footer from '@/components/footer'
 import Link from 'next/link'
 import { useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import { useProducts } from '@/lib/use-products'
-import { CATEGORY_LABELS, SHOP_NAVIGATE_EVENT } from '@/lib/shop-navigation'
-import type { Product, ProductCategory } from '@/lib/types'
+import { SHOP_NAVIGATE_EVENT } from '@/lib/shop-navigation'
+import { useCategories } from '@/lib/use-categories'
+import { categoryLabel } from '@/lib/categories'
+import type { Product } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ProductCard } from '@/components/product-card'
 import { BannerCarousel, type Banner } from '@/components/banner-carousel'
@@ -27,11 +29,6 @@ const HERO_BANNERS: Banner[] = [
   { src: '/hero/effortlessly-flattering-2x.jpg', alt: 'Effortlessly flattering. Comfort meets confidence.', href: '#products' },
   { src: '/hero/love-your-shape-2x.jpg', alt: 'Love your shape. Shapewear made for confidence.', href: '#products' },
 ]
-
-const CATEGORY_DEFS = (Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((value) => ({
-  value,
-  label: CATEGORY_LABELS[value],
-}))
 
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
 
@@ -162,14 +159,19 @@ function ShopPageInner({
     [products],
   )
 
-  const categories = useMemo(
-    () =>
-      CATEGORY_DEFS.map((cat) => ({
-        ...cat,
-        count: products.filter((p) => p.category === cat.value).length,
-      })).filter((cat) => cat.count > 0),
-    [products],
-  )
+  const { categories: categoryList } = useCategories()
+  // In the admin's order, plus any category a product uses that the list
+  // doesn't have yet, so no product is ever unreachable from the filters.
+  const categories = useMemo(() => {
+    const ids = [...new Set([...categoryList.map((cat) => cat.id), ...products.map((p) => p.category)])]
+    return ids
+      .map((value) => ({
+        value,
+        label: categoryLabel(categoryList, value),
+        count: products.filter((p) => p.category === value).length,
+      }))
+      .filter((cat) => cat.count > 0)
+  }, [categoryList, products])
 
   const allColors = useMemo(() => {
     const map = new Map<string, string>()

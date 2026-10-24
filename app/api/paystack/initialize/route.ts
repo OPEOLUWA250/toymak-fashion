@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
       callback_url: `${request.nextUrl.origin}/checkout/success?gateway=paystack`,
       metadata: { checkout_snapshot_id: snapshotId },
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   const data = await paystackResponse.json();

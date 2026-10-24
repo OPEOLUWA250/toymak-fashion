@@ -6,7 +6,7 @@ import nodemailer, { type Transporter } from "nodemailer";
  * reminders) goes through sendEmail, which picks the provider:
  *
  * 1. RESEND_FROM_EMAIL set — Resend, from that address. It must be on a
- *    domain verified in Resend (e.g. "Toymak <orders@toymakenterprise.co.uk>").
+ *    domain verified in Resend (production: "Toymak <admin@toymakfashion.com>").
  * 2. Otherwise SMTP_USER + SMTP_PASSWORD set — sent through that mailbox's
  *    own mail server (SMTP_HOST, SMTP_PORT; defaults suit the
  *    admin@toymakenterprise.co.uk mailbox on Namecheap hosting). Works

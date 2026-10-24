@@ -5,7 +5,6 @@ import { getSupabaseAdmin } from "./supabase";
 
 import { dispatchOrderEmails } from "./order-outbox";
 import { after } from "next/server";
-import { getStoreSettings } from "./settings";
 import { deleteAbandonedCartByEmail } from "./abandoned-carts";
 
 interface OrderRow {
@@ -108,11 +107,14 @@ export async function appendServerOrder(
 
   // A real conversion — clear any abandoned-cart record for this email so
   // it never gets a "you left something behind" email after actually buying.
-  void deleteAbandonedCartByEmail(order.customer_email).catch((error) =>
-    console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
-  );
-
-  after(async () => { await dispatchOrderEmails(order.id); });
+  // Run after the response via after(): a bare un-awaited promise can be cut
+  // off when a serverless function finishes.
+  after(async () => {
+    await deleteAbandonedCartByEmail(order.customer_email).catch((error) =>
+      console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
+    );
+    await dispatchOrderEmails(order.id);
+  });
 
   return { added: true };
 }

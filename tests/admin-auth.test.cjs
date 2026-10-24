@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { load } = require('./helpers.cjs');
 
-const json = (data, options = {}) => ({ data, status: options.status ?? 200 });
+const json = (data, options = {}) => ({ data, status: options.status ?? 200, headers: options.headers ?? {} });
 const nextServer = { NextResponse: { json, redirect: (url) => ({ redirect: String(url), status: 307 }) } };
 const withAdmins = (value, fn) => async () => {
   const original = process.env.ADMIN_EMAILS;
@@ -138,11 +138,16 @@ test('every admin route rejects a request without an admin session', async () =>
   }
 });
 
-test('public settings hide the admin notification email', async () => {
+test('public settings are CDN-cached and never include the admin notification email', async () => {
   const settings = { tax: {}, orderNotificationEmail: 'owner@example.com' };
-  const loadRoute = (admin) => load('app/api/settings/route.ts', { 'next/server': nextServer, '@/lib/server/settings': { getStoreSettings: async () => settings }, '@/lib/server/admin-auth': { getAdmin: async () => admin, adminRoute: (handler) => handler } });
-  assert.equal((await loadRoute(null).GET()).data.settings.orderNotificationEmail, '');
-  assert.equal((await loadRoute({ email: 'owner@example.com' }).GET()).data.settings.orderNotificationEmail, 'owner@example.com');
+  const mocks = { 'next/server': nextServer, '@/lib/server/settings': { getStoreSettings: async () => settings }, '@/lib/server/admin-auth': { adminRoute: (handler) => handler }, '@/lib/server/cdn-cache': load('lib/server/cdn-cache.ts') };
+  const publicResponse = await load('app/api/settings/route.ts', mocks).GET();
+  assert.equal(publicResponse.data.settings.orderNotificationEmail, '');
+  assert.match(publicResponse.headers['Vercel-CDN-Cache-Control'], /max-age=60/);
+  // The admin Settings page reads its own uncached route, which includes it.
+  const adminResponse = await load('app/api/admin/settings/route.ts', mocks).GET();
+  assert.equal(adminResponse.data.settings.orderNotificationEmail, 'owner@example.com');
+  assert.equal(adminResponse.headers['Vercel-CDN-Cache-Control'], undefined);
 });
 
 test('login refuses non-admin emails without contacting Supabase', async () => {

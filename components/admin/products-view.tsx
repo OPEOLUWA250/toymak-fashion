@@ -3,18 +3,13 @@
 import { StoreImage } from "@/components/store-image";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Search, Tags, Trash2 } from "lucide-react";
 import { Product, ProductCategory } from "@/lib/types";
 import { ProductFormModal } from "./product-form-modal";
+import { CategoriesModal } from "./categories-modal";
 import { productPath } from "@/lib/product-url";
-
-const categoryLabels: Record<ProductCategory, string> = {
-  shapewear: "Shapewear",
-  "waist-trainer": "Waist Trainer",
-  bra: "Bra",
-  tops: "Tops",
-  accessories: "Accessories",
-};
+import { categoryLabel } from "@/lib/categories";
+import { useCategories } from "@/lib/use-categories";
 
 export function ProductsView({
   products,
@@ -40,6 +35,8 @@ export function ProductsView({
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const { categories: allCategories } = useCategories();
 
   const categories = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
@@ -98,14 +95,24 @@ export function ProductsView({
             <h2 className="text-2xl font-bold text-neutral-900">Products</h2>
             <p className="text-sm text-neutral-500">The catalog currently live on the storefront</p>
           </div>
-          <button
-            type="button"
-            onClick={() => setFormTarget("add")}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
-          >
-            <Plus size={16} />
-            Add Product
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCategoriesOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-neutral-200 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-primary hover:text-primary"
+            >
+              <Tags size={16} />
+              Categories
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormTarget("add")}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90"
+            >
+              <Plus size={16} />
+              Add Product
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -130,7 +137,7 @@ export function ProductsView({
                     : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                 }`}
               >
-                {categoryLabels[cat]}
+                {categoryLabel(allCategories, cat)}
               </button>
             ))}
           </div>
@@ -198,7 +205,7 @@ export function ProductsView({
                     </td>
                     <td data-label="SKU" className="break-all px-4 py-4 align-middle text-sm text-neutral-600">{product.sku}</td>
                     <td data-label="Category" className="px-4 py-4 align-middle text-sm text-neutral-600">
-                      {categoryLabels[product.category]}
+                      {categoryLabel(allCategories, product.category)}
                     </td>
                     <td data-label="Price" className="px-4 py-4 align-middle text-sm font-semibold text-neutral-900">
                       £{product.price_gbp.toFixed(2)}
@@ -273,6 +280,10 @@ export function ProductsView({
           onClose={() => setFormTarget(null)}
           onSave={handleSave}
         />
+      )}
+
+      {categoriesOpen && (
+        <CategoriesModal products={products} onClose={() => setCategoriesOpen(false)} />
       )}
     </div>
   );

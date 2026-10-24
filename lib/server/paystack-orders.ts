@@ -22,7 +22,9 @@ export async function verifyPaystackTransaction(
 
   const response = await fetch(
     `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: { Authorization: `Bearer ${secretKey}` } },
+    // Bounded so a slow Paystack can't hang the request until the function
+    // times out; the webhook's 500 then lets Paystack retry later.
+    { headers: { Authorization: `Bearer ${secretKey}` }, signal: AbortSignal.timeout(15_000) },
   );
   const data = await response.json();
 

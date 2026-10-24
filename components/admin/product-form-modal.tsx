@@ -8,14 +8,8 @@ import { useSettings } from "@/lib/use-settings";
 import { cn } from "@/lib/utils";
 import { ColorDraft, ProductColorsField, ProductSizesField } from "./product-options-fields";
 import { StoreImage } from "@/components/store-image";
-
-const categoryOptions: { value: ProductCategory; label: string }[] = [
-  { value: "shapewear", label: "Shapewear" },
-  { value: "waist-trainer", label: "Waist Trainer" },
-  { value: "bra", label: "Bra" },
-  { value: "tops", label: "Tops" },
-  { value: "accessories", label: "Accessories" },
-];
+import { useCategories } from "@/lib/use-categories";
+import { categoryLabel } from "@/lib/categories";
 
 interface ProductFormModalProps {
   product: Product | null;
@@ -26,11 +20,12 @@ interface ProductFormModalProps {
 export function ProductFormModal({ product, onClose, onSave }: ProductFormModalProps) {
   const isEditing = product !== null;
   const { settings } = useSettings();
+  const { categories } = useCategories();
 
   const [status, setStatus] = useState<NonNullable<Product["status"]>>(product?.status ?? "active");
   const [variants, setVariants] = useState<NonNullable<Product["variants"]>>(product?.variants ?? []);
   const [name, setName] = useState(product?.name ?? "");
-  const [category, setCategory] = useState<ProductCategory>(product?.category ?? "shapewear");
+  const [category, setCategory] = useState<ProductCategory>(product?.category ?? categories[0]?.id ?? "shapewear");
   const [description, setDescription] = useState(product?.description ?? "");
   const [priceGbp, setPriceGbp] = useState(product ? String(product.price_gbp) : "");
   const [priceNgn, setPriceNgn] = useState(product ? String(product.price_ngn) : "");
@@ -135,7 +130,8 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       status, variants: normalizedVariants,
       id: product?.id ?? `prod-${Date.now()}`,
       created_at: product?.created_at ?? now,
-      updated_at: now,
+      // The version being edited; the server refuses the save if it's stale.
+      updated_at: product?.updated_at ?? now,
       longDescription: product?.longDescription,
       compare_at_price_gbp: product?.compare_at_price_gbp,
       name: name.trim(),
@@ -216,11 +212,15 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
                 onChange={(e) => setCategory(e.target.value as ProductCategory)}
                 className="w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-sm text-neutral-900 outline-none focus:border-primary"
               >
-                {categoryOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                {categories.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
                     {opt.label}
                   </option>
                 ))}
+                {/* Keeps a product's current category selectable while the list loads. */}
+                {!categories.some((opt) => opt.id === category) && (
+                  <option value={category}>{categoryLabel(categories, category)}</option>
+                )}
               </select>
             </div>
             <label className="flex items-center gap-2.5 self-end pb-2.5 text-sm font-medium text-neutral-700">

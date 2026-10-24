@@ -11,8 +11,16 @@ export function getStripeSecretKey(): string {
   return secretKey;
 }
 
+/**
+ * Network failures and 5xx/429 responses are retried by the SDK with
+ * exponential backoff and jitter (POSTs carry an automatic idempotency key,
+ * so a retried create can't double-charge). The timeout keeps a slow Stripe
+ * from holding a request open for the SDK's 80-second default.
+ */
+export const STRIPE_CLIENT_OPTIONS = { maxNetworkRetries: 2, timeout: 20_000 } as const;
+
 export function getStripeClient(): Stripe {
-  return new Stripe(getStripeSecretKey());
+  return new Stripe(getStripeSecretKey(), STRIPE_CLIENT_OPTIONS);
 }
 
 interface CompactItem {

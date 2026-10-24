@@ -71,7 +71,7 @@ export default function WishlistPage() {
                   />
                   <div>
                     <p className="text-xs uppercase tracking-[0.22em] text-primary">
-                      {product.category.replace("-", " ")}
+                      {product.category.replace(/-/g, " ")}
                     </p>
                     <h2 className="mt-1 text-2xl font-bold text-neutral">
                       {product.name}

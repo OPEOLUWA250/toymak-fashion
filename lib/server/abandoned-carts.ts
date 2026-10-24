@@ -187,11 +187,42 @@ export async function getCartsDueForRecoveryEmail(): Promise<AbandonedCart[]> {
   return carts.filter((cart) => !optedOut.has(cart.email));
 }
 
-export async function markRecoveryEmailSent(id: string): Promise<void> {
-  const { error } = await getSupabaseAdmin()
+/**
+ * Claims a cart for its reminder before sending, so two overlapping cron
+ * runs can't both email it. Returns false if another run got there first.
+ */
+export async function claimRecoveryEmail(id: string): Promise<boolean> {
+  const { data, error } = await getSupabaseAdmin()
     .from("abandoned_carts")
     .update({ recovery_email_sent_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .is("recovery_email_sent_at", null)
+    .select("id")
+    .maybeSingle();
 
-  if (error) throw new Error(`Failed to mark recovery email sent for ${id}: ${error.message}`);
+  if (error) throw new Error(`Failed to claim recovery email for ${id}: ${error.message}`);
+  return !!data;
+}
+
+/** Undoes a claim after a failed send, so the next run retries it. */
+export async function releaseRecoveryEmail(id: string): Promise<void> {
+  const { error } = await getSupabaseAdmin()
+    .from("abandoned_carts")
+    .update({ recovery_email_sent_at: null })
+    .eq("id", id);
+  if (error) throw new Error(`Failed to release recovery email for ${id}: ${error.message}`);
+}
+
+/**
+ * True if this customer has ordered since (roughly) saving the cart. Catches
+ * a cart save that landed just after the order had already cleared it.
+ */
+export async function hasOrderedSince(email: string, since: Date): Promise<boolean> {
+  const { count, error } = await getSupabaseAdmin()
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("customer_email", email)
+    .gte("created_at", new Date(since.getTime() - 30 * 60 * 1000).toISOString());
+  if (error) throw new Error(`Failed to check orders for ${email}: ${error.message}`);
+  return (count ?? 0) > 0;
 }

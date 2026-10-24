@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Order, OrderStatus } from "./types";
 
 function reviveDates(orders: Order[]): Order[] {
@@ -22,29 +22,34 @@ export function useOrders() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
-    fetch("/api/orders", { signal: controller.signal })
+  // Initial load, and the periodic resync from useAdminLiveEvents (the live
+  // stream alone misses orders recorded on another server instance).
+  const refresh = useCallback((signal?: AbortSignal) => {
+    return fetch("/api/orders", { signal })
       .then((response) => {
         if (!response.ok) throw new Error("Unable to load orders. Please refresh to try again.");
         return response.json();
       })
       .then((data: { orders?: Order[] }) => {
         if (!Array.isArray(data.orders)) throw new Error("Unable to load orders. Please refresh to try again.");
-        if (controller.signal.aborted) return;
+        if (signal?.aborted) return;
         const loaded = reviveDates(data.orders);
+        setError(null);
         // Preserve any confirmed order received through the live event
-        // stream while this initial request was still in flight.
+        // stream while this request was still in flight.
         setOrders((current) => [...loaded, ...current.filter((order) => !loaded.some((saved) =>
           saved.id === order.id || (saved.payment_reference === order.payment_reference && saved.payment_gateway === order.payment_gateway),
         ))]);
       })
-      .catch(() => { if (!controller.signal.aborted) setError("Unable to load orders. Please refresh to try again."); })
-      .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
-    return () => controller.abort();
+      .catch(() => { if (!signal?.aborted) setError("Unable to load orders. Please refresh to try again."); })
+      .finally(() => { if (!signal?.aborted) setIsLoading(false); });
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void refresh(controller.signal);
+    return () => controller.abort();
+  }, [refresh]);
 
   const actions = useMemo(
     () => ({
@@ -73,5 +78,5 @@ export function useOrders() {
     [],
   );
 
-  return { orders, isLoading, error, ...actions };
+  return { orders, isLoading, error, refresh, ...actions };
 }

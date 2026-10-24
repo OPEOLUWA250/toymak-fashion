@@ -1,5 +1,6 @@
 import { validateCheckoutItems, validateCheckoutContact } from "@/lib/checkout-validation";
 import { saveCheckoutSnapshot } from "@/lib/server/checkout-snapshots";
+import { STRIPE_CLIENT_OPTIONS } from "@/lib/server/stripe-orders";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
     customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
     orderItems, subtotal, shippingCost, tax, total, discount, discountCode,
   });
-  const stripe = new Stripe(secretKey);
+  const stripe = new Stripe(secretKey, STRIPE_CLIENT_OPTIONS);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,

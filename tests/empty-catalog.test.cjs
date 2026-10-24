@@ -69,6 +69,8 @@ function shopMarkup({ products = [], isLoading = false, error = null, query = ""
     "next/navigation": { useSearchParams: () => new URLSearchParams(query) },
     "@/lib/use-products": { useProducts: () => ({ products, isLoading, error }) },
     "@/lib/shop-navigation": load("lib/shop-navigation.ts"),
+    "@/lib/categories": load("lib/categories.ts"),
+    "@/lib/use-categories": { useCategories: () => ({ categories: load("lib/categories.ts").DEFAULT_CATEGORIES, isLoading: false }) },
     "@/lib/utils": { cn: (...parts) => parts.filter(Boolean).join(" ") },
     "@/components/product-card": { ProductCard: ({ product }) => React.createElement("div", null, product.name) },
     "@/components/banner-carousel": {

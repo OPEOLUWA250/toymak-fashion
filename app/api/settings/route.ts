@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStoreSettings, updateStoreSettings, StoreSettings } from "@/lib/server/settings";
-import { adminRoute, getAdmin } from "@/lib/server/admin-auth";
+import { adminRoute } from "@/lib/server/admin-auth";
+import { PUBLIC_CDN_CACHE_HEADERS } from "@/lib/server/cdn-cache";
 
 export const dynamic = "force-dynamic";
 
-// Public — the storefront needs tax/shipping/banner settings — but the
-// admin's order-notification email is only returned to a signed-in admin.
+// Public and CDN-cached — the storefront needs tax/shipping/banner settings.
+// The response is the same for everyone, so the admin's order-notification
+// email is never included; the admin Settings page reads
+// GET /api/admin/settings instead.
 export async function GET() {
   try {
     const settings = await getStoreSettings();
-    const isAdmin = !!(await getAdmin());
-    return NextResponse.json({ settings: isAdmin ? settings : { ...settings, orderNotificationEmail: "" } });
+    return NextResponse.json(
+      { settings: { ...settings, orderNotificationEmail: "" } },
+      { headers: PUBLIC_CDN_CACHE_HEADERS },
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load settings" },

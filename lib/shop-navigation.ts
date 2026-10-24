@@ -1,14 +1,4 @@
 import type { MouseEvent } from "react";
-import type { ProductCategory } from "./types";
-
-/** Shopper-facing category names, in the order the shop lists them. */
-export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  shapewear: "Shapewear",
-  "waist-trainer": "Waist Trainers",
-  bra: "Bras",
-  tops: "Tops",
-  accessories: "Accessories",
-};
 
 /**
  * Links into the shop (now the home page) from the header and footer. They

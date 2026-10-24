@@ -7,19 +7,14 @@ import { getSupabaseAdmin } from "@/lib/server/supabase";
  * activity — a real query against a real table, not just a HEAD request,
  * since it's actual database activity that resets that clock.
  *
- * Verifies the CRON_SECRET Vercel sends automatically once that env var is
+ * Requires the CRON_SECRET Vercel sends automatically once that env var is
  * set on the project, so this can't be triggered by anyone who finds the
- * URL. Falls open (no check) if CRON_SECRET isn't configured yet, so the
- * route still works before that's set up — add CRON_SECRET in Vercel's
- * project settings (any random string) to lock it down.
+ * URL. Refuses every request until CRON_SECRET is configured.
  */
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!cronSecret || request.headers.get("authorization") !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {

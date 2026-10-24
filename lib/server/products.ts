@@ -54,6 +54,8 @@ function rowToProduct(row: ProductRow): Product {
 
 function productToRow(product: Product) {
   if (!product.name?.trim() || !['active', 'draft', 'archived'].includes(product.status ?? 'active')) throw new Error('Enter a name and valid visibility.');
+  // The database's foreign key checks the category exists; this just rejects junk early.
+  if (typeof product.category !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(product.category)) throw new Error('Choose a category.');
   for (const value of [product.stock_qty, product.low_stock_threshold]) if (!Number.isSafeInteger(value) || value < 0) throw new Error('Stock quantities must be nonnegative whole numbers.');
   for (const value of [product.price_gbp, product.price_ngn, product.price_usd ?? 0]) if (!Number.isFinite(value) || value < 0) throw new Error('Prices must be nonnegative numbers.');
   const variants = product.variants ?? [];
@@ -89,13 +91,12 @@ function productToRow(product: Product) {
 }
 
 export async function getAllProducts(includeHidden = false): Promise<Product[]> {
-  const { data, error } = await getSupabaseAdmin()
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let query = getSupabaseAdmin().from("products").select("*");
+  if (!includeHidden) query = query.eq("status", "active");
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to load products: ${error.message}`);
-  return (data as ProductRow[]).map(rowToProduct).filter(p => includeHidden || p.status === "active");
+  return (data as ProductRow[]).map(rowToProduct);
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -120,15 +121,33 @@ export async function createProduct(product: Product): Promise<Product> {
   return rowToProduct(data as ProductRow);
 }
 
-export async function updateProduct(product: Product): Promise<Product> {
+export class ProductConflictError extends Error {}
+
+/**
+ * Optimistic locking: only saves if the product hasn't changed since the
+ * admin opened it (`loadedAt` is the updated_at they saw). Without this, a
+ * sale made while the edit form was open would have its stock deduction
+ * overwritten by the form's stale stock numbers.
+ */
+export async function updateProduct(product: Product, loadedAt: Date): Promise<Product> {
+  if (Number.isNaN(loadedAt.getTime())) throw new ProductConflictError("Reload the products page and try again.");
+  // updated_at has microsecond precision but the browser only kept
+  // milliseconds, so match the whole millisecond.
   const { data, error } = await getSupabaseAdmin()
     .from("products")
     .update(productToRow(product))
     .eq("id", product.id)
+    .gte("updated_at", loadedAt.toISOString())
+    .lt("updated_at", new Date(loadedAt.getTime() + 1).toISOString())
     .select("*")
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(`Failed to update product ${product.id}: ${error.message}`);
+  if (!data) {
+    throw new ProductConflictError(
+      "This product changed since you opened it (for example, a sale updated its stock). Reload the page, then make your edit again.",
+    );
+  }
   return rowToProduct(data as ProductRow);
 }
 

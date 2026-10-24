@@ -8,7 +8,8 @@ import { getAllProducts } from "@/lib/server/products";
 import { getApprovedReviewsForProduct } from "@/lib/server/reviews";
 import { findProductBySlug, productPath, productSlug } from "@/lib/product-url";
 import { absoluteUrl, jsonLd, metaDescription, pageMetadata, plainText } from "@/lib/seo";
-import { CATEGORY_LABELS } from "@/lib/shop-navigation";
+import { getCategories } from "@/lib/server/categories";
+import { categoryLabel } from "@/lib/categories";
 import type { Product, Review } from "@/lib/types";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
@@ -57,9 +58,8 @@ export async function generateMetadata({
   });
 }
 
-function productJsonLd(product: Product, reviews: Review[], average: number) {
+function productJsonLd(product: Product, category: string, reviews: Review[], average: number) {
   const url = siteUrl + productPath(product);
-  const category = CATEGORY_LABELS[product.category] ?? "Shop";
   const onSale = product.compare_at_price_gbp !== undefined && product.compare_at_price_gbp > product.price_gbp;
 
   return {
@@ -148,10 +148,11 @@ export default async function ProductPage({
       ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
       : 0;
   const count = reviews.length;
+  const category = categoryLabel(await getCategories(), product.category);
 
   return (
     <main className="bg-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product, reviews, average)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product, category, reviews, average)) }} />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -159,14 +160,10 @@ export default async function ProductPage({
           <Link href="/" className="hover:text-primary transition">
             Shop
           </Link>
-          {CATEGORY_LABELS[product.category] && (
-            <>
-              <span className="mx-2">/</span>
-              <ShopLink params={{ category: product.category }} className="hover:text-primary transition">
-                {CATEGORY_LABELS[product.category]}
-              </ShopLink>
-            </>
-          )}
+          <span className="mx-2">/</span>
+          <ShopLink params={{ category: product.category }} className="hover:text-primary transition">
+            {category}
+          </ShopLink>
           <span className="mx-2">/</span>
           <span className="text-neutral" aria-current="page">{product.name}</span>
         </nav>

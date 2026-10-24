@@ -20,7 +20,7 @@ export function SettingsView() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/settings")
+    fetch("/api/admin/settings")
       .then((response) => {
         if (!response.ok) throw new Error();
         return response.json();
