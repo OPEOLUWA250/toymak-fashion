@@ -1,8 +1,8 @@
 import type { Category } from "./types";
 
 /**
- * The original five categories. Used until docs/sql/0016_product_categories.sql
- * has been run, and while the live list is still loading in the browser.
+ * The original five categories. Used if the product_categories table is
+ * missing, and while the live list is still loading in the browser.
  */
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: "shapewear", label: "Shapewear" },

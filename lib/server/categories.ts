@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "./supabase";
 import { Category } from "../types";
 import { DEFAULT_CATEGORIES, MAX_CATEGORY_LABEL_LENGTH, categorySlug } from "../categories";
 
-const SETUP_HINT = "Run docs/sql/0016_product_categories.sql in Supabase to manage categories.";
+const SETUP_HINT = "The product_categories table is missing from the database, so categories can't be changed.";
 
 // PostgREST/Postgres codes for "the product_categories table doesn't exist yet".
 function isMissingTable(error: { code?: string }) {
@@ -18,7 +18,7 @@ function cleanLabel(label: unknown): string {
   return value;
 }
 
-/** Categories in display order. Falls back to the built-in list until 0016 has been run. */
+/** Categories in display order. Falls back to the built-in list if the table is missing. */
 export async function getCategories(): Promise<Category[]> {
   const { data, error } = await getSupabaseAdmin()
     .from("product_categories")
