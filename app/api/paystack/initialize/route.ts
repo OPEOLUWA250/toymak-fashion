@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
   // The discount percent is never taken from the client — only the code is.
   // Reject stale codes so the customer can review the revised total first.
   const discountPercent = discountCode
-    ? (await validateCouponCode(discountCode)).discountPercent
+    ? (await validateCouponCode(discountCode, email)).discountPercent
     : 0;
 
-  if (discountCode && discountPercent === 0) return NextResponse.json({ error: "This discount code is no longer valid. Remove it or choose another code." }, { status: 400 });
+  if (discountCode && discountPercent === 0) return NextResponse.json({ error: "This discount code can't be used with this email address. Codes only work with the email they were sent to, on a first order. Remove it to continue." }, { status: 400 });
   const orderItems = buildOrderItems(items, "NGN", products, discountPercent);
 
   const { subtotal, shipping: shippingCost, tax, total, discount } = calculateOrderTotals(

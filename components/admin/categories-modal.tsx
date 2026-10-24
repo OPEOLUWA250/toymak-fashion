@@ -5,6 +5,7 @@ import { Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Category, Product } from "@/lib/types";
 import { MAX_CATEGORY_LABEL_LENGTH, categorySlug } from "@/lib/categories";
 import { setCategoriesCache, useCategories } from "@/lib/use-categories";
+import { useConfirm } from "./confirm-dialog";
 
 async function request<T>(url: string, method: string, body?: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -23,6 +24,7 @@ async function request<T>(url: string, method: string, body?: unknown): Promise<
  */
 export function CategoriesModal({ products, onClose }: { products: Product[]; onClose: () => void }) {
   const { categories, isLoading } = useCategories();
+  const { confirm, confirmDialog } = useConfirm();
   const [newLabel, setNewLabel] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -75,7 +77,13 @@ export function CategoriesModal({ products, onClose }: { products: Product[]; on
   };
 
   const handleDelete = async (category: Category) => {
-    if (!confirm(`Delete the "${category.label}" category?`)) return;
+    const ok = await confirm({
+      title: `Delete the "${category.label}" category?`,
+      message: "It will disappear from the shop's category filters. This can't be undone.",
+      confirmLabel: "Delete category",
+      tone: "danger",
+    });
+    if (!ok) return;
     await run(category.id, async () => {
       await request(`/api/admin/categories/${encodeURIComponent(category.id)}`, "DELETE");
       return categories.filter((existing) => existing.id !== category.id);
@@ -195,6 +203,7 @@ export function CategoriesModal({ products, onClose }: { products: Product[]; on
             <p className="text-xs text-neutral-500">Shop link: ?category={categorySlug(newLabel)}</p>
           )}
         </form>
+        {confirmDialog}
       </div>
     </div>
   );

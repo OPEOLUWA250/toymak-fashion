@@ -7,6 +7,7 @@ import { ExternalLink, Pencil, Plus, Search, Tags, Trash2 } from "lucide-react";
 import { Product, ProductCategory } from "@/lib/types";
 import { ProductFormModal } from "./product-form-modal";
 import { CategoriesModal } from "./categories-modal";
+import { useConfirm } from "./confirm-dialog";
 import { productPath } from "@/lib/product-url";
 import { categoryLabel } from "@/lib/categories";
 import { useCategories } from "@/lib/use-categories";
@@ -37,6 +38,7 @@ export function ProductsView({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const { categories: allCategories } = useCategories();
+  const { confirm, confirmDialog } = useConfirm();
 
   const categories = useMemo(
     () => Array.from(new Set(products.map((p) => p.category))),
@@ -56,7 +58,13 @@ export function ProductsView({
   }, [products, categoryFilter, search]);
 
   const handleDelete = async (product: Product) => {
-    if (confirm(`Delete "${product.name}"? This can't be undone.`)) {
+    const ok = await confirm({
+      title: `Delete "${product.name}"?`,
+      message: "It will be removed from the shop and the dashboard. This can't be undone. To hide it without deleting, set its visibility to Draft or Archived instead.",
+      confirmLabel: "Delete product",
+      tone: "danger",
+    });
+    if (ok) {
       setActionError(null);
       setNotice(null);
       setDeletingId(product.id);
@@ -285,6 +293,7 @@ export function ProductsView({
       {categoriesOpen && (
         <CategoriesModal products={products} onClose={() => setCategoriesOpen(false)} />
       )}
+      {confirmDialog}
     </div>
   );
 }

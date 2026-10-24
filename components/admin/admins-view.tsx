@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Copy, KeyRound, Loader2, ShieldCheck, Trash2, UserPlus, WandSparkles } from "lucide-react";
 import { MIN_ADMIN_PASSWORD_LENGTH } from "@/lib/admin-password";
+import { useConfirm } from "./confirm-dialog";
 
 type Role = "super_admin" | "admin";
 
@@ -57,6 +58,7 @@ export function AdminsView() {
   const [copied, setCopied] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
+  const { confirm, confirmDialog } = useConfirm();
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -113,7 +115,13 @@ export function AdminsView() {
 
   const handleResetPassword = async (admin: AdminAccount) => {
     if (!admin.id) return;
-    if (!window.confirm(`Give ${admin.email} a new temporary password? Their current password stops working.`)) return;
+    const ok = await confirm({
+      title: `Reset ${admin.email}'s password?`,
+      message: "They'll get a new temporary password and their current one stops working immediately.",
+      confirmLabel: "Reset password",
+      tone: "danger",
+    });
+    if (!ok) return;
     const temporary = generatePassword();
     setBusyId(admin.id);
     setRowError(null);
@@ -137,11 +145,20 @@ export function AdminsView() {
   const handleChangeRole = async (admin: AdminAccount) => {
     if (!admin.id) return;
     const role: Role = admin.role === "super_admin" ? "admin" : "super_admin";
-    const message =
+    const ok = await confirm(
       role === "super_admin"
-        ? `Make ${admin.email} a super admin? They'll be able to add, promote and remove people here, including other super admins (but not owners).`
-        : `Make ${admin.email} a regular admin? They'll lose access to this page.`;
-    if (!window.confirm(message)) return;
+        ? {
+            title: `Make ${admin.email} a super admin?`,
+            message: "They'll be able to add, promote and remove people here, including other super admins (but not owners).",
+            confirmLabel: "Make super admin",
+          }
+        : {
+            title: `Make ${admin.email} a regular admin?`,
+            message: "They'll lose access to this page.",
+            confirmLabel: "Make regular admin",
+          },
+    );
+    if (!ok) return;
     setBusyId(admin.id);
     setRowError(null);
     try {
@@ -162,7 +179,13 @@ export function AdminsView() {
 
   const handleRemove = async (admin: AdminAccount) => {
     if (!admin.id) return;
-    if (!window.confirm(`Remove ${admin.email}? They'll lose dashboard access immediately.`)) return;
+    const ok = await confirm({
+      title: `Remove ${admin.email}?`,
+      message: "They'll lose dashboard access immediately.",
+      confirmLabel: "Remove admin",
+      tone: "danger",
+    });
+    if (!ok) return;
     setBusyId(admin.id);
     setRowError(null);
     try {
@@ -194,6 +217,7 @@ export function AdminsView() {
 
   return (
     <div className="space-y-6">
+      {confirmDialog}
       {handover && (
         <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
           <p className="font-semibold">

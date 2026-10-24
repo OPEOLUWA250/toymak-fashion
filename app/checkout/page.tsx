@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/use-settings";
 import { useRegion } from "@/lib/region-context";
 import { getCheckoutCurrency, getPaymentGatewayForCountry } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { canonicalEmail } from "@/lib/email-identity";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -76,9 +77,14 @@ export default function CheckoutPage() {
   const countryMenuRef = useRef<HTMLDivElement>(null);
 
   const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number; email: string } | null>(null);
   const [couponStatus, setCouponStatus] = useState<"idle" | "checking" | "error">("idle");
   const [couponError, setCouponError] = useState<string | null>(null);
+  // A code only works with the email it was sent to (the server enforces
+  // this at payment too), so editing the email after applying one drops it.
+  const checkoutEmail = email.trim().toLowerCase();
+  const activeCoupon = appliedCoupon?.email === canonicalEmail(checkoutEmail) ? appliedCoupon : null;
+  const couponDroppedForEmail = !!appliedCoupon && !activeCoupon;
 
   const selectedGateway = useMemo(
     () => getPaymentGatewayForCountry(country),
@@ -121,7 +127,7 @@ export default function CheckoutPage() {
     checkoutCurrency,
     products,
     settings,
-    appliedCoupon?.discountPercent ?? 0,
+    activeCoupon?.discountPercent ?? 0,
   );
 
   // Debounced, best-effort background save so an abandoned checkout can
@@ -148,6 +154,11 @@ export default function CheckoutPage() {
   const handleApplyCoupon = async () => {
     const code = couponInput.trim();
     if (!code) return;
+    if (!/^\S+@\S+\.\S+$/.test(checkoutEmail)) {
+      setCouponStatus("error");
+      setCouponError("Enter your email address first. Your code only works with the email it was sent to.");
+      return;
+    }
 
     setCouponStatus("checking");
     setCouponError(null);
@@ -155,7 +166,7 @@ export default function CheckoutPage() {
       const response = await fetch("/api/checkout/validate-coupon", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, email: checkoutEmail }),
       });
       const data = await response.json();
       if (!response.ok || !data.valid) {
@@ -163,7 +174,7 @@ export default function CheckoutPage() {
         setCouponError(data.error || "That code isn't valid.");
         return;
       }
-      setAppliedCoupon({ code: code.toUpperCase(), discountPercent: data.discountPercent });
+      setAppliedCoupon({ code: code.toUpperCase(), discountPercent: data.discountPercent, email: canonicalEmail(checkoutEmail) });
       setCouponStatus("idle");
       setCouponInput("");
     } catch {
@@ -217,7 +228,7 @@ export default function CheckoutPage() {
           items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
-          discountCode: appliedCoupon?.code,
+          discountCode: activeCoupon?.code,
           callback_url: `${window.location.origin}/checkout/success?gateway=paystack`,
         }),
       });
@@ -250,7 +261,7 @@ export default function CheckoutPage() {
           items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
-          discountCode: appliedCoupon?.code,
+          discountCode: activeCoupon?.code,
           success_url: `${window.location.origin}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${window.location.origin}/checkout`,
         }),
@@ -548,7 +559,7 @@ export default function CheckoutPage() {
                 />
                 {discount > 0 && (
                   <Row
-                    label={`Discount (${appliedCoupon?.code})`}
+                    label={`Discount (${activeCoupon?.code})`}
                     value={`-${formatCurrency(discount, checkoutCurrency)}`}
                     accent
                   />
@@ -575,11 +586,11 @@ export default function CheckoutPage() {
 
               <div className="space-y-2 border-t border-neutral/10 py-5">
                 <label className="text-sm font-medium text-neutral">Discount code</label>
-                {appliedCoupon ? (
+                {activeCoupon ? (
                   <div className="flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
                     <span className="flex items-center gap-2 text-sm font-semibold text-primary">
                       <Check size={14} />
-                      {appliedCoupon.code} applied
+                      {activeCoupon.code} applied
                     </span>
                     <button
                       type="button"
@@ -616,6 +627,11 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 {couponError && <p className="text-xs text-red-600">{couponError}</p>}
+                {couponDroppedForEmail && !couponError && (
+                  <p className="text-xs text-neutral/60">
+                    {appliedCoupon?.code} was removed because the email changed. Codes only work with the email they were sent to.
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center justify-between border-t border-neutral/10 pt-5">

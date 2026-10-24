@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { siteUrl } from "@/lib/site-url";
-import { getSignupForCouponEmail, markSignupEmailSent } from "@/lib/server/signups";
+import { getSignupForCouponEmail, markSignupEmailSent, type CouponCodeStatus } from "@/lib/server/signups";
 import { getStoreSettings } from "@/lib/server/settings";
 import { isEmailConfigured, sendEmail } from "@/lib/server/email-sender";
 
@@ -15,6 +15,49 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// Sent instead of the code when it can't be used any more, so the customer
+// isn't left wondering why checkout refuses it.
+const UNUSABLE_CODE_COPY: Record<Exclude<CouponCodeStatus, "active">, { subject: string; heading: string; body: string }> = {
+  used: {
+    subject: "About your Toymak welcome code",
+    heading: "Your welcome code has been used",
+    body: "Your welcome code was already used on an earlier order, and each code works once. Thanks for shopping with us. We'd love to see you again.",
+  },
+  "already-ordered": {
+    subject: "About your Toymak welcome code",
+    heading: "Thanks for being a customer",
+    body: "Welcome codes are for a first order, and this email address has already ordered with us, so the code can't be used. Thanks for shopping with us. We'd love to see you again.",
+  },
+};
+
+function buildUnusableCodeEmailHtml({ firstName, heading, body, origin }: { firstName: string; heading: string; body: string; origin: string }) {
+  return `
+  <div style="background:#f3f3f3;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#ffffff;overflow:hidden;">
+      <tr>
+        <td style="padding:32px 32px 8px;text-align:center;">
+          <img src="${siteUrl}/brand/logo-black.png" alt="TOYMAK" width="180" height="40" style="display:inline-block;border:0;outline:none;height:40px;width:180px;font-size:20px;font-weight:800;letter-spacing:0.02em;color:#101820;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 32px 0;text-align:center;">
+          <h1 style="margin:12px 0 0;font-size:24px;line-height:1.25;font-weight:700;color:#101820;">${escapeHtml(heading)}</h1>
+          <p style="margin:12px 0 0;font-size:14px;line-height:1.6;color:rgba(16,24,32,0.65);">
+            Hi ${escapeHtml(firstName.trim() || "there")}, ${escapeHtml(body)}
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 32px 32px;text-align:center;">
+          <a href="${origin}/shop" style="display:inline-block;background:#101820;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 32px;">
+            Shop Now
+          </a>
+        </td>
+      </tr>
+    </table>
+  </div>`;
 }
 
 function buildCouponEmailHtml({
@@ -120,18 +163,21 @@ export async function POST(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const safeDiscountLabel = `${discountPercent}% off`;
   const safeFirstName = signup.firstName.replace(/[\r\n]/g, "").slice(0, 100);
-  const { email, couponCode } = signup;
+  const { email, couponCode, codeStatus } = signup;
+  const unusable = codeStatus === "active" ? null : UNUSABLE_CODE_COPY[codeStatus];
 
   try {
     const { error } = await sendEmail({
       to: email,
-      subject: `Your ${safeDiscountLabel} Toymak code is here`,
-      html: buildCouponEmailHtml({
-        firstName: safeFirstName,
-        couponCode,
-        discountLabel: safeDiscountLabel,
-        origin,
-      }),
+      subject: unusable ? unusable.subject : `Your ${safeDiscountLabel} Toymak code is here`,
+      html: unusable
+        ? buildUnusableCodeEmailHtml({ firstName: safeFirstName, heading: unusable.heading, body: unusable.body, origin })
+        : buildCouponEmailHtml({
+            firstName: safeFirstName,
+            couponCode,
+            discountLabel: safeDiscountLabel,
+            origin,
+          }),
     });
 
     if (error) {

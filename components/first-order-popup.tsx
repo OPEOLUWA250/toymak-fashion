@@ -53,6 +53,7 @@ export function FirstOrderPopup() {
   const [email, setEmail] = useState("");
   const [signup, setSignup] = useState<PopupSignup | null>(null);
   const [emailStatus, setEmailStatus] = useState<EmailStatus>("idle");
+  const [signupError, setSignupError] = useState<string | null>(null);
 
   const dismiss = () => {
     setEntered(false);
@@ -107,6 +108,7 @@ export function FirstOrderPopup() {
     event.preventDefault();
     if (emailStatus === "sending") return;
     setEmailStatus("sending");
+    setSignupError(null);
 
     let newSignup: PopupSignup;
     let isNew: boolean;
@@ -117,7 +119,11 @@ export function FirstOrderPopup() {
         body: JSON.stringify({ firstName, lastName, email }),
       });
       const data = (await response.json()) as { signup?: PopupSignup; isNew?: boolean; error?: string };
-      if (!response.ok || !data.signup) throw new Error(data.error ?? "Signup failed");
+      if (!response.ok || !data.signup) {
+        // 400s explain what to fix (e.g. a throwaway inbox); others stay generic.
+        if (response.status === 400 && data.error) setSignupError(data.error);
+        throw new Error(data.error ?? "Signup failed");
+      }
       newSignup = data.signup;
       isNew = data.isNew ?? false;
     } catch {
@@ -199,8 +205,9 @@ export function FirstOrderPopup() {
                   {emailStatus === "sending" && <>Sending your code to {signup.email}…</>}
                   {emailStatus === "duplicate" && (
                     <>
-                      This email already claimed a code — we&apos;ve sent it before, so check
-                      your inbox (and spam folder). Didn&apos;t get it?
+                      A welcome code was already sent to this email, so check your inbox (and
+                      spam folder). Each code works once, on a first order. Didn&apos;t get it?
+                      We can send it again.
                     </>
                   )}
                   {emailStatus === "failed" && (
@@ -297,7 +304,7 @@ export function FirstOrderPopup() {
                   >
                     {emailStatus === "sending" ? "Sending…" : "Claim My Code"}
                   </button>
-                  {emailStatus === 'failed' && <p role="alert" className="text-sm text-white">We couldn&apos;t complete your signup. Please try again.</p>}
+                  {emailStatus === 'failed' && <p role="alert" className="text-sm text-white">{signupError ?? "We couldn't complete your signup. Please try again."}</p>}
                 </form>
 
                 <button
