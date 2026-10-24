@@ -77,8 +77,7 @@ export default function TermsPage() {
             5. Orders &amp; Payment
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            When you place an order, we&apos;ll take you to our payment partner — Stripe for
-            UK and international orders, or Paystack for orders shipping within Nigeria — to
+            When you place an order, we&apos;ll take you to our payment partner, Stripe, to
             complete payment securely. An order is only confirmed once payment has been
             successfully processed; you&apos;ll see a confirmation on screen and be given an
             order and tracking ID. We reserve the right to refuse or cancel any order,

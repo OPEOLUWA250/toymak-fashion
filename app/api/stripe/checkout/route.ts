@@ -7,7 +7,7 @@ import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
 import { getAllProducts } from "@/lib/server/products";
 import { getStoreSettings } from "@/lib/server/settings";
 import { validateCouponCode } from "@/lib/server/signups";
-import { getCheckoutCurrency } from "@/lib/utils";
+import { getCheckoutCurrency, PAYSTACK_ENABLED } from "@/lib/utils";
 import { Address } from "@/lib/types";
 
 interface CheckoutRequestBody {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (currency === "NGN") throw new Error("Use Paystack for NGN checkout.");
+  if (currency === "NGN" && PAYSTACK_ENABLED) throw new Error("Use Paystack for NGN checkout.");
   const snapshotId = await saveCheckoutSnapshot("stripe", {
     status: "success", currency, customerEmail: email, customerName: customer.fullName,
     customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },

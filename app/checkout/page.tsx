@@ -8,7 +8,7 @@ import { useCart } from "@/lib/cart-context";
 import { useProducts } from "@/lib/use-products";
 import { useSettings } from "@/lib/use-settings";
 import { useRegion } from "@/lib/region-context";
-import { getCheckoutCurrency, getPaymentGatewayForCountry } from "@/lib/utils";
+import { getCheckoutCurrency, getPaymentGatewayForCountry, PAYSTACK_ENABLED } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { canonicalEmail } from "@/lib/email-identity";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -35,10 +35,10 @@ const paymentOptions = [
   {
     id: "stripe",
     title: "Stripe",
-    description: "For UK and US customers",
+    description: PAYSTACK_ENABLED ? "For UK and US customers" : "Secure checkout for every country",
     icon: CreditCard,
   },
-] as const;
+].filter((option) => PAYSTACK_ENABLED || option.id !== "paystack");
 
 const countryPresets = ["United Kingdom", "Nigeria", "United States"];
 
@@ -440,13 +440,14 @@ export default function CheckoutPage() {
                     Payment method
                   </h2>
                   <p className="text-sm text-neutral/60">
-                    The selected method changes automatically based on the
-                    country above.
+                    {PAYSTACK_ENABLED
+                      ? "The selected method changes automatically based on the country above."
+                      : "You'll pay securely on Stripe's checkout page."}
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className={`grid gap-4 ${paymentOptions.length > 1 ? "md:grid-cols-2" : ""}`}>
                 {paymentOptions.map((option) => {
                   const active = option.id === selectedGateway;
                   const Icon = option.icon;
@@ -479,9 +480,11 @@ export default function CheckoutPage() {
                             </div>
                           </div>
                           <p className="mt-4 text-sm leading-6 text-neutral/60">
-                            {active
-                              ? "Selected automatically from your shipping country."
-                              : "Visible for clarity, but the country-based gateway decides which one is active."}
+                            {!PAYSTACK_ENABLED
+                              ? "Pay by card, Apple Pay or Google Pay, or pay later with Klarna where available."
+                              : active
+                                ? "Selected automatically from your shipping country."
+                                : "Visible for clarity, but the country-based gateway decides which one is active."}
                           </p>
                         </div>
                         <span
@@ -495,14 +498,16 @@ export default function CheckoutPage() {
                 })}
               </div>
 
-              <div className="mt-5 rounded-2xl bg-neutral-100 p-4 text-sm text-neutral/70">
-                <p className="font-semibold text-neutral">Gateway rule</p>
-                <p className="mt-1 leading-6">
-                  {selectedGateway === "paystack"
-                    ? "Nigeria detected, so Paystack is active."
-                    : `${country} detected, so Stripe is active.`}
-                </p>
-              </div>
+              {PAYSTACK_ENABLED && (
+                <div className="mt-5 rounded-2xl bg-neutral-100 p-4 text-sm text-neutral/70">
+                  <p className="font-semibold text-neutral">Gateway rule</p>
+                  <p className="mt-1 leading-6">
+                    {selectedGateway === "paystack"
+                      ? "Nigeria detected, so Paystack is active."
+                      : `${country} detected, so Stripe is active.`}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

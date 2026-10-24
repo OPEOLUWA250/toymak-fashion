@@ -6,6 +6,7 @@ import { buildOrderItems, calculateOrderTotals } from "@/lib/pricing";
 import { getAllProducts } from "@/lib/server/products";
 import { getStoreSettings } from "@/lib/server/settings";
 import { validateCouponCode } from "@/lib/server/signups";
+import { PAYSTACK_ENABLED } from "@/lib/utils";
 import { Address } from "@/lib/types";
 
 const PAYSTACK_API = "https://api.paystack.co";
@@ -21,6 +22,10 @@ interface InitializeRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  // Paystack is switched off (see PAYSTACK_ENABLED); Stripe takes every order.
+  if (!PAYSTACK_ENABLED) {
+    return NextResponse.json({ error: "Paystack checkout is unavailable. Please pay with Stripe." }, { status: 403 });
+  }
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
     return NextResponse.json(

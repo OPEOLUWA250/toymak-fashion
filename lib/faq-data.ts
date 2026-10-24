@@ -92,7 +92,7 @@ export const faqSections: FaqSection[] = [
     questions: [
       {
         q: 'What payment methods do you accept?',
-        a: 'We accept all major credit and debit cards (Visa, Mastercard, Amex) via Stripe for international payments, and Paystack for Nigerian customers. Apple Pay and Google Pay are also supported at checkout.',
+        a: 'We accept all major credit and debit cards (Visa, Mastercard, Amex) through Stripe, for every country including Nigeria. Apple Pay and Google Pay are also supported at checkout, and you can pay later with Klarna where it\'s available.',
       },
       {
         q: 'How do I apply a discount code?',

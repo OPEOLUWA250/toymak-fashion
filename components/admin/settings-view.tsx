@@ -5,6 +5,7 @@ import { CheckCircle2, CreditCard, Globe, Loader2, Mail, Megaphone, RefreshCw, T
 import type { StoreSettings } from "@/lib/server/settings";
 import type { Currency } from "@/lib/types";
 import { invalidateSettingsCache } from "@/lib/use-settings";
+import { PAYSTACK_ENABLED } from "@/lib/utils";
 
 const currencyRows: { currency: Currency; taxLabel: string; symbol: string }[] = [
   { currency: "GBP", taxLabel: "United Kingdom (VAT)", symbol: "£" },
@@ -146,7 +147,7 @@ export function SettingsView() {
               Nigeria
             </span>
             <span className="bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700">
-              Paystack · NGN
+              {PAYSTACK_ENABLED ? "Paystack" : "Stripe"} · NGN
             </span>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-neutral-100 px-4 py-3">

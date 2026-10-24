@@ -21,10 +21,19 @@ export function normalizeExternalUrl(url: string): string {
   return `https://${trimmed}`;
 }
 
+/**
+ * Paystack is switched off for now: every order goes through Stripe,
+ * including Nigerian ones, which Stripe charges in NGN at the same prices.
+ * Set to true to send Nigerian orders to Paystack again. Its webhook and
+ * verify routes stay live either way, so older Paystack payments still
+ * resolve.
+ */
+export const PAYSTACK_ENABLED = false;
+
 export function getPaymentGatewayForCountry(country: string): PaymentGateway {
   const normalizedCountry = country.trim().toLowerCase();
 
-  if (["nigeria", "ng", "ngn"].includes(normalizedCountry)) {
+  if (PAYSTACK_ENABLED && ["nigeria", "ng", "ngn"].includes(normalizedCountry)) {
     return "paystack";
   }
 
