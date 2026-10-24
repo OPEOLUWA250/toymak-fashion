@@ -9,7 +9,10 @@ import { contactEmail } from "@/lib/site-info";
 // Bump the version to show the popup again on every device, including ones
 // where it was already dismissed (the old key is simply ignored).
 const DISMISSED_KEY = "toymak-popup-dismissed-v2";
-const SHOW_DELAY_MS = 10000;
+const SHOW_DELAY_MS = 5000;
+// The popup is added to the page invisibly this long before it shows, so its
+// photo has downloaded by then. Late enough not to slow the hero banner.
+const PREPARE_DELAY_MS = 1500;
 
 // Storage can be blocked (private mode, strict settings) — never let that
 // break the page; worst case the popup shows again next visit.
@@ -46,6 +49,7 @@ export function FirstOrderPopup() {
   const discountPercent = settings.welcomeDiscountPercent;
   const discountLabel = `${discountPercent}% off`;
 
+  const [prepared, setPrepared] = useState(false);
   const [visible, setVisible] = useState(false);
   const [entered, setEntered] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -58,7 +62,10 @@ export function FirstOrderPopup() {
   const dismiss = () => {
     setEntered(false);
     rememberDismissed();
-    setTimeout(() => setVisible(false), 200);
+    setTimeout(() => {
+      setVisible(false);
+      setPrepared(false);
+    }, 200);
   };
 
   useEffect(() => {
@@ -66,8 +73,12 @@ export function FirstOrderPopup() {
     const forced = new URLSearchParams(window.location.search).get("popup") === "1";
     if (!forced && wasDismissed()) return;
 
-    const timer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
-    return () => clearTimeout(timer);
+    const prepareTimer = setTimeout(() => setPrepared(true), PREPARE_DELAY_MS);
+    const showTimer = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    return () => {
+      clearTimeout(prepareTimer);
+      clearTimeout(showTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -144,15 +155,19 @@ export function FirstOrderPopup() {
     await sendCouponEmail(newSignup);
   };
 
-  if (!visible) return null;
+  if (!prepared && !visible) return null;
 
+  // Until it's visible, it's in the page only so the photo loads: invisible,
+  // unclickable, and hidden from keyboard and screen readers.
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-neutral/60 p-4 backdrop-blur-sm transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-neutral/60 p-4 transition-opacity duration-200 ${entered ? "opacity-100" : "opacity-0"} ${visible ? "backdrop-blur-sm" : "pointer-events-none"}`}
       onClick={dismiss}
       role="dialog"
       aria-modal="true"
       aria-label="First order discount offer"
+      aria-hidden={!visible}
+      inert={!visible}
     >
       <div
         className={`relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto overscroll-contain rounded-2xl shadow-2xl transition-all duration-300 ease-out ${
