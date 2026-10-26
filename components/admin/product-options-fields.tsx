@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Plus, X } from "lucide-react";
 import { Color } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { shadeForColorName } from "@/lib/color-names";
 
 const standardSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL", "5XL", "6XL", "One Size"];
 const presetColors = [
@@ -86,14 +87,29 @@ export function ProductColorsField({ value, onChange }: {
   value: ColorDraft[];
   onChange: (colors: ColorDraft[]) => void;
 }) {
+  // Shades filled in from a colour's name, by colour key. A shade still equal
+  // to one of these (or to the name's own guess) wasn't chosen by hand, so it
+  // keeps following the name; a hand-picked shade is never overwritten.
+  const autoShades = useRef(new Map<string, string>());
+
   const updateColor = (key: string, patch: Partial<ColorDraft>) => {
     onChange(value.map((color) => color.key === key ? { ...color, ...patch } : color));
+  };
+
+  const renameColor = (color: ColorDraft, name: string) => {
+    const hex = color.hex.toUpperCase();
+    const followsName = hex === autoShades.current.get(color.key)
+      || hex === shadeForColorName(color.name)
+      || (!color.name.trim() && hex === "#000000");
+    const shade = followsName ? shadeForColorName(name) : null;
+    if (shade) autoShades.current.set(color.key, shade);
+    updateColor(color.key, shade ? { name, hex: shade } : { name });
   };
 
   return (
     <fieldset className="space-y-3">
       <legend className="text-sm font-medium text-neutral-700">Colors</legend>
-      <p className="text-xs text-neutral-500">Choose common colors or add your own. Adjust each shade to match your product.</p>
+      <p className="text-xs text-neutral-500">Choose common colors or add your own. Type a color name, such as Mocha or Burgundy, and its shade fills in automatically. Adjust it only if it doesn&apos;t match your product.</p>
       <div className="flex flex-wrap gap-2">
         {presetColors.map((preset) => {
           const selected = value.find((color) => color.name.trim().toLowerCase() === preset.name.toLowerCase());
@@ -125,7 +141,7 @@ export function ProductColorsField({ value, onChange }: {
                   <input
                     id={`color-name-${color.key}`}
                     value={color.name}
-                    onChange={(event) => updateColor(color.key, { name: event.target.value })}
+                    onChange={(event) => renameColor(color, event.target.value)}
                     ref={(input) => {
                       const duplicate = value.some((other) => other.key !== color.key && other.name.trim().toLowerCase() === color.name.trim().toLowerCase());
                       input?.setCustomValidity(color.name.trim() && duplicate ? "Each color needs a different name." : "");

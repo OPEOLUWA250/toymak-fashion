@@ -12,6 +12,7 @@ import { normalizeExternalUrl } from "@/lib/utils";
 import { useProducts } from "@/lib/use-products";
 import { Order, OrderStatus } from "@/lib/types";
 import { contactEmail } from "@/lib/site-info";
+import { orderShippingLabel } from "@/lib/shipping";
 import {
   ExternalLink,
   Loader2,
@@ -372,17 +373,19 @@ function TrackOrderContent() {
                       <span>{formatCurrency(order.subtotal, order.currency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-neutral/60">
-                      <span>Shipping</span>
+                      <span>{orderShippingLabel(order.shipping_address.shippingMethod)}</span>
                       <span>
                         {order.shipping_cost === 0
                           ? "Free"
                           : formatCurrency(order.shipping_cost, order.currency)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-neutral/60">
-                      <span>Tax</span>
-                      <span>{formatCurrency(order.tax, order.currency)}</span>
-                    </div>
+                    {order.tax > 0 && (
+                      <div className="flex items-center justify-between text-neutral/60">
+                        <span>Tax</span>
+                        <span>{formatCurrency(order.tax, order.currency)}</span>
+                      </div>
+                    )}
                     {(order.refunded_amount ?? 0) > 0 && <p>Refunded: {formatCurrency(order.refunded_amount!, order.currency)}</p>}
                     {order.discount_applied > 0 && (
                       <div className="flex items-center justify-between text-primary">

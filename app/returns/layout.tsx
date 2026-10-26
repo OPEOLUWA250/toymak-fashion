@@ -3,7 +3,7 @@ import { pageMetadata } from "@/lib/seo";
 export const metadata = pageMetadata({
   title: "Returns & Exchanges",
   description:
-    "Return or exchange your Toymak Fashion order within 30 days of delivery. See how to start a return, what qualifies and when refunds are processed.",
+    "Return or exchange your Toymak Fashion order within 14 days of delivery. See how to start a return, what qualifies and when refunds are processed.",
   path: "/returns",
 });
 

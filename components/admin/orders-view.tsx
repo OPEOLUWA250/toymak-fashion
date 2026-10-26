@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ExternalLink, Link2, Search } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
+import { orderShippingLabel } from "@/lib/shipping";
 import { normalizeExternalUrl } from "@/lib/utils";
 import { StatusBadge } from "./admin-ui";
 
@@ -146,8 +147,10 @@ export function OrdersView({
                         </div>
                       ))}
                       <div className="flex items-center justify-between px-4 pt-1 text-xs text-neutral-500">
-                        <span>Shipping: {formatCurrency(order.shipping_cost, order.currency)}</span>
-                        <span>Tax: {formatCurrency(order.tax, order.currency)}</span>
+                        <span className={order.shipping_address.shippingMethod === "express" ? "font-semibold text-neutral-900" : undefined}>
+                          {orderShippingLabel(order.shipping_address.shippingMethod)}: {formatCurrency(order.shipping_cost, order.currency)}
+                        </span>
+                        {order.tax > 0 && <span>Tax: {formatCurrency(order.tax, order.currency)}</span>}
                         {order.discount_applied > 0 && (
                           <span>Discount: {formatCurrency(order.discount_applied, order.currency)}</span>
                         )}

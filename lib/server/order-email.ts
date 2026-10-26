@@ -4,6 +4,7 @@ import { formatCurrency } from "@/lib/pricing";
 import { generateReceiptPdf } from "./receipt-pdf";
 import { emailSender, sendEmail } from "./email-sender";
 import { contactEmail } from "@/lib/site-info";
+import { orderShippingLabel } from "@/lib/shipping";
 
 function escapeHtml(value: string): string {
   return value
@@ -83,8 +84,8 @@ function buildOrderEmailHtml(order: Order, origin: string): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             ${totalsRow("Subtotal", escapeHtml(formatCurrency(order.subtotal + order.discount_applied, order.currency)))}
             ${order.discount_applied > 0 ? totalsRow("Discount", `-${escapeHtml(formatCurrency(order.discount_applied, order.currency))}`) : ""}
-            ${totalsRow("Shipping", order.shipping_cost === 0 ? "FREE" : escapeHtml(formatCurrency(order.shipping_cost, order.currency)))}
-            ${totalsRow("Tax", escapeHtml(formatCurrency(order.tax, order.currency)))}
+            ${totalsRow(orderShippingLabel(order.shipping_address.shippingMethod), order.shipping_cost === 0 ? "FREE" : escapeHtml(formatCurrency(order.shipping_cost, order.currency)))}
+            ${order.tax > 0 ? totalsRow("Tax", escapeHtml(formatCurrency(order.tax, order.currency))) : ""}
             ${totalsRow("Total", escapeHtml(formatCurrency(order.total_amount, order.currency)), true)}
           </table>
         </td>
@@ -131,6 +132,7 @@ function buildAdminNotificationHtml(order: Order, origin: string): string {
         <td style="padding:20px 32px 0;font-size:13px;color:#101820;">
           <p style="margin:0 0 8px;"><strong>${escapeHtml(order.customer_name)}</strong> — ${escapeHtml(order.customer_email)}</p>
           <p style="margin:0 0 12px;color:rgba(16,24,32,0.6);">Order ${escapeHtml(order.id)} · Tracking ${escapeHtml(order.tracking_id)} · ${escapeHtml(order.payment_gateway)}</p>
+          ${order.shipping_address.shippingMethod === "express" ? `<p style="margin:0 0 12px;font-weight:700;">Express delivery — dispatch for next business day.</p>` : ""}
           <ul style="margin:0;padding-left:18px;color:rgba(16,24,32,0.75);">
             ${itemsList}
           </ul>

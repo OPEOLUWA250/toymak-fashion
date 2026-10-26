@@ -16,11 +16,11 @@ export const faqSections: FaqSection[] = [
     questions: [
       {
         q: 'How long does delivery take?',
-        a: 'Standard delivery within the UK takes 3–5 business days. Express delivery is available for 1–2 business day shipping. International orders typically arrive within 7–14 business days depending on your location.',
+        a: 'Standard delivery within the UK takes 2–4 business days. UK Express delivery (£6.99) arrives in 1 business day when you order Monday to Friday before 1pm. International orders typically arrive within 7–14 business days depending on your location.',
       },
       {
         q: 'Is shipping free?',
-        a: 'Yes — we offer free standard shipping on all UK orders over £50. For orders under £50, a flat rate of £3.95 applies. International shipping rates are calculated at checkout.',
+        a: 'Yes — we offer free standard shipping on all UK orders over £50. Below that, and for express or international delivery, the shipping cost is shown at checkout before you pay. No VAT is added at checkout.',
       },
       {
         q: 'How can I track my order?',
@@ -37,7 +37,7 @@ export const faqSections: FaqSection[] = [
     questions: [
       {
         q: 'How do I find my size?',
-        a: 'We recommend using our detailed Size Guide to find your perfect fit. Measure your bust, waist, and hips, then match your measurements to our size chart. Each product page also includes fit-specific guidance.',
+        a: 'Follow our Size Guide to measure your bust, waist, and hips, then open "Size Guide" or "Need help finding your fit?" on the product page to match your measurements to that product\'s sizes.',
       },
       {
         q: 'What if I\'m between sizes?',
@@ -54,7 +54,7 @@ export const faqSections: FaqSection[] = [
     questions: [
       {
         q: 'What is your return policy?',
-        a: 'We offer a 30-day return policy. Items must be unworn, unwashed, and in their original packaging with all tags attached. Sale items and hygiene-sealed products that have been opened are not eligible for return.',
+        a: 'We offer a 14-day return policy. Items must be unworn, unwashed, and in their original packaging with all tags attached. Sale items and hygiene-sealed products that have been opened are not eligible for return.',
       },
       {
         q: 'How do I start a return?',
@@ -66,7 +66,7 @@ export const faqSections: FaqSection[] = [
       },
       {
         q: 'How long do refunds take?',
-        a: 'Once we receive your returned item, refunds are processed within 5–7 business days to your original payment method. You\'ll receive an email confirmation when the refund has been issued.',
+        a: 'Once we receive your returned item, refunds are processed within 5–7 business days to your original payment method. A refund processing fee of £5 may apply. You\'ll receive an email confirmation when the refund has been issued.',
       },
     ],
   },

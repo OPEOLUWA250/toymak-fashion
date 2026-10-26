@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   if (shipping.country !== "Nigeria") throw new Error("Use Stripe for delivery outside Nigeria.");
   const snapshotId = await saveCheckoutSnapshot("paystack", {
     status: "success", currency: "NGN", customerEmail: email, customerName: customer.fullName,
-    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
+    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone, shippingMethod: "standard" },
     orderItems, subtotal, shippingCost, tax, total, discount, discountCode,
   });
   const reference = `tmk_${randomUUID()}`;

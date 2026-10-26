@@ -9,6 +9,7 @@ import { getStoreSettings } from "@/lib/server/settings";
 import { validateCouponCode } from "@/lib/server/signups";
 import { getCheckoutCurrency, PAYSTACK_ENABLED } from "@/lib/utils";
 import { Address } from "@/lib/types";
+import { isExpressAvailable, isShippingMethod, shippingEstimate, shippingMethodLabel, type ShippingMethod } from "@/lib/shipping";
 
 interface CheckoutRequestBody {
   email: string;
@@ -16,6 +17,7 @@ interface CheckoutRequestBody {
   items: { product_id: string; quantity: number; size: string; color: string }[];
   customer: { fullName: string; phone: string };
   shipping: Omit<Address, "fullName" | "email" | "phone">;
+  shippingMethod?: ShippingMethod;
   discountCode?: string;
   success_url: string;
   cancel_url: string;
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
   try {
   const body = (await request.json()) as CheckoutRequestBody;
   const { email, items, customer, shipping, discountCode, success_url, cancel_url } = body;
+  const shippingMethod = body.shippingMethod ?? "standard";
 
   if (!email || !items?.length || !customer?.fullName || !shipping?.street) {
     return NextResponse.json(
@@ -53,6 +56,9 @@ export async function POST(request: NextRequest) {
   const settings = await getStoreSettings();
   validateCheckoutContact(body);
   validateCheckoutItems(items, products, currency);
+  if (!isShippingMethod(shippingMethod) || (shippingMethod === "express" && !isExpressAvailable(shipping.country))) {
+    return NextResponse.json({ error: "Express delivery is only available in the UK. Choose standard delivery to continue." }, { status: 400 });
+  }
 
   // The discount percent is never taken from the client — only the code is.
   // Reject stale codes so the customer can review the revised total first.
@@ -68,6 +74,7 @@ export async function POST(request: NextRequest) {
     products,
     settings,
     discountPercent,
+    shippingMethod,
   );
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = orderItems.map((item) => ({
@@ -86,19 +93,11 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency: stripeCurrency,
-        product_data: { name: "Shipping" },
+        product_data: {
+          name: "Shipping",
+          description: `${shippingMethodLabel(shippingMethod)} · ${shippingEstimate(shippingMethod, shipping.country)}`,
+        },
         unit_amount: Math.round(shippingCost * 100),
-      },
-      quantity: 1,
-    });
-  }
-
-  if (tax > 0) {
-    lineItems.push({
-      price_data: {
-        currency: stripeCurrency,
-        product_data: { name: "VAT" },
-        unit_amount: Math.round(tax * 100),
       },
       quantity: 1,
     });
@@ -107,7 +106,7 @@ export async function POST(request: NextRequest) {
   if (currency === "NGN" && PAYSTACK_ENABLED) throw new Error("Use Paystack for NGN checkout.");
   const snapshotId = await saveCheckoutSnapshot("stripe", {
     status: "success", currency, customerEmail: email, customerName: customer.fullName,
-    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone },
+    customerPhone: customer.phone, shippingAddress: { ...shipping, fullName: customer.fullName, email, phone: customer.phone, shippingMethod },
     orderItems, subtotal, shippingCost, tax, total, discount, discountCode,
   });
   const stripe = new Stripe(secretKey, STRIPE_CLIENT_OPTIONS);

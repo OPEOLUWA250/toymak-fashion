@@ -188,7 +188,6 @@ export default function ProductClient({
           onClose={() => setSizeGuideOpen(false)}
           productName={product.name}
           sizeGuideImage={product.sizeGuideImage}
-          sizeCategory={sizeCategory}
         />
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
           {product.sizes.map((size) => (
@@ -308,8 +307,8 @@ export default function ProductClient({
             />
           </summary>
           <p className="mt-4 text-sm leading-6 text-neutral/70">
-            Free shipping on orders over £50. Returns accepted within 30 days
-            for unworn items in original condition.
+            Free standard shipping on orders over £50. Returns accepted within 14 days
+            for unworn items in original condition; a £5 refund processing fee may apply.
           </p>
         </details>
       </div>

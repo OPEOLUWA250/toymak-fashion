@@ -6,11 +6,12 @@ import type { StoreSettings } from "@/lib/server/settings";
 import type { Currency } from "@/lib/types";
 import { invalidateSettingsCache } from "@/lib/use-settings";
 import { PAYSTACK_ENABLED } from "@/lib/utils";
+import { NumberInput } from "./number-input";
 
-const currencyRows: { currency: Currency; taxLabel: string; symbol: string }[] = [
-  { currency: "GBP", taxLabel: "United Kingdom (VAT)", symbol: "£" },
-  { currency: "NGN", taxLabel: "Nigeria (VAT)", symbol: "₦" },
-  { currency: "USD", taxLabel: "United States (Sales tax)", symbol: "$" },
+const currencyRows: { currency: Currency; symbol: string }[] = [
+  { currency: "GBP", symbol: "£" },
+  { currency: "NGN", symbol: "₦" },
+  { currency: "USD", symbol: "$" },
 ];
 
 export function SettingsView() {
@@ -34,7 +35,7 @@ export function SettingsView() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const updateField = <Section extends "tax" | "shippingThreshold" | "shippingCost">(
+  const updateField = <Section extends "shippingThreshold" | "shippingCost">(
     section: Section,
     currency: Currency,
     value: number,
@@ -114,8 +115,9 @@ export function SettingsView() {
       {saved && <p role="status" className="text-sm text-emerald-700">Settings saved.</p>}
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="text-sm leading-6 text-neutral-600">
-          These numbers drive real checkout math — the tax and shipping a customer is actually
-          charged come straight from what's saved here.
+          These numbers drive real checkout math — the standard shipping a customer is actually
+          charged comes straight from what&apos;s saved here. No VAT is added at checkout, and
+          UK express delivery is a fixed £6.99.
         </p>
         <button
           type="button"
@@ -189,36 +191,6 @@ export function SettingsView() {
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Globe size={18} />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold text-neutral-900">Tax</h2>
-            <p className="text-sm text-neutral-500">Applied to order subtotal at checkout, per currency</p>
-          </div>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {currencyRows.map((row) => (
-            <div key={row.currency} className="rounded-xl border border-neutral-100 px-4 py-3">
-              <p className="mb-2 text-sm font-medium text-neutral-700">{row.taxLabel}</p>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={settings.tax[row.currency]}
-                  onChange={(e) => updateField("tax", row.currency, Number(e.target.value) || 0)}
-                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
-                />
-                <span className="text-sm text-neutral-500">%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Ticket size={18} />
           </span>
           <div>
@@ -232,13 +204,12 @@ export function SettingsView() {
         <label className="block max-w-xs rounded-xl border border-neutral-100 px-4 py-3 text-sm font-medium text-neutral-700">
           Welcome discount
           <div className="mt-1.5 flex items-center gap-1.5">
-            <input
-              type="number"
+            <NumberInput
               step="0.1"
               min="0"
               max="100"
               value={settings.welcomeDiscountPercent}
-              onChange={(e) => updateWelcomeDiscount(Number(e.target.value) || 0)}
+              onValueChange={updateWelcomeDiscount}
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
             />
             <span className="text-sm text-neutral-500">%</span>
@@ -328,14 +299,11 @@ export function SettingsView() {
                 Free-shipping threshold
                 <div className="mt-1 flex items-center gap-1.5">
                   <span className="text-sm text-neutral-500">{row.symbol}</span>
-                  <input
-                    type="number"
+                  <NumberInput
                     step="0.01"
                     min="0"
                     value={settings.shippingThreshold[row.currency]}
-                    onChange={(e) =>
-                      updateField("shippingThreshold", row.currency, Number(e.target.value) || 0)
-                    }
+                    onValueChange={(value) => updateField("shippingThreshold", row.currency, value)}
                     className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
                   />
                 </div>
@@ -344,12 +312,11 @@ export function SettingsView() {
                 Cost below threshold
                 <div className="mt-1 flex items-center gap-1.5">
                   <span className="text-sm text-neutral-500">{row.symbol}</span>
-                  <input
-                    type="number"
+                  <NumberInput
                     step="0.01"
                     min="0"
                     value={settings.shippingCost[row.currency]}
-                    onChange={(e) => updateField("shippingCost", row.currency, Number(e.target.value) || 0)}
+                    onValueChange={(value) => updateField("shippingCost", row.currency, value)}
                     className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
                   />
                 </div>
@@ -376,12 +343,11 @@ export function SettingsView() {
           <label className="block rounded-xl border border-neutral-100 px-4 py-3 text-sm font-medium text-neutral-700">
             1 GBP =
             <div className="mt-1.5 flex items-center gap-1.5">
-              <input
-                type="number"
+              <NumberInput
                 step="0.01"
                 min="0"
                 value={settings.exchangeRates.gbpToNgn}
-                onChange={(e) => updateRate("gbpToNgn", Number(e.target.value) || 0)}
+                onValueChange={(value) => updateRate("gbpToNgn", value)}
                 className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
               />
               <span className="text-sm text-neutral-500">NGN</span>
@@ -390,12 +356,11 @@ export function SettingsView() {
           <label className="block rounded-xl border border-neutral-100 px-4 py-3 text-sm font-medium text-neutral-700">
             1 GBP =
             <div className="mt-1.5 flex items-center gap-1.5">
-              <input
-                type="number"
+              <NumberInput
                 step="0.0001"
                 min="0"
                 value={settings.exchangeRates.gbpToUsd}
-                onChange={(e) => updateRate("gbpToUsd", Number(e.target.value) || 0)}
+                onValueChange={(value) => updateRate("gbpToUsd", value)}
                 className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
               />
               <span className="text-sm text-neutral-500">USD</span>

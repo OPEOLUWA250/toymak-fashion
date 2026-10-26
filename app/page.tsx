@@ -2,7 +2,7 @@ import { FirstOrderPopup } from "@/components/first-order-popup";
 import ShopView from "@/components/shop-view";
 import { getAllProducts } from "@/lib/server/products";
 import { jsonLd, pageMetadata } from "@/lib/seo";
-import { contactEmail, contactPhone, siteName } from "@/lib/site-info";
+import { contactEmail, siteName } from "@/lib/site-info";
 import { siteUrl } from "@/lib/site-url";
 
 // The shop is the home page for now. The previous landing page is kept in
@@ -28,13 +28,11 @@ const organization = {
       url: siteUrl,
       logo: `${siteUrl}/icon.png`,
       email: contactEmail,
-      telephone: contactPhone,
       address: { "@type": "PostalAddress", addressCountry: "GB" },
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "customer service",
         email: contactEmail,
-        telephone: contactPhone,
         availableLanguage: "English",
       },
     },

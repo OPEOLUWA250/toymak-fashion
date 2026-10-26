@@ -17,6 +17,20 @@ test('discounted line items and checkout totals agree to the penny', () => {
 test('free shipping applies at the exact threshold', () => {
   assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',[{...products[0],price_gbp:100}],settings).shipping,0);
 });
+test('no VAT is added, whatever tax rate is still saved in settings', () => {
+  const totals = calculateOrderTotals([item], 'GBP', products, settings);
+  assert.equal(totals.tax, 0);
+  assert.equal(Math.round(totals.total*100), Math.round((totals.subtotal+totals.shipping)*100));
+});
+test('express is a fixed UK price that never becomes free, and is refused outside GBP', () => {
+  const big = [{...products[0],price_gbp:500}];
+  assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'express').shipping,6.99);
+  assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'standard').shipping,0);
+  assert.throws(()=>calculateOrderTotals([item],'NGN',products,settings,0,'express'));
+  const { isExpressAvailable } = load('lib/shipping.ts');
+  assert.equal(isExpressAvailable(' United Kingdom '), true);
+  assert.equal(isExpressAvailable('Nigeria'), false);
+});
 test('rejects invalid quantities, missing products, unavailable options and drafts', () => {
   for (const quantity of [0,-1,1.5,NaN,Infinity,'2']) assert.throws(()=>validateCheckoutItems([{...item,quantity}],products,'GBP'));
   for (const patch of [{product_id:'missing'},{size:'XXL'},{color:'Pink'}]) assert.throws(()=>validateCheckoutItems([{...item,...patch}],products,'GBP'));

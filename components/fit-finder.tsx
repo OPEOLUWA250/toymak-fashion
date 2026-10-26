@@ -118,7 +118,7 @@ export function FitFinder({
               Find My Size
             </button>
             <Link
-              href={`/size-guide?category=${category}#size-chart`}
+              href="/size-guide"
               className="text-xs text-neutral/50 underline underline-offset-4 hover:text-primary"
             >
               How to measure
@@ -135,12 +135,12 @@ export function FitFinder({
           ) : (
             <p className="text-sm text-neutral/70">
               We couldn&apos;t match those measurements to a size on this product&apos;s
-              chart — double-check the numbers, or see the{" "}
+              chart — double-check the numbers using our{" "}
               <Link
-                href={`/size-guide?category=${category}#size-chart`}
+                href="/size-guide"
                 className="text-primary underline underline-offset-4"
               >
-                full size guide
+                measuring guide
               </Link>
               .
             </p>

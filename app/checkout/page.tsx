@@ -11,6 +11,13 @@ import { useRegion } from "@/lib/region-context";
 import { getCheckoutCurrency, getPaymentGatewayForCountry, PAYSTACK_ENABLED } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { canonicalEmail } from "@/lib/email-identity";
+import {
+  EXPRESS_SHIPPING_GBP,
+  isExpressAvailable,
+  shippingEstimate,
+  shippingMethodLabel,
+  type ShippingMethod,
+} from "@/lib/shipping";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -71,6 +78,7 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [stateRegion, setStateRegion] = useState("");
   const [postalCode, setPostalCode] = useState("");
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("standard");
   const [isPaying, setIsPaying] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -122,13 +130,29 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  const { subtotal, shipping, tax, total, discount } = calculateOrderTotals(
+  // Express is UK-only, so changing the country away from the UK falls back
+  // to standard without forgetting the customer's choice if they switch back.
+  const expressAvailable = isExpressAvailable(country);
+  const deliveryMethod: ShippingMethod = expressAvailable ? shippingMethod : "standard";
+  const { subtotal, shipping, total, discount } = calculateOrderTotals(
     items,
     checkoutCurrency,
     products,
     settings,
     activeCoupon?.discountPercent ?? 0,
+    deliveryMethod,
   );
+  const standardShipping = calculateOrderTotals(
+    items,
+    checkoutCurrency,
+    products,
+    settings,
+    activeCoupon?.discountPercent ?? 0,
+  ).shipping;
+  const deliveryOptions: { method: ShippingMethod; price: number }[] = [
+    { method: "standard", price: standardShipping },
+    ...(expressAvailable ? [{ method: "express" as const, price: EXPRESS_SHIPPING_GBP }] : []),
+  ];
 
   // Debounced, best-effort background save so an abandoned checkout can
   // still get a recovery email later — the cart itself never otherwise
@@ -261,6 +285,7 @@ export default function CheckoutPage() {
           items: cartItemsPayload(),
           customer: { fullName, phone },
           shipping: { street, city, state: stateRegion, postalCode, country },
+          shippingMethod: deliveryMethod,
           discountCode: activeCoupon?.code,
           success_url: `${window.location.origin}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${window.location.origin}/checkout`,
@@ -319,8 +344,7 @@ export default function CheckoutPage() {
             Fast, seamless checkout
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral/60">
-            No sign-in required. Your country automatically selects the correct
-            payment gateway.
+            Your country automatically selects the correct payment gateway.
           </p>
         </div>
       </section>
@@ -430,6 +454,45 @@ export default function CheckoutPage() {
                   placeholder="Postal code"
                 />
               </div>
+
+              <fieldset className="mt-6 space-y-3">
+                <legend className="mb-3 text-sm font-medium text-neutral">
+                  Delivery method
+                </legend>
+                {deliveryOptions.map((option) => {
+                  const selected = option.method === deliveryMethod;
+                  return (
+                    <label
+                      key={option.method}
+                      className={`flex cursor-pointer items-start justify-between gap-4 rounded-xl border px-4 py-3 transition ${
+                        selected ? "border-primary bg-primary/5" : "border-neutral/15 hover:border-primary/30"
+                      }`}
+                    >
+                      <span className="flex items-start gap-3">
+                        <input
+                          type="radio"
+                          name="delivery-method"
+                          value={option.method}
+                          checked={selected}
+                          onChange={() => setShippingMethod(option.method)}
+                          className="mt-1 h-4 w-4 accent-primary"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-neutral">
+                            {shippingMethodLabel(option.method)}
+                          </span>
+                          <span className="block text-xs text-neutral/60">
+                            {shippingEstimate(option.method, country)}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="text-sm font-semibold text-neutral">
+                        {option.price === 0 ? "FREE" : formatCurrency(option.price, checkoutCurrency)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
             </div>
 
             <div className="rounded-3xl border border-neutral/10 bg-white p-6 shadow-sm">
@@ -570,17 +633,13 @@ export default function CheckoutPage() {
                   />
                 )}
                 <Row
-                  label="Shipping"
+                  label={`Shipping (${shippingMethodLabel(deliveryMethod)})`}
                   value={
                     shipping === 0
                       ? "FREE"
                       : formatCurrency(shipping, checkoutCurrency)
                   }
                   accent={shipping === 0}
-                />
-                <Row
-                  label="VAT / Tax"
-                  value={formatCurrency(tax, checkoutCurrency)}
                 />
                 <Row
                   label="Gateway"

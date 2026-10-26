@@ -3,6 +3,7 @@ import { brandLogoDataUri } from "./brand-logo";
 import { Currency, Order } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
 import { contactEmail } from "@/lib/site-info";
+import { orderShippingLabel } from "@/lib/shipping";
 
 /**
  * The PDF's base font (Helvetica, the PDF spec's built-in default) only
@@ -117,15 +118,17 @@ function ReceiptDocument({ order }: { order: Order }) {
             </View>
           )}
           <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Shipping</Text>
+            <Text style={styles.totalsLabel}>{orderShippingLabel(order.shipping_address.shippingMethod)}</Text>
             <Text style={styles.totalsValue}>
               {order.shipping_cost === 0 ? "Free" : formatPdfCurrency(order.shipping_cost, order.currency)}
             </Text>
           </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Tax</Text>
-            <Text style={styles.totalsValue}>{formatPdfCurrency(order.tax, order.currency)}</Text>
-          </View>
+          {order.tax > 0 && (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>Tax</Text>
+              <Text style={styles.totalsValue}>{formatPdfCurrency(order.tax, order.currency)}</Text>
+            </View>
+          )}
           <View style={styles.grandTotalRow}>
             <Text style={styles.grandTotalLabel}>Total Paid</Text>
             <Text style={styles.grandTotalValue}>{formatPdfCurrency(order.total_amount, order.currency)}</Text>

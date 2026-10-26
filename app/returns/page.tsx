@@ -9,8 +9,8 @@ import { contactEmail } from '@/lib/site-info'
 const policyHighlights = [
   {
     icon: Clock,
-    title: '30-Day Returns',
-    description: 'Return any full-price item within 30 days of delivery, no questions asked.',
+    title: '14-Day Returns',
+    description: 'Return any full-price item within 14 days of delivery, no questions asked.',
   },
   {
     icon: RefreshCw,
@@ -20,7 +20,7 @@ const policyHighlights = [
   {
     icon: Package,
     title: 'Easy Process',
-    description: 'Email us, get a label, send it back. Refunds processed within 5–7 business days.',
+    description: 'Email us, get a label, send it back. Refunds processed within 5–7 business days. A £5 processing fee may apply.',
   },
 ]
 
@@ -47,14 +47,14 @@ const returnSteps = [
     step: 4,
     title: 'Refund or Exchange',
     description:
-      'Once we receive and inspect your return, we\'ll process your refund within 5–7 business days, or dispatch your exchange immediately.',
+      'Once we receive and inspect your return, we\'ll process your refund within 5–7 business days, or dispatch your exchange immediately. A refund processing fee of £5 may be deducted.',
   },
 ]
 
 const eligible = [
   'Unworn, unwashed, and in original condition',
   'All tags and packaging intact',
-  'Returned within 30 days of delivery',
+  'Returned within 14 days of delivery',
   'Full-price items',
 ]
 
@@ -77,7 +77,7 @@ export default function ReturnsPage() {
             Returns & Exchanges
           </h1>
           <p className="text-neutral/60 mt-4 max-w-lg mx-auto">
-            Hassle-free returns within 30 days. Your satisfaction is our priority.
+            Hassle-free returns within 14 days. Your satisfaction is our priority.
           </p>
         </div>
       </section>

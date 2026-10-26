@@ -1,12 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { StoreImage } from "@/components/store-image";
 import { cn } from "@/lib/utils";
-import { categoryLabels, howToMeasureImage, type SizeCategory } from "@/lib/size-guide-data";
+import { howToMeasureImage } from "@/lib/size-guide-data";
 
 /** The general measuring guide; tapping it opens the full-resolution image. */
 export function HowToMeasureImage({ className }: { className?: string }) {
@@ -40,13 +39,11 @@ export function SizeGuideDialog({
   onClose,
   productName,
   sizeGuideImage,
-  sizeCategory,
 }: {
   open: boolean;
   onClose: () => void;
   productName: string;
   sizeGuideImage?: string | null;
-  sizeCategory: SizeCategory | null;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -118,21 +115,12 @@ export function SizeGuideDialog({
           <section>
             <h3 className="mb-1 text-sm font-semibold uppercase tracking-[0.16em]">How to measure</h3>
             <p className="mb-3 text-sm text-neutral/60">
-              Take your measurements, then match them to the size chart{sizeGuideImage ? " above" : ""}.
+              {sizeGuideImage
+                ? "Take your measurements, then match them to the size chart above."
+                : "Take your measurements before choosing your size."}
             </p>
             <HowToMeasureImage />
           </section>
-
-          {/* The general category chart, only when this product has no chart of its own. */}
-          {sizeCategory && !sizeGuideImage && (
-            <Link
-              href={`/size-guide?category=${sizeCategory}#size-chart`}
-              className="mt-6 inline-flex items-center gap-2 border-b-2 border-primary pb-1 text-sm font-semibold transition hover:opacity-70"
-            >
-              See our {categoryLabels[sizeCategory].toLowerCase()} size chart
-              <ArrowRight size={16} />
-            </Link>
-          )}
         </div>
       </div>
     </dialog>

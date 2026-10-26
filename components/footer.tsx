@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Mail, MapPin, Phone, Clock } from "lucide-react";
+import { ArrowRight, Mail, MapPin, Clock } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { ShopLink } from "@/components/shop-link";
 import { contactEmail } from "@/lib/site-info";
@@ -120,29 +120,6 @@ export default function Footer() {
                 >
                   {contactEmail}
                 </a>
-              </li>
-              <li className="flex gap-3">
-                <Phone size={16} className="shrink-0 mt-0.5" />
-                <div>
-                  <p>
-                    Mobile:{" "}
-                    <a
-                      href="tel:+447776686876"
-                      className="hover:text-white transition"
-                    >
-                      +44 7776 686876
-                    </a>
-                  </p>
-                  <p>
-                    Hotline:{" "}
-                    <a
-                      href="tel:+447776686876"
-                      className="hover:text-white transition"
-                    >
-                      +44 7776 686876
-                    </a>
-                  </p>
-                </div>
               </li>
               <li className="flex gap-3">
                 <MapPin size={16} className="shrink-0 mt-0.5" />

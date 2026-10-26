@@ -1,5 +1,6 @@
 import { Currency, OrderItem, Product } from "./types";
 import type { StoreSettings } from "./server/settings";
+import { EXPRESS_SHIPPING_GBP, type ShippingMethod } from "./shipping";
 
 export const currencySymbols: Record<Currency, string> = {
   GBP: "£",
@@ -54,15 +55,19 @@ export interface OrderTotals {
  * the same data via GET /api/products and GET /api/settings) — it doesn't
  * need to know or care where either list came from.
  *
- * Tax and shipping are keyed by currency (not country) since currency is
+ * Standard shipping is keyed by currency (not country) since currency is
  * already deterministic from the gateway/country choice made earlier in
  * checkout — this is what makes the admin's Settings page numbers the same
- * ones actually charged, not a separate copy that can drift.
+ * ones actually charged, not a separate copy that can drift. Express is a
+ * fixed GBP price; callers check the address is in the UK before offering it.
+ *
+ * No VAT is added on top: prices are charged as listed, so `tax` is always 0
+ * (the field stays for orders recorded before VAT was removed).
  *
  * `discountPercent` (0 unless a validated coupon is applied) comes off the
- * raw subtotal before tax, matching what buildOrderItems bakes into each
- * item's unit price — `subtotal` here is already the discounted figure,
- * `discount` is the amount that was taken off, kept only for display.
+ * raw subtotal, matching what buildOrderItems bakes into each item's unit
+ * price — `subtotal` here is already the discounted figure, `discount` is
+ * the amount that was taken off, kept only for display.
  */
 export function calculateOrderTotals(
   items: { product_id: string; quantity: number }[],
@@ -70,19 +75,21 @@ export function calculateOrderTotals(
   products: Product[],
   settings: StoreSettings,
   discountPercent = 0,
+  shippingMethod: ShippingMethod = "standard",
 ): OrderTotals {
   const productLookup = new Map(products.map((product) => [product.id, product]));
   const rawMinor = items.reduce((sum, item) => sum + Math.round(getProductPriceForCurrency(productLookup.get(item.product_id), currency) * 100) * item.quantity, 0);
   const subtotalMinor = items.reduce((sum, item) => sum + Math.round(getProductPriceForCurrency(productLookup.get(item.product_id), currency) * (1 - discountPercent / 100) * 100) * item.quantity, 0);
   const discount = (rawMinor - subtotalMinor) / 100;
   const subtotal = subtotalMinor / 100;
-  const shippingMinor = subtotal >= settings.shippingThreshold[currency] ? 0 : Math.round(settings.shippingCost[currency] * 100);
-  const taxMinor = Math.round(subtotalMinor * settings.tax[currency] / 100);
+  if (shippingMethod === "express" && currency !== "GBP") throw new Error("Express delivery is only available in the UK.");
+  const shippingMinor = shippingMethod === "express"
+    ? Math.round(EXPRESS_SHIPPING_GBP * 100)
+    : subtotal >= settings.shippingThreshold[currency] ? 0 : Math.round(settings.shippingCost[currency] * 100);
   const shipping = shippingMinor / 100;
-  const tax = taxMinor / 100;
-  const total = (subtotalMinor + shippingMinor + taxMinor) / 100;
+  const total = (subtotalMinor + shippingMinor) / 100;
 
-  return { subtotal, shipping, tax, total, discount };
+  return { subtotal, shipping, tax: 0, total, discount };
 }
 
 export interface OrderItemInput {

@@ -30,7 +30,7 @@ function CartContent() {
   const { products, isLoading, error } = useProducts();
   const { currency } = useRegion();
   const shippingThreshold = settings.shippingThreshold[currency];
-  const { subtotal, shipping, tax, total } = calculateOrderTotals(items, currency, products, settings);
+  const { subtotal, shipping, total } = calculateOrderTotals(items, currency, products, settings);
   const pricesReady = !isLoading && !error;
   const priceLabel = (amount: number) => pricesReady ? formatCurrency(amount, currency) : "—";
 
@@ -152,7 +152,7 @@ function CartContent() {
                 <span className="font-medium">{priceLabel(subtotal)}</span>
               </div>
               <div className="flex justify-between gap-4">
-                <span>Shipping</span>
+                <span>Standard shipping</span>
                 <span
                   className={
                     shipping === 0 ? "text-primary font-medium" : "font-medium"
@@ -160,10 +160,6 @@ function CartContent() {
                 >
                   {pricesReady && shipping === 0 ? "FREE" : priceLabel(shipping)}
                 </span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span>Tax (VAT)</span>
-                <span className="font-medium">{priceLabel(tax)}</span>
               </div>
             </div>
 
@@ -173,7 +169,7 @@ function CartContent() {
             </div>
 
             <p className="text-xs text-neutral/60">
-              {error ? "Prices could not be loaded. Please refresh to try again." : isLoading ? "Loading current prices…" : "Estimated total. Delivery country and discounts are confirmed at checkout."}
+              {error ? "Prices could not be loaded. Please refresh to try again." : isLoading ? "Loading current prices…" : "Estimated total. Delivery country, express delivery and discounts are confirmed at checkout."}
             </p>
 
             {/* Checkout */}
@@ -192,7 +188,7 @@ function CartContent() {
 
             {/* Trust Badges */}
             <div className="pt-4 border-t border-neutral/10 space-y-2 text-xs text-neutral/60">
-              <p>✓ 30-day returns</p>
+              <p>✓ 14-day returns</p>
               <p>✓ Secure checkout</p>
               <p>✓ Free shipping from {formatCurrency(shippingThreshold, currency)}</p>
             </div>

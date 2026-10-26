@@ -1,3 +1,5 @@
+import type { ShippingMethod } from './shipping'
+
 // Category ids (slugs) are managed by admins — see lib/categories.ts.
 export type ProductCategory = string
 
@@ -63,6 +65,8 @@ export interface Address {
   state: string
   postalCode: string
   country: string
+  /** Absent on orders placed before customers could choose express. */
+  shippingMethod?: ShippingMethod
 }
 
 export interface OrderItem {

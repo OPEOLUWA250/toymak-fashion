@@ -110,8 +110,9 @@ export default function TermsPage() {
             8. Returns, Exchanges &amp; Refunds
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
-            Full details of what&apos;s eligible for return or exchange, and how the process
-            works, are set out on our{" "}
+            Items may be returned within 14 days of delivery, and a refund processing fee of
+            £5 may be deducted from refunds. Full details of what&apos;s eligible for return or
+            exchange, and how the process works, are set out on our{" "}
             <Link href="/returns" className="text-primary hover:underline">
               Returns &amp; Exchanges
             </Link>{" "}
