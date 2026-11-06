@@ -4,7 +4,7 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/seo";
 import { contactEmail } from "@/lib/site-info";
 
-const LAST_UPDATED = "22 August 2026";
+const LAST_UPDATED = "6 November 2026";
 
 export const metadata = pageMetadata({
   title: "Privacy Policy",
@@ -111,6 +111,10 @@ export default function PrivacyPage() {
               To understand how customers use the site, so we can improve it (using
               aggregated, non-identifying analytics wherever possible).
             </li>
+            <li>
+              Only if you accept marketing cookies: to measure how well our Facebook and Instagram
+              ads work and to show you more relevant ads.
+            </li>
             <li>To comply with our legal and tax obligations.</li>
           </ul>
 
@@ -119,13 +123,15 @@ export default function PrivacyPage() {
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             Under UK GDPR, we rely on the following legal bases: performance of a contract
-            (fulfilling an order you&apos;ve placed), consent (marketing emails and the
-            discount-code signup), and legitimate interests (keeping the site secure and
+            (fulfilling an order you&apos;ve placed), consent (marketing emails, marketing cookies
+            and the discount-code signup), and legitimate interests (keeping the site secure and
             understanding how it&apos;s used). Where we rely on consent, you may withdraw it
             at any time.
           </p>
 
-          <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">5. Cookies</h2>
+          <h2 id="cookies" className="mb-4 mt-12 scroll-mt-28 text-2xl font-bold text-neutral">
+            5. Cookies
+          </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             We use a small number of cookies and similar technologies — to remember what
             you&apos;ve added to your cart or wishlist, to keep you signed out of the popup
@@ -134,14 +140,24 @@ export default function PrivacyPage() {
             delete cookies through your browser settings at any time; doing so may affect
             how some features of the site work.
           </p>
+          <p className="mt-4 text-sm leading-7 text-neutral/70 sm:text-base">
+            <span className="font-medium text-neutral">Marketing cookies (Meta Pixel).</span>{" "}
+            Only if you accept them in our cookie banner, we use the Meta Pixel to measure how
+            well our Facebook and Instagram ads work and to show you more relevant ads. It tells
+            Meta the pages you view, the products you look at or add to your bag, when you start
+            checkout, and the value of what you buy, along with technical details such as your IP
+            address and browser. Meta may link this to your Meta account and use it as described
+            in its own privacy policy. If you decline, none of this happens. You can change your
+            choice at any time using the Cookie Settings link at the bottom of every page.
+          </p>
 
           <h2 className="mb-4 mt-12 text-2xl font-bold text-neutral">
             6. Who We Share Your Information With
           </h2>
           <p className="text-sm leading-7 text-neutral/70 sm:text-base">
             We don&apos;t sell your personal information. We share it only with the trusted
-            service providers who help us run the store, each bound to only use it for the
-            purpose we provide it:
+            service providers who help us run the store. Other than Meta, as explained below, each
+            is bound to only use it for the purpose we provide it:
           </p>
           <ul className="list-disc space-y-2 pl-5 text-sm leading-7 text-neutral/70 sm:text-base">
             <li>
@@ -157,6 +173,11 @@ export default function PrivacyPage() {
                 Our hosting and analytics providers
               </span>{" "}
               — to keep the site running and help us understand how it&apos;s used.
+            </li>
+            <li>
+              <span className="font-medium text-neutral">Meta Platforms</span> — only if you
+              accept marketing cookies, to measure and personalise our ads. Meta decides how it
+              uses this information for its own purposes, under its own privacy policy.
             </li>
             <li>
               <span className="font-medium text-neutral">Delivery couriers</span> — your name

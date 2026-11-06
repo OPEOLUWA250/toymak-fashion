@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Mail, MapPin, Clock } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { CookieSettingsButton } from "@/components/cookie-banner";
 import { ShopLink } from "@/components/shop-link";
 import { contactEmail } from "@/lib/site-info";
 
@@ -147,6 +148,7 @@ export default function Footer() {
               <Link href="/terms" className="hover:text-white transition">
                 Terms of Service
               </Link>
+              <CookieSettingsButton className="hover:text-white transition" />
             </div>
           </div>
         </div>

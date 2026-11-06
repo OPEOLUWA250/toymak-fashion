@@ -11,6 +11,8 @@ import { FitFinder } from "@/components/fit-finder";
 import { sizeChart, type SizeCategory } from "@/lib/size-guide-data";
 import { useRegion } from "@/lib/region-context";
 import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { useCookieConsent } from "@/lib/cookie-consent";
+import { trackAddToCart, trackViewContent } from "@/lib/meta-pixel";
 
 function isSizeCategory(category: string): category is SizeCategory {
   return category in sizeChart;
@@ -32,6 +34,13 @@ export default function ProductClient({
   useEffect(() => {
     recordProductView(product.id);
   }, [product.id]);
+
+  // Follows consent so a visitor landing here from an ad still counts when
+  // they accept the cookie banner after the page has loaded.
+  const consent = useCookieConsent();
+  useEffect(() => {
+    if (consent === "granted") trackViewContent(product);
+  }, [product, consent]);
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState(
@@ -66,6 +75,7 @@ export default function ProductClient({
       price_at_addition: product.price_gbp,
       image_url: product.images[0],
     });
+    trackAddToCart(product, quantity);
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 2500);
   };

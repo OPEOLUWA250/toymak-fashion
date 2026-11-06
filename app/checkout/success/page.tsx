@@ -9,21 +9,51 @@ import { ReceiptDownloadForm } from "@/components/receipt-download-form";
 import { useCart } from "@/lib/cart-context";
 import { formatCurrency } from "@/lib/pricing";
 import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
+import { useCookieConsent } from "@/lib/cookie-consent";
+import { trackPurchaseOnce } from "@/lib/meta-pixel";
 import { Order, PaymentGateway } from "@/lib/types";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 
 type VerifyState = "loading" | "success" | "failed" | "error";
+type PaymentRef = { gateway: PaymentGateway; paymentId: string | null };
 
 const gatewayLabels: Record<PaymentGateway, string> = {
   paystack: "Paystack",
   stripe: "Stripe",
 };
 
-function CheckoutSuccessContent() {
-  const searchParams = useSearchParams();
+const CONFIRMED_PAYMENT_KEY = "toymak-confirmed-payment";
+
+function readPaymentRef(searchParams: ReturnType<typeof useSearchParams>): PaymentRef {
   const gateway: PaymentGateway = searchParams.get("gateway") === "stripe" ? "stripe" : "paystack";
   const paymentId =
     gateway === "stripe" ? searchParams.get("session_id") : searchParams.get("reference");
+  if (paymentId) return { gateway, paymentId };
+  try {
+    return JSON.parse(sessionStorage.getItem(CONFIRMED_PAYMENT_KEY) ?? "") as PaymentRef;
+  } catch {
+    return { gateway, paymentId: null };
+  }
+}
+
+// The payment reference can look up the customer's details, so it comes out of
+// the address before the Purchase event reports that address to Meta. Saved for
+// this tab so a refresh still confirms the order. If storage is blocked the
+// address stays as it was, and the pixel won't send anything from it.
+function hidePaymentRef(payment: PaymentRef) {
+  try {
+    sessionStorage.setItem(CONFIRMED_PAYMENT_KEY, JSON.stringify(payment));
+    window.history.replaceState(null, "", window.location.pathname);
+  } catch {
+    // See above.
+  }
+}
+
+function CheckoutSuccessContent() {
+  const searchParams = useSearchParams();
+  // Kept from first render: hidePaymentRef changes what searchParams returns.
+  const [{ gateway, paymentId }] = useState(() => readPaymentRef(searchParams));
+  const consent = useCookieConsent();
   const { clearCart } = useCart();
   const [state, setState] = useState<VerifyState>("loading");
   const [order, setOrder] = useState<Order | null>(null);
@@ -65,6 +95,7 @@ function CheckoutSuccessContent() {
         });
         if (!confirmation.ok) throw new Error('Your payment was received, but order confirmation is delayed. Refresh this page or contact support with your payment reference. Do not pay again.');
         clearCart();
+        hidePaymentRef({ gateway, paymentId });
         setOrder(newOrder);
         setState('success');
       })
@@ -74,6 +105,12 @@ function CheckoutSuccessContent() {
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentId, gateway]);
+
+  // Follows consent so a customer who only accepts the banner on this page
+  // still has their purchase counted.
+  useEffect(() => {
+    if (order && consent === "granted") trackPurchaseOnce(order);
+  }, [order, consent]);
 
   return (
     <main className="bg-white">

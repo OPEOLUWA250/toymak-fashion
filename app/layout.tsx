@@ -1,6 +1,8 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { CookieBanner } from "@/components/cookie-banner";
+import { MetaPixel } from "@/components/meta-pixel";
 import { CartProvider } from "@/lib/cart-context";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import { RegionProvider } from "@/lib/region-context";
@@ -71,6 +73,8 @@ export default function RootLayout({
             <WishlistProvider>{children}</WishlistProvider>
           </CartProvider>
         </RegionProvider>
+        <CookieBanner />
+        <MetaPixel />
         {process.env.NODE_ENV === "production" && <Analytics />}
         {/* Same live Chatway widget already running on toymakenterprise.co.uk
             (reusing the existing account/inbox, per the owner's choice) —
