@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { StoreSettings } from "./server/settings";
+import { DEFAULT_EXPRESS_SHIPPING_GBP } from "./shipping";
 
 const FALLBACK_SETTINGS: StoreSettings = {
   tax: { GBP: 20, NGN: 7.5, USD: 0 },
   shippingThreshold: { GBP: 50, NGN: 50000, USD: 60 },
-  shippingCost: { GBP: 7.99, NGN: 7999, USD: 9.99 },
+  shippingCost: { GBP: 4.99, NGN: 7999, USD: 9.99 },
+  expressShippingGBP: DEFAULT_EXPRESS_SHIPPING_GBP,
   exchangeRates: { gbpToNgn: 2000, gbpToUsd: 1.27 },
   welcomeDiscountPercent: 15,
   announcementEnabled: false,

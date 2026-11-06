@@ -1,6 +1,6 @@
 import { Currency, OrderItem, Product } from "./types";
 import type { StoreSettings } from "./server/settings";
-import { EXPRESS_SHIPPING_GBP, type ShippingMethod } from "./shipping";
+import type { ShippingMethod } from "./shipping";
 
 export const currencySymbols: Record<Currency, string> = {
   GBP: "£",
@@ -59,7 +59,8 @@ export interface OrderTotals {
  * already deterministic from the gateway/country choice made earlier in
  * checkout — this is what makes the admin's Settings page numbers the same
  * ones actually charged, not a separate copy that can drift. Express is a
- * fixed GBP price; callers check the address is in the UK before offering it.
+ * flat GBP price from Settings that never becomes free; callers check the
+ * address is in the UK before offering it.
  *
  * No VAT is added on top: prices are charged as listed, so `tax` is always 0
  * (the field stays for orders recorded before VAT was removed).
@@ -84,7 +85,7 @@ export function calculateOrderTotals(
   const subtotal = subtotalMinor / 100;
   if (shippingMethod === "express" && currency !== "GBP") throw new Error("Express delivery is only available in the UK.");
   const shippingMinor = shippingMethod === "express"
-    ? Math.round(EXPRESS_SHIPPING_GBP * 100)
+    ? Math.round(settings.expressShippingGBP * 100)
     : subtotal >= settings.shippingThreshold[currency] ? 0 : Math.round(settings.shippingCost[currency] * 100);
   const shipping = shippingMinor / 100;
   const total = (subtotalMinor + shippingMinor) / 100;

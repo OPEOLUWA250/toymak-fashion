@@ -5,7 +5,7 @@ const { calculateOrderTotals, buildOrderItems } = load('lib/pricing.ts');
 const { validateCheckoutItems } = load('lib/checkout-validation.ts');
 const products = [{ id:'p',name:'Bra',price_gbp:28.99,price_ngn:57980,price_usd:36.82,stock_qty:5,sizes:['M'],colors:[{name:'Black'}],status:'active' }];
 const item = { product_id:'p',quantity:3,size:'M',color:'Black' };
-const settings = { shippingThreshold:{GBP:100,NGN:100000,USD:100},shippingCost:{GBP:3.99,NGN:2000,USD:5},tax:{GBP:20,NGN:0,USD:5} };
+const settings = { shippingThreshold:{GBP:100,NGN:100000,USD:100},shippingCost:{GBP:3.99,NGN:2000,USD:5},expressShippingGBP:8.49,tax:{GBP:20,NGN:0,USD:5} };
 test('discounted line items and checkout totals agree to the penny', () => {
   for (const currency of ['GBP','NGN','USD']) {
     const totals = calculateOrderTotals([item], currency, products, settings, 15);
@@ -22,9 +22,9 @@ test('no VAT is added, whatever tax rate is still saved in settings', () => {
   assert.equal(totals.tax, 0);
   assert.equal(Math.round(totals.total*100), Math.round((totals.subtotal+totals.shipping)*100));
 });
-test('express is a fixed UK price that never becomes free, and is refused outside GBP', () => {
+test('express is the flat UK price from settings, never becomes free, and is refused outside GBP', () => {
   const big = [{...products[0],price_gbp:500}];
-  assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'express').shipping,6.99);
+  assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'express').shipping,8.49);
   assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'standard').shipping,0);
   assert.throws(()=>calculateOrderTotals([item],'NGN',products,settings,0,'express'));
   const { isExpressAvailable } = load('lib/shipping.ts');

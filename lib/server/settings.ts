@@ -1,10 +1,12 @@
 import { getSupabaseAdmin } from "./supabase";
 import { Currency } from "../types";
+import { DEFAULT_EXPRESS_SHIPPING_GBP } from "../shipping";
 
 export interface StoreSettings {
   tax: Record<Currency, number>; // percent — 20 means 20%
   shippingThreshold: Record<Currency, number>; // free shipping above this subtotal
   shippingCost: Record<Currency, number>;
+  expressShippingGBP: number; // UK-only, flat, never free
   exchangeRates: {
     gbpToNgn: number;
     gbpToUsd: number;
@@ -26,6 +28,7 @@ interface SettingsRow {
   shipping_cost_ngn: number;
   shipping_threshold_usd: number;
   shipping_cost_usd: number;
+  express_shipping_gbp?: number | null;
   exchange_rate_gbp_to_ngn: number;
   exchange_rate_gbp_to_usd: number;
   welcome_discount_percent: number;
@@ -52,6 +55,7 @@ function rowToSettings(row: SettingsRow): StoreSettings {
       NGN: Number(row.shipping_cost_ngn),
       USD: Number(row.shipping_cost_usd),
     },
+    expressShippingGBP: Number(row.express_shipping_gbp ?? DEFAULT_EXPRESS_SHIPPING_GBP),
     exchangeRates: {
       gbpToNgn: Number(row.exchange_rate_gbp_to_ngn),
       gbpToUsd: Number(row.exchange_rate_gbp_to_usd),
@@ -88,6 +92,7 @@ export async function updateStoreSettings(settings: StoreSettings): Promise<Stor
       shipping_cost_ngn: settings.shippingCost.NGN,
       shipping_threshold_usd: settings.shippingThreshold.USD,
       shipping_cost_usd: settings.shippingCost.USD,
+      express_shipping_gbp: settings.expressShippingGBP,
       exchange_rate_gbp_to_ngn: settings.exchangeRates.gbpToNgn,
       exchange_rate_gbp_to_usd: settings.exchangeRates.gbpToUsd,
       welcome_discount_percent: settings.welcomeDiscountPercent,

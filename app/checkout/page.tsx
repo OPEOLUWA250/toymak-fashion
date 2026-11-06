@@ -11,8 +11,9 @@ import { useRegion } from "@/lib/region-context";
 import { getCheckoutCurrency, getPaymentGatewayForCountry, PAYSTACK_ENABLED } from "@/lib/utils";
 import { calculateOrderTotals, formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
 import { canonicalEmail } from "@/lib/email-identity";
+import { useCookieConsent } from "@/lib/cookie-consent";
+import { trackInitiateCheckout } from "@/lib/meta-pixel";
 import {
-  EXPRESS_SHIPPING_GBP,
   isExpressAvailable,
   shippingEstimate,
   shippingMethodLabel,
@@ -151,8 +152,18 @@ export default function CheckoutPage() {
   ).shipping;
   const deliveryOptions: { method: ShippingMethod; price: number }[] = [
     { method: "standard", price: standardShipping },
-    ...(expressAvailable ? [{ method: "express" as const, price: EXPRESS_SHIPPING_GBP }] : []),
+    ...(expressAvailable ? [{ method: "express" as const, price: settings.expressShippingGBP }] : []),
   ];
+
+  // Waits for the catalog, because the subtotal is 0 until prices have loaded.
+  const consent = useCookieConsent();
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (consent !== "granted" || checkoutTracked.current) return;
+    if (items.length === 0 || products.length === 0) return;
+    checkoutTracked.current = true;
+    trackInitiateCheckout(items, subtotal, checkoutCurrency);
+  }, [consent, items, products, subtotal, checkoutCurrency]);
 
   // Debounced, best-effort background save so an abandoned checkout can
   // still get a recovery email later — the cart itself never otherwise

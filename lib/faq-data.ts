@@ -16,7 +16,7 @@ export const faqSections: FaqSection[] = [
     questions: [
       {
         q: 'How long does delivery take?',
-        a: 'Standard delivery within the UK takes 2–4 business days. UK Express delivery (£6.99) arrives in 1 business day when you order Monday to Friday before 1pm. International orders typically arrive within 7–14 business days depending on your location.',
+        a: 'Standard delivery within the UK takes 2–4 business days. UK Express delivery arrives in 1 business day when you order Monday to Friday before 1pm, and its price is shown at checkout. International orders typically arrive within 7–14 business days depending on your location.',
       },
       {
         q: 'Is shipping free?',

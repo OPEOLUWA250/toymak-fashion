@@ -53,6 +53,11 @@ export function SettingsView() {
     setSaved(false);
   };
 
+  const updateExpressShipping = (value: number) => {
+    setSettings((current) => (current ? { ...current, expressShippingGBP: value } : current));
+    setSaved(false);
+  };
+
   const updateWelcomeDiscount = (value: number) => {
     setSettings((current) => (current ? { ...current, welcomeDiscountPercent: value } : current));
     setSaved(false);
@@ -115,9 +120,8 @@ export function SettingsView() {
       {saved && <p role="status" className="text-sm text-emerald-700">Settings saved.</p>}
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="text-sm leading-6 text-neutral-600">
-          These numbers drive real checkout math — the standard shipping a customer is actually
-          charged comes straight from what&apos;s saved here. No VAT is added at checkout, and
-          UK express delivery is a fixed £6.99.
+          These numbers drive real checkout math — the standard and express shipping a customer
+          is actually charged come straight from what&apos;s saved here. No VAT is added at checkout.
         </p>
         <button
           type="button"
@@ -324,6 +328,25 @@ export function SettingsView() {
             </div>
           ))}
         </div>
+        <label className="mt-3 block max-w-xs rounded-xl border border-neutral-100 px-4 py-3 text-sm font-medium text-neutral-700">
+          UK express delivery
+          <span className="block text-xs font-normal text-neutral-500">Flat price, never free — UK only</span>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="text-sm text-neutral-500">£</span>
+            <NumberInput
+              step="0.01"
+              min="0"
+              value={settings.expressShippingGBP}
+              onValueChange={updateExpressShipping}
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-primary"
+            />
+          </div>
+        </label>
+        {settings.expressShippingGBP <= settings.shippingCost.GBP && (
+          <p className="mt-2 text-xs text-amber-700">
+            Express costs the same as or less than GBP standard shipping (£{settings.shippingCost.GBP}).
+          </p>
+        )}
       </div>
 
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
