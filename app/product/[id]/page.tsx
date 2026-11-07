@@ -90,7 +90,7 @@ function productJsonLd(product: Product, category: string, reviews: Review[], av
               "@type": "MerchantReturnPolicy",
               applicableCountry: "GB",
               returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
-              merchantReturnDays: 30,
+              merchantReturnDays: 14,
               returnMethod: "https://schema.org/ReturnByMail",
               returnFees: "https://schema.org/FreeReturn",
             },

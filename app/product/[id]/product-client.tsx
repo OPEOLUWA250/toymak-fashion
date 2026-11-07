@@ -10,7 +10,9 @@ import { Product } from "@/lib/types";
 import { FitFinder } from "@/components/fit-finder";
 import { sizeChart, type SizeCategory } from "@/lib/size-guide-data";
 import { useRegion } from "@/lib/region-context";
-import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { getProductPriceForCurrency } from "@/lib/pricing";
+import { compareAtFor } from "@/lib/sale-price";
+import { SalePrice } from "@/components/sale-price";
 import { useCookieConsent } from "@/lib/cookie-consent";
 import { trackAddToCart, trackViewContent } from "@/lib/meta-pixel";
 
@@ -111,10 +113,8 @@ export default function ProductClient({
         <h1 className="text-4xl md:text-5xl font-bold text-neutral leading-tight mb-3">
           {product.name}
         </h1>
-        <div className="flex items-center gap-4 mb-5">
-          <span className="text-3xl md:text-4xl text-primary font-bold">
-            {formatCurrency(displayPrice, currency)}
-          </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 mb-5">
+          <SalePrice size="lg" price={displayPrice} compareAt={compareAtFor(product, displayPrice)} currency={currency} />
           <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             {product.featured ? "Best Seller" : "New Arrival"}
           </span>

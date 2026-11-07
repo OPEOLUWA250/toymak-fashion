@@ -8,7 +8,9 @@ import { Product } from "@/lib/types";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useProductRatings } from "@/lib/use-reviews";
 import { useRegion } from "@/lib/region-context";
-import { formatCurrency, getProductPriceForCurrency } from "@/lib/pricing";
+import { getProductPriceForCurrency } from "@/lib/pricing";
+import { compareAtFor } from "@/lib/sale-price";
+import { SalePrice } from "@/components/sale-price";
 import { productPath } from "@/lib/product-url";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -22,25 +24,9 @@ export function ProductCard({ product }: { product: Product }) {
   const lowStock = !outOfStock && product.stock_qty <= product.low_stock_threshold;
   const secondaryImage = product.images[1];
 
-  const onSale =
-    product.compare_at_price_gbp !== undefined &&
-    product.compare_at_price_gbp > product.price_gbp;
-  const discountPercent = onSale
-    ? Math.round(
-        ((product.compare_at_price_gbp! - product.price_gbp) /
-          product.compare_at_price_gbp!) *
-          100,
-      )
-    : 0;
-
-  // The sale badge/compare-at price are only ever set in GBP in the admin
-  // (compare_at_price_gbp), so the strike-through price converts along with
-  // the currency switcher using the exact price ratio, not the rounded badge.
   const displayPrice = getProductPriceForCurrency(product, currency);
-  const displayComparePrice =
-    onSale && product.compare_at_price_gbp !== undefined && product.price_gbp > 0
-      ? displayPrice * (product.compare_at_price_gbp / product.price_gbp)
-      : undefined;
+  // The crossed-out price follows the currency switcher by the exact sale ratio.
+  const displayComparePrice = compareAtFor(product, displayPrice);
 
   return (
     <Link href={productPath(product)} className="group block">
@@ -63,11 +49,6 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         <div className="absolute left-2 top-2 flex flex-col items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
-          {onSale && (
-            <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
-              -{discountPercent}%
-            </span>
-          )}
           {product.featured && (
             <span className="rounded-full bg-neutral px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
               Bestseller
@@ -119,16 +100,7 @@ export function ProductCard({ product }: { product: Product }) {
       )}
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:mt-3">
-        <div className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-sm font-bold text-primary sm:text-base">
-            {formatCurrency(displayPrice, currency)}
-          </span>
-          {onSale && displayComparePrice !== undefined && (
-            <span className="text-xs text-neutral/40 line-through sm:text-sm">
-              {formatCurrency(displayComparePrice, currency)}
-            </span>
-          )}
-        </div>
+        <SalePrice price={displayPrice} compareAt={displayComparePrice} currency={currency} />
         <div className="flex items-center gap-1.5">
           {product.colors.slice(0, 4).map((color) => (
             <span

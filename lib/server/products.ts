@@ -58,6 +58,7 @@ function productToRow(product: Product) {
   if (typeof product.category !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(product.category)) throw new Error('Choose a category.');
   for (const value of [product.stock_qty, product.low_stock_threshold]) if (!Number.isSafeInteger(value) || value < 0) throw new Error('Stock quantities must be nonnegative whole numbers.');
   for (const value of [product.price_gbp, product.price_ngn, product.price_usd ?? 0]) if (!Number.isFinite(value) || value < 0) throw new Error('Prices must be nonnegative numbers.');
+  if (product.compare_at_price_gbp != null && !(Number.isFinite(product.compare_at_price_gbp) && product.compare_at_price_gbp > product.price_gbp && product.price_gbp > 0)) throw new Error('The sale price must be lower than the regular price.');
   const variants = product.variants ?? [];
   const seen = new Set<string>();
   for (const variant of variants) {

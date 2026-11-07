@@ -10,6 +10,22 @@ import { ColorDraft, ProductColorsField, ProductSizesField } from "./product-opt
 import { StoreImage } from "@/components/store-image";
 import { useCategories } from "@/lib/use-categories";
 import { categoryLabel } from "@/lib/categories";
+import { formatCurrency } from "@/lib/pricing";
+import { applySale, isOnSale, regularPrices, salePercent, type RegularPrices } from "@/lib/sale-price";
+
+/** What the sale field means right now: the prices it would save, its percentage, or why it can't be used. */
+function saleState(regular: RegularPrices, input: string) {
+  const text = input.trim();
+  const saleGbp = text === "" ? null : Number(text);
+  let error: string | null = null;
+  if (saleGbp !== null) {
+    if (!Number.isFinite(saleGbp) || saleGbp <= 0) error = "Enter a sale price above £0, or clear it to end the sale.";
+    else if (!(regular.gbp > 0)) error = "Enter the regular £ price first.";
+    else if (saleGbp >= regular.gbp) error = `The sale price must be lower than the regular price of ${formatCurrency(regular.gbp, "GBP")}.`;
+  }
+  const prices = applySale(regular, error ? null : saleGbp);
+  return { prices, error, percent: prices.compare_at_price_gbp ? salePercent(prices.compare_at_price_gbp, prices.price_gbp) : 0 };
+}
 
 interface ProductFormModalProps {
   product: Product | null;
@@ -27,9 +43,12 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   const [name, setName] = useState(product?.name ?? "");
   const [category, setCategory] = useState<ProductCategory>(product?.category ?? categories[0]?.id ?? "shapewear");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [priceGbp, setPriceGbp] = useState(product ? String(product.price_gbp) : "");
-  const [priceNgn, setPriceNgn] = useState(product ? String(product.price_ngn) : "");
-  const [priceUsd, setPriceUsd] = useState(product?.price_usd ? String(product.price_usd) : "");
+  // The form edits regular prices; a product on sale stores its sale prices, so work back to them.
+  const regular = product ? regularPrices(product) : null;
+  const [priceGbp, setPriceGbp] = useState(regular ? String(regular.gbp) : "");
+  const [priceNgn, setPriceNgn] = useState(regular ? String(regular.ngn) : "");
+  const [priceUsd, setPriceUsd] = useState(regular?.usd ? String(regular.usd) : "");
+  const [salePriceGbp, setSalePriceGbp] = useState(product && isOnSale(product) ? String(product.price_gbp) : "");
   // Tracks whether NGN/USD were hand-edited, so the GBP-driven suggestion
   // below only ever fills an empty field — it never overwrites a price the
   // admin actually chose (e.g. her real NGN prices aren't FX conversions).
@@ -78,6 +97,11 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     }
   };
 
+  const sale = saleState(
+    { gbp: Number(priceGbp) || 0, ngn: Number(priceNgn) || 0, usd: Number(priceUsd) || 0 },
+    salePriceGbp,
+  );
+
   const handleFileSelect = async (files: File[]) => {
     if (!files.length) return;
     setPendingUploads((count) => count + 1);
@@ -115,6 +139,10 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isUploading || sizeGuideUploading || isSaving) return;
+    if (sale.error) {
+      setSaveError(sale.error);
+      return;
+    }
     setSaveError(null);
     setIsSaving(true);
     const now = new Date();
@@ -128,19 +156,17 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
     const normalizedVariants = variants.length ? (sizes.length ? sizes : ['Not applicable']).flatMap(size => (colors.length ? colors.map(c => c.name.trim()) : ['Default']).map(color => ({ size, color, stock: variants.find(v => v.size === size && v.color === color)?.stock ?? 0 }))) : [];
     const nextProduct: Product = {
       status, variants: normalizedVariants,
-      id: product?.id ?? `prod-${Date.now()}`,
+      id: product?.id ?? `prod-${now.getTime()}`,
       created_at: product?.created_at ?? now,
       // The version being edited; the server refuses the save if it's stale.
       updated_at: product?.updated_at ?? now,
       longDescription: product?.longDescription,
-      compare_at_price_gbp: product?.compare_at_price_gbp,
       name: name.trim(),
       sku: product?.sku ?? "",
       category,
       description: description.trim(),
-      price_gbp: Number(priceGbp) || 0,
-      price_ngn: Number(priceNgn) || 0,
-      price_usd: Number(priceUsd) || 0,
+      // Sale or regular prices in every currency, plus the regular GBP price when on sale.
+      ...sale.prices,
       stock_qty: normalizedVariants.length ? normalizedVariants.reduce((sum, v) => sum + v.stock, 0) : Number(stockQty) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 0,
       sizes,
@@ -251,7 +277,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
             <div className="grid gap-4 sm:grid-cols-3">
               <Field
                 id="product-price-gbp"
-                label="Price (£)"
+                label="Regular price (£)"
                 value={priceGbp}
                 onChange={handleGbpChange}
                 type="number"
@@ -259,7 +285,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
               />
               <Field
                 id="product-price-ngn"
-                label="Price (₦)"
+                label="Regular price (₦)"
                 value={priceNgn}
                 onChange={(value) => {
                   ngnTouched.current = true;
@@ -270,7 +296,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
               />
               <Field
                 id="product-price-usd"
-                label="Price ($)"
+                label="Regular price ($)"
                 value={priceUsd}
                 onChange={(value) => {
                   usdTouched.current = true;
@@ -283,6 +309,47 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
             <p className="mt-1.5 text-xs text-neutral-500">
               NGN and USD are suggested from the GBP price using the exchange rate set in Settings —
               edit either freely, your own number always wins over the suggestion.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <div className="grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div className="space-y-1.5">
+                <label htmlFor="product-sale-price-gbp" className="text-sm font-medium text-neutral-700">
+                  Sale price (£) <span className="font-normal text-neutral-500">— optional</span>
+                </label>
+                <input
+                  id="product-sale-price-gbp"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="Leave empty for no sale"
+                  value={salePriceGbp}
+                  onChange={(e) => setSalePriceGbp(e.target.value)}
+                  aria-invalid={Boolean(sale.error)}
+                  aria-describedby="product-sale-note"
+                  className={cn(
+                    "w-full rounded-xl border bg-white px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                    sale.error ? "border-red-400" : "border-neutral-200",
+                  )}
+                />
+              </div>
+              {salePriceGbp.trim() !== "" && (
+                <button
+                  type="button"
+                  onClick={() => setSalePriceGbp("")}
+                  className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-red-300 hover:text-red-600"
+                >
+                  End sale
+                </button>
+              )}
+            </div>
+            <p id="product-sale-note" role={sale.error ? "alert" : undefined} className={cn("mt-2 text-xs", sale.error ? "text-red-600" : "text-neutral-500")}>
+              {sale.error ??
+                (sale.percent
+                  ? <>Shoppers see <strong className="font-semibold text-[#E11D48]">-{sale.percent}%</strong>, with {formatCurrency(sale.prices.compare_at_price_gbp!, "GBP")} crossed out. Naira and dollar prices drop by the same amount: {formatCurrency(sale.prices.price_ngn, "NGN")} and {formatCurrency(sale.prices.price_usd ?? 0, "USD")}.</>
+                  : "Enter a price lower than the regular £ price to put this product on sale. Clear it to end the sale.")}
             </p>
           </div>
 
