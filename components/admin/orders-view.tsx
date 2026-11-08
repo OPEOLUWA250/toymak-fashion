@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, Link2, Search } from "lucide-react";
+import { AlertTriangle, ChevronDown, ExternalLink, Link2, Search, Truck } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
 import { orderShippingLabel } from "@/lib/shipping";
 import { normalizeExternalUrl } from "@/lib/utils";
+import { deliveryStageLabels, normalizeParcel2GoReference } from "@/lib/delivery";
 import { StatusBadge } from "./admin-ui";
 
 const statusFilters: { label: string; value: OrderStatus | "all" }[] = [
@@ -19,14 +20,17 @@ const statusOptions: { label: string; value: OrderStatus }[] = [
   { label: "Shipped", value: "shipped" },
 ]
 
-const requiresTrackingLink = (status: OrderStatus) => status !== "unshipped"
+const requiresTracking = (status: OrderStatus) => status !== "unshipped"
+
+/** Resolves to a note about the Parcel2Go check, if there is one. */
+type UpdateOrderStatus = (orderId: string, status: OrderStatus, trackingLink?: string, parcel2goReference?: string) => Promise<string | undefined>
 
 export function OrdersView({
   orders,
   onUpdateStatus,
 }: {
   orders: Order[]
-  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => Promise<void>
+  onUpdateStatus: UpdateOrderStatus
 }) {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
   const [search, setSearch] = useState("")
@@ -116,7 +120,14 @@ export function OrdersView({
                   <p className="text-sm font-semibold text-neutral-900">
                     {formatCurrency(order.total_amount, order.currency)}
                   </p>
-                  <StatusBadge status={order.status} />
+                  <div>
+                    <StatusBadge status={order.status} />
+                    {order.delivery && (
+                      <p className={`mt-1 text-xs ${order.delivery.problem ? "font-medium text-amber-700" : "text-neutral-500"}`}>
+                        {deliveryStageLabels[order.delivery.stage]}
+                      </p>
+                    )}
+                  </div>
                   <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
                   <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
                     {order.items.length} item{order.items.length === 1 ? "" : "s"}
@@ -186,30 +197,43 @@ function OrderTrackingEditor({
   onUpdateStatus,
 }: {
   order: Order
-  onUpdateStatus: (orderId: string, status: OrderStatus, trackingLink?: string) => Promise<void>
+  onUpdateStatus: UpdateOrderStatus
 }) {
   const [draftStatus, setDraftStatus] = useState<OrderStatus>(order.status)
   const [draftLink, setDraftLink] = useState(order.tracking_link ?? "")
+  const [draftReference, setDraftReference] = useState(order.parcel2go_reference ?? "")
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [justSaved, setJustSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
-  const needsLink = requiresTrackingLink(draftStatus)
-  const dirty = draftStatus !== order.status || draftLink !== (order.tracking_link ?? "")
+  const needsTracking = requiresTracking(draftStatus)
+  const dirty =
+    draftStatus !== order.status ||
+    draftLink !== (order.tracking_link ?? "") ||
+    draftReference !== (order.parcel2go_reference ?? "")
+  const delivery = order.delivery
 
   const handleSave = async () => {
     if (isSaving) return
-    if (needsLink && draftLink.trim() === "") {
-      setError("Add the carrier's tracking link before marking this order as shipped.")
+    if (needsTracking && draftLink.trim() === "" && draftReference.trim() === "") {
+      setError("Add the Parcel2Go order number (or a tracking link) before marking this order as shipped.")
+      return
+    }
+    const reference = draftReference.trim() ? normalizeParcel2GoReference(draftReference) : ""
+    if (reference === null) {
+      setError("That doesn't look like a Parcel2Go order number or tracking number. Use letters and numbers only.")
       return
     }
     setError(null)
+    setNotice(null)
     const normalizedLink = draftLink.trim() ? normalizeExternalUrl(draftLink) : undefined
     setDraftLink(normalizedLink ?? "")
+    setDraftReference(reference)
     setIsSaving(true)
     setJustSaved(false)
     try {
-      await onUpdateStatus(order.id, draftStatus, normalizedLink)
+      setNotice((await onUpdateStatus(order.id, draftStatus, normalizedLink, reference)) ?? null)
       setJustSaved(true)
       setTimeout(() => setJustSaved(false), 2000)
     } catch (error) {
@@ -226,7 +250,7 @@ function OrderTrackingEditor({
         Tracking
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
+      <div className="grid gap-3 sm:grid-cols-[200px_1fr_1fr]">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">Status</label>
           <select
@@ -248,7 +272,26 @@ function OrderTrackingEditor({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">
-            Carrier tracking link {needsLink && <span className="text-primary">*</span>}
+            Parcel2Go order or tracking number {needsTracking && <span className="text-primary">*</span>}
+          </label>
+          <input
+            type="text"
+            disabled={isSaving}
+            value={draftReference}
+            onChange={(e) => {
+              setDraftReference(e.target.value)
+              setError(null)
+            }}
+            placeholder="P2G12345678"
+            maxLength={60}
+            autoComplete="off"
+            className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-500">
+            Carrier tracking link <span className="text-neutral-400">(optional)</span>
           </label>
           <input
             type="url"
@@ -265,6 +308,32 @@ function OrderTrackingEditor({
       </div>
 
       {error && <p role="alert" className="mt-2 text-xs font-medium text-red-600">{error}</p>}
+      {notice && <p role="status" className="mt-2 text-xs font-medium text-amber-700">{notice}</p>}
+
+      {delivery && order.parcel2go_reference && (
+        <div className={`mt-3 flex gap-2.5 rounded-xl px-3 py-2.5 text-xs ${delivery.problem ? "bg-amber-50 text-amber-900" : "bg-neutral-50 text-neutral-700"}`}>
+          {delivery.problem ? <AlertTriangle size={14} className="mt-0.5 shrink-0" /> : <Truck size={14} className="mt-0.5 shrink-0 text-primary" />}
+          <div className="space-y-0.5">
+            <p className="font-semibold">
+              Parcel2Go: {deliveryStageLabels[delivery.stage]}
+              {delivery.estimatedDelivery && delivery.stage !== "delivered" && (
+                <span className="font-normal"> · due {new Date(delivery.estimatedDelivery).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span>
+              )}
+            </p>
+            {delivery.latestEvent && (
+              <p>
+                {delivery.latestEvent}
+                {delivery.latestEventAt && (
+                  <span className="text-neutral-400"> · {new Date(delivery.latestEventAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
+                )}
+              </p>
+            )}
+            {order.delivery_notified_stage && (
+              <p className="text-neutral-400">Customer emailed: {deliveryStageLabels[order.delivery_notified_stage].toLowerCase()}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button
@@ -277,7 +346,7 @@ function OrderTrackingEditor({
         </button>
         {justSaved && (
           <span className="text-xs font-medium text-emerald-600" role="status">
-            Saved — the customer can now see this on their account page
+            Saved. The customer can now see this on Track Order
           </span>
         )}
         {order.tracking_link && (

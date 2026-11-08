@@ -18,6 +18,9 @@ interface OrderRow {
   shipping_address: Order["shipping_address"];
   status: Order["status"];
   tracking_link: string | null;
+  parcel2go_reference?: string | null;
+  delivery_tracking?: Order["delivery"];
+  delivery_notified_stage?: Order["delivery_notified_stage"];
   currency: Order["currency"];
   payment_gateway: Order["payment_gateway"];
   payment_reference: string;
@@ -43,6 +46,9 @@ function rowToOrder(row: OrderRow): Order {
     shipping_address: row.shipping_address,
     status: row.status,
     tracking_link: row.tracking_link ?? undefined,
+    parcel2go_reference: row.parcel2go_reference ?? undefined,
+    delivery: row.delivery_tracking ?? null,
+    delivery_notified_stage: row.delivery_notified_stage ?? null,
     currency: row.currency,
     payment_gateway: row.payment_gateway,
     payment_reference: row.payment_reference,
@@ -123,9 +129,18 @@ export async function updateServerOrderStatus(
   id: string,
   status: Order["status"],
   trackingLink?: string,
+  /** A new Parcel2Go reference, or null to remove it; undefined leaves it. */
+  parcel2goReference?: string | null,
+  previous?: Order,
 ): Promise<Order | null> {
   const updates: Record<string, unknown> = { status };
   if (trackingLink !== undefined) updates.tracking_link = trackingLink;
+  if (parcel2goReference !== undefined && parcel2goReference !== (previous?.parcel2go_reference ?? null)) {
+    // A different parcel: forget the old one's status and emails.
+    updates.parcel2go_reference = parcel2goReference;
+    updates.delivery_tracking = null;
+    updates.delivery_notified_stage = null;
+  }
 
   const { data, error } = await getSupabaseAdmin()
     .from("orders")

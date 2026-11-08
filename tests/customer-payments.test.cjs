@@ -10,7 +10,8 @@ test('guest lookup requires an order number, not just an email',async()=>{
   assert.equal((await route.POST(jsonRequest({email:'buyer@example.com'}))).status,400);
 });
 test('guest lookup matches email case-insensitively and order number with or without prefix',async()=>{
-  const route=load('app/api/orders/lookup/route.ts',{'next/server':response,...guestStore()});
+  const delivery={'@/lib/server/delivery-tracking':{refreshOrderDelivery:async order=>order,notifyDelivery:async()=>null}};
+  const route=load('app/api/orders/lookup/route.ts',{'next/server':{...response,after:()=>{}},...guestStore(),...delivery});
   const found=await route.POST(jsonRequest({email:'buyer@example.com',orderNumber:' ab12cd '}));
   assert.equal(found.status,200);assert.equal(found.data.orders.length,1);
   assert.equal((await route.POST(jsonRequest({email:'buyer@example.com',orderNumber:'TMK-ZZZZZZ'}))).status,404);

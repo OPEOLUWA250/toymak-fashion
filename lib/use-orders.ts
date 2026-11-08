@@ -61,18 +61,18 @@ export function useOrders() {
           return [order, ...current];
         });
       },
-      updateOrderStatus: async (orderId: string, status: OrderStatus, trackingLink?: string) => {
+      /** Resolves to a note about the Parcel2Go check, if there is one. */
+      updateOrderStatus: async (orderId: string, status: OrderStatus, trackingLink?: string, parcel2goReference?: string) => {
         const response = await fetch(`/api/admin/orders/${orderId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status, trackingLink }),
+          body: JSON.stringify({ status, trackingLink, parcel2goReference }),
         });
-        const data = (await response.json()) as { order?: Order; error?: string };
+        const data = (await response.json()) as { order?: Order; error?: string; trackingNotice?: string };
         if (!response.ok || !data.order) throw new Error(data.error ?? "Could not update this order. Please try again.");
-        if (data.order) {
-          const updated = reviveDates([data.order])[0];
-          setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
-        }
+        const updated = reviveDates([data.order])[0];
+        setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
+        return data.trackingNotice;
       },
     }),
     [],

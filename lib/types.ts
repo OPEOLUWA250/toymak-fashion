@@ -1,4 +1,5 @@
 import type { ShippingMethod } from './shipping'
+import type { DeliveryNoticeStage, DeliveryTracking } from './delivery'
 
 // Category ids (slugs) are managed by admins — see lib/categories.ts.
 export type ProductCategory = string
@@ -7,8 +8,8 @@ export interface Category {
   id: string
   label: string
 }
-// Only tracks up to "shipped" — once an order ships, the carrier's own
-// tracking link (order.tracking_link) covers out-for-delivery/delivered.
+// The store's own status ends at "shipped". After that, delivery progress
+// comes from Parcel2Go (order.delivery) or the carrier's tracking link.
 export type OrderStatus = 'unshipped' | 'shipped'
 export type Currency = 'GBP' | 'NGN' | 'USD'
 export type PaymentGateway = 'stripe' | 'paystack'
@@ -91,6 +92,12 @@ export interface Order {
   status: OrderStatus
   /** Third-party carrier tracking URL, added by admin when marking an order as shipped. */
   tracking_link?: string
+  /** Parcel2Go order number or courier tracking number, added by admin when shipping. */
+  parcel2go_reference?: string
+  /** Latest delivery status read from Parcel2Go (lib/server/delivery-tracking.ts). */
+  delivery?: DeliveryTracking | null
+  /** The delivery email already sent to the customer, if any. */
+  delivery_notified_stage?: DeliveryNoticeStage | null
   currency: Currency
   payment_gateway: PaymentGateway
   payment_reference: string
