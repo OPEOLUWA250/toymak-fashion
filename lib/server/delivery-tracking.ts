@@ -1,8 +1,8 @@
-import type { DeliveryNoticeStage, DeliveryTracking } from "@/lib/delivery";
+import { deliveryStageRank, type DeliveryNoticeStage, type DeliveryTracking } from "@/lib/delivery";
 import type { Order } from "@/lib/types";
 import { getSupabaseAdmin } from "./supabase";
 import { getServerOrderById } from "./order-store";
-import { fetchParcel2GoTracking, parcel2GoConfigured } from "./parcel2go";
+import { fetchParcel2GoTracking, parcel2GoConfigured, stageFromName, validTime } from "./parcel2go";
 import { sendDeliveryEmail } from "./delivery-email";
 
 /**
@@ -100,6 +100,62 @@ export async function syncOrderDelivery(order: Order): Promise<Order> {
     console.error(`Delivery tracking for order ${order.id} failed:`, error);
     return order;
   }
+}
+
+/**
+ * A Tracking webhook from Parcel2Go: a parcel (by its P2G number) reached a
+ * new stage. The order linked to it gets its full status re-read, and the
+ * stage the webhook names is used if Parcel2Go's tracking hasn't caught up
+ * yet. Returns how many orders it updated; parcels not linked to an order
+ * (or linked by the courier's number instead) are ignored here and picked
+ * up by the daily check. Throws on a temporary failure so Parcel2Go retries.
+ */
+export async function applyParcel2GoTrackingEvent(event: {
+  orderLineId: string;
+  stage: string | null;
+  at: string | null;
+  description: string | null;
+}): Promise<number> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("orders")
+    .select("id")
+    .eq("status", "shipped")
+    .in("parcel2go_reference", [event.orderLineId, `P2G${event.orderLineId}`]);
+  if (error) throw new Error(`Could not find the order for Parcel2Go ${event.orderLineId}: ${error.message}`);
+
+  let updated = 0;
+  for (const { id } of data ?? []) {
+    const order = await getServerOrderById(id);
+    if (!order?.parcel2go_reference) continue;
+
+    let fresh = await refreshOrderDelivery(order);
+    const hinted = stageFromName(event.stage);
+    const current = fresh.delivery?.stage ?? "awaiting";
+    if (hinted && deliveryStageRank(hinted) > deliveryStageRank(current)) {
+      const at = validTime(event.at);
+      const tracking: DeliveryTracking = {
+        estimatedDelivery: null,
+        problem: false,
+        ...fresh.delivery,
+        stage: hinted,
+        stageAt: at,
+        latestEvent: event.description ?? fresh.delivery?.latestEvent ?? null,
+        latestEventAt: at ?? fresh.delivery?.latestEventAt ?? null,
+        updatedAt: new Date().toISOString(),
+      };
+      const { error: saveError } = await getSupabaseAdmin()
+        .from("orders")
+        .update({ delivery_tracking: tracking })
+        .eq("id", order.id)
+        .eq("parcel2go_reference", order.parcel2go_reference);
+      if (saveError) throw new Error(`Could not save delivery tracking for order ${order.id}: ${saveError.message}`);
+      fresh = { ...fresh, delivery: tracking };
+    }
+
+    await notifyDelivery(fresh);
+    updated++;
+  }
+  return updated;
 }
 
 /** The daily job: every shipped, undelivered order with a Parcel2Go reference. */

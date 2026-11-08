@@ -82,7 +82,8 @@ export interface Parcel2GoTrackingResult {
 
 // Parcel2Go's stage fields hold the time each stage was reached. Most
 // advanced first, so the first one set is where the parcel is now.
-// DeliveryScheduled is Parcel2Go's "out for delivery" step.
+// DeliveryScheduled ("scheduled for delivery from depot" in Parcel2Go's
+// webhook guide) is the "out for delivery" step.
 const stageFields: [keyof Parcel2GoTrackingResult, DeliveryStage][] = [
   ["Delivered", "delivered"],
   ["DeliveryScheduled", "out_for_delivery"],
@@ -102,7 +103,12 @@ const stageNames: Record<string, DeliveryStage> = {
   droppedoff: "dropped_off",
 };
 
-function validTime(value: string | null | undefined): string | null {
+/** Parcel2Go's stage name ("DeliveryScheduled") as the store's stage. */
+export function stageFromName(name: string | null | undefined): DeliveryStage | null {
+  return stageNames[(name ?? "").toLowerCase().replace(/[^a-z]/g, "")] ?? null;
+}
+
+export function validTime(value: string | null | undefined): string | null {
   if (!value) return null;
   // Times usually come without a zone. Read them as UTC so every server
   // agrees (UK time is UTC in winter, an hour ahead in summer).
@@ -133,7 +139,7 @@ export function toDeliveryTracking(result: Parcel2GoTrackingResult, now = new Da
     stage = reached[1];
     stageAt = validTime(result[reached[0]] as string | null);
   } else {
-    const named = stageNames[(result.Stage ?? "").toLowerCase().replace(/[^a-z]/g, "")];
+    const named = stageFromName(result.Stage);
     if (named) stage = named;
   }
 

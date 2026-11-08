@@ -272,7 +272,7 @@ function OrderTrackingEditor({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">
-            Parcel2Go order or tracking number {needsTracking && <span className="text-primary">*</span>}
+            Parcel2Go order number (P2G…) {needsTracking && <span className="text-primary">*</span>}
           </label>
           <input
             type="text"
@@ -280,6 +280,8 @@ function OrderTrackingEditor({
             value={draftReference}
             onChange={(e) => {
               setDraftReference(e.target.value)
+              // A parcel number means it's been booked: no need to also pick "Shipped".
+              if (e.target.value.trim()) setDraftStatus("shipped")
               setError(null)
             }}
             placeholder="P2G12345678"
