@@ -9,8 +9,9 @@ export interface Parcel2GoSender {
   company: string;
   email: string;
   phone: string;
-  /** House number or name, e.g. "12" or "Unit 4". */
+  /** House number or name, e.g. "12". Blank: taken from the start of `street`. */
   property: string;
+  /** The first address line, e.g. "12 Broad Street". */
   street: string;
   town: string;
   county: string;
@@ -33,9 +34,10 @@ export interface Parcel2GoBookingSettings {
   payWithPrepay: boolean;
   /** Bookings dearer than this are left for the admin to pay by hand. */
   maxPriceGBP: number;
+  /** Blank: the cheapest drop-off service that delivers to the door, chosen per order. */
   standardService: string;
   standardServiceName: string;
-  /** Blank uses the standard service for express orders too. */
+  /** Blank: the cheapest fast drop-off service, chosen per order. */
   expressService: string;
   expressServiceName: string;
   parcel: Parcel2GoParcelSize;
@@ -58,18 +60,20 @@ export const defaultParcel2GoBookingSettings: Parcel2GoBookingSettings = {
 /** What still has to be filled in before anything can be booked. */
 export function bookingSettingsProblems(settings: Parcel2GoBookingSettings): string[] {
   const problems: string[] = [];
-  if (!settings.standardService.trim()) problems.push("Choose a courier service.");
   const { sender, parcel } = settings;
-  if (!sender.name.trim()) problems.push("Add the sender's name.");
-  if (!/^\S+@\S+\.\S+$/.test(sender.email.trim())) problems.push("Add the sender's email.");
-  if (!sender.phone.trim()) problems.push("Add the sender's phone number.");
-  if (!sender.property.trim() || !sender.street.trim() || !sender.town.trim() || !sender.postcode.trim()) {
-    problems.push("Add the full collection address (house number or name, street, town and postcode).");
-  }
+  if (!sender.name.trim()) problems.push("Add your name.");
+  if (!sender.phone.trim()) problems.push("Add a phone number.");
+  if (!/^\S+@\S+\.\S+$/.test(sender.email.trim())) problems.push("Add an email.");
+  if (!sender.street.trim() || !sender.town.trim() || !sender.postcode.trim()) problems.push("Add the address, town and postcode.");
   if (!(parcel.weightKg > 0) || !(parcel.lengthCm > 0) || !(parcel.widthCm > 0) || !(parcel.heightCm > 0)) {
     problems.push("Set the parcel's weight and size.");
   }
   return problems;
+}
+
+/** Parcel2Go's public tracking page for a P2G number (or courier number). */
+export function parcel2GoTrackingUrl(reference: string): string {
+  return `https://www.parcel2go.com/tracking/${encodeURIComponent(reference)}`;
 }
 
 export type Parcel2GoBookingStatus =

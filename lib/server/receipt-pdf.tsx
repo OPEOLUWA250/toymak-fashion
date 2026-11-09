@@ -61,7 +61,7 @@ function ReceiptDocument({ order }: { order: Order }) {
           <View>
             <Text style={styles.metaLabel}>Order ID</Text>
             <Text style={styles.metaValue}>{order.id}</Text>
-            <Text style={[styles.metaLabel, { marginTop: 6 }]}>Tracking ID</Text>
+            <Text style={[styles.metaLabel, { marginTop: 6 }]}>Order number</Text>
             <Text style={styles.metaValue}>{order.tracking_id}</Text>
             <Text style={[styles.metaLabel, { marginTop: 6 }]}>Date</Text>
             <Text style={styles.metaValue}>

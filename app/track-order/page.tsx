@@ -14,6 +14,7 @@ import { Order, OrderStatus } from "@/lib/types";
 import { contactEmail } from "@/lib/site-info";
 import { orderShippingLabel } from "@/lib/shipping";
 import { deliveryStageLabels, type DeliveryStage, type DeliveryTracking } from "@/lib/delivery";
+import { parcel2GoTrackingUrl } from "@/lib/parcel2go-booking";
 import {
   AlertTriangle,
   CircleCheck,
@@ -406,10 +407,32 @@ function TrackOrderContent() {
                       <DeliveryDetails tracking={order.delivery} />
                     )}
 
+                    {order.parcel2go_reference && (
+                      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral/10 px-4 py-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral/45">
+                            Parcel2Go tracking number
+                          </p>
+                          <p className="mt-0.5 font-semibold text-neutral">{order.parcel2go_reference}</p>
+                        </div>
+                        <a
+                          href={parcel2GoTrackingUrl(order.parcel2go_reference)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
+                        >
+                          <Truck size={15} />
+                          Track on Parcel2Go
+                          <ExternalLink size={13} />
+                        </a>
+                      </div>
+                    )}
+
                     {order.status === "unshipped" ? (
-                      <p className="mt-7 rounded-xl bg-tertiary/25 px-4 py-3 text-sm text-neutral/60">
-                        Your order is being prepared. A tracking link will appear here as soon
-                        as it ships.
+                      <p className="mt-4 rounded-xl bg-tertiary/25 px-4 py-3 text-sm text-neutral/60">
+                        {order.parcel2go_reference
+                          ? "Your parcel is booked with the courier. This page updates as soon as they have it."
+                          : "Your order is being prepared. A tracking link will appear here as soon as it ships."}
                       </p>
                     ) : order.tracking_link ? (
                       <div className="mt-7 space-y-2">

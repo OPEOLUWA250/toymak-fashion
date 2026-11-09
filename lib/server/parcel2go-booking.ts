@@ -16,6 +16,7 @@ import {
   Parcel2GoRefusal,
   payParcel2GoWithPrepay,
   quoteParcel2Go,
+  type Parcel2GoQuote,
 } from "./parcel2go";
 
 /**
@@ -138,11 +139,34 @@ export function bookingBlocker(order: Order): string | null {
   return null;
 }
 
-export function serviceForOrder(order: Order, settings: Parcel2GoBookingSettings): { slug: string; name: string } {
-  if (order.shipping_address?.shippingMethod === "express" && settings.expressService) {
-    return { slug: settings.expressService, name: settings.expressServiceName || settings.expressService };
-  }
-  return { slug: settings.standardService, name: settings.standardServiceName || settings.standardService };
+/** The service the admin chose for this order's delivery speed; a blank slug means "pick automatically". */
+export function serviceForOrder(order: Order, settings: Parcel2GoBookingSettings): { slug: string; name: string; express: boolean } {
+  const express = order.shipping_address?.shippingMethod === "express";
+  const [slug, name] = express
+    ? [settings.expressService, settings.expressServiceName]
+    : [settings.standardService, settings.standardServiceName];
+  return { slug, name: slug ? name || slug : "", express };
+}
+
+/**
+ * The quote to book. A chosen service must be quoted; otherwise the
+ * cheapest service where the parcel is dropped at a local shop (no printer
+ * needed) and delivered to the customer's door, and for express orders the
+ * cheapest of those Parcel2Go rates as fast.
+ */
+export function pickQuote(quotes: Parcel2GoQuote[], wanted: string, express: boolean): Parcel2GoQuote | undefined {
+  if (wanted) return quotes.find((quote) => quote.Service?.Slug === wanted);
+  const dropOffToDoor = quotes.filter((quote) =>
+    quote.Service?.Slug && quote.TotalPrice > 0
+    && quote.Service.DeliveryType === "Door" && quote.Service.CollectionType === "Shop" && !quote.Service.IsPrinterRequired);
+  const fast = dropOffToDoor.filter((quote) => quote.Service.Classification === "Fast");
+  const pool = express && fast.length > 0 ? fast : dropOffToDoor;
+  return [...pool].sort((a, b) => a.TotalPrice - b.TotalPrice)[0];
+}
+
+function quoteServiceName(quote: Parcel2GoQuote): string {
+  const { Name, CourierName } = quote.Service;
+  return Name.startsWith(CourierName) ? Name : `${CourierName} ${Name}`;
 }
 
 /** The order as Parcel2Go's POST /orders wants it. */
@@ -156,6 +180,7 @@ export function buildParcel2GoOrder(
   const address = order.shipping_address;
   const delivery = splitStreetLine(address.street);
   const sender = settings.sender;
+  const senderLine = sender.property ? { property: sender.property, street: sender.street } : splitStreetLine(sender.street);
   const { forename, surname } = splitName(sender.name);
   const contents = order.items.map((item) => `${item.quantity} x ${item.product_name}`).join(", ");
 
@@ -171,8 +196,8 @@ export function buildParcel2GoOrder(
         Organisation: sender.company || undefined,
         Email: sender.email,
         Phone: sender.phone,
-        Property: sender.property,
-        Street: sender.street,
+        Property: senderLine.property,
+        Street: senderLine.street,
         Town: sender.town,
         County: sender.county || undefined,
         Postcode: sender.postcode,
@@ -292,7 +317,7 @@ export async function bookOrderOnParcel2Go(
   }
 
   const service = serviceForOrder(order, settings);
-  const started: Parcel2GoOrderBooking = { status: "booking", startedAt: now(), updatedAt: now(), service: service.slug, serviceName: service.name };
+  let started: Parcel2GoOrderBooking = { status: "booking", startedAt: now(), updatedAt: now(), service: service.slug || undefined, serviceName: service.name || undefined };
   if (!(await claimOrder(order, started))) {
     const latest = await getServerOrderById(order.id);
     return { order: latest ?? order, error: "This order was just booked or changed. Refresh to see it." };
@@ -305,15 +330,20 @@ export async function bookOrderOnParcel2Go(
   try {
     const address = order.shipping_address;
     const quotes = await quoteParcel2Go({
-      service: service.slug,
-      collection: { Country: "GBR", Postcode: settings.sender.postcode, Town: settings.sender.town, Property: settings.sender.property },
+      service: service.slug || undefined,
+      collection: { Country: "GBR", Postcode: settings.sender.postcode, Town: settings.sender.town },
       delivery: { Country: "GBR", Postcode: address.postalCode.trim(), Town: address.city.trim(), Property: splitStreetLine(address.street).property },
       parcel: { value: Math.max(1, order.subtotal), ...settings.parcel },
     });
-    const quote = quotes.find((candidate) => candidate.Service?.Slug === service.slug);
-    if (!quote) throw new Parcel2GoRefusal(`Parcel2Go won't take this parcel on ${service.name} right now (check the parcel size and weight, or pick another service).`);
+    const quote = pickQuote(quotes, service.slug, service.express);
+    if (!quote) {
+      throw new Parcel2GoRefusal(service.slug
+        ? `Parcel2Go won't take this parcel on ${service.name} right now (check the parcel size and weight, or pick another service).`
+        : "Parcel2Go has no drop-off service for this parcel right now (check the parcel size and weight).");
+    }
     price = quote.TotalPrice;
-    created = await createParcel2GoOrder(buildParcel2GoOrder(order, settings, service.slug, quote.Collection));
+    started = { ...started, service: quote.Service.Slug, serviceName: quoteServiceName(quote) };
+    created = await createParcel2GoOrder(buildParcel2GoOrder(order, settings, quote.Service.Slug, quote.Collection));
   } catch (error) {
     const refused = error instanceof Parcel2GoRefusal;
     const message = error instanceof Error ? error.message : "Unknown error.";

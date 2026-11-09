@@ -121,11 +121,13 @@ export async function appendServerOrder(
     await deleteAbandonedCartByEmail(order.customer_email).catch((error) =>
       console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
     );
-    await dispatchOrderEmails(order.id);
-    // Book the parcel on Parcel2Go when automatic booking is on. Loaded here
-    // rather than at the top, as the booking code reads orders from this file.
+    // Book the parcel on Parcel2Go first (when automatic booking is on), so
+    // the confirmation email can give the customer their P2G number. Loaded
+    // here rather than at the top, as the booking code reads orders from
+    // this file. It never throws; the email goes out either way.
     const { autoBookParcel2Go } = await import("./parcel2go-booking");
     await autoBookParcel2Go(order);
+    await dispatchOrderEmails(order.id);
   });
 
   return { added: true };

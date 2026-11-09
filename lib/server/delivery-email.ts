@@ -3,6 +3,7 @@ import type { Order } from "@/lib/types";
 import { siteUrl } from "@/lib/site-url";
 import { contactEmail } from "@/lib/site-info";
 import { sendEmail } from "./email-sender";
+import { parcel2GoTrackingUrl } from "@/lib/parcel2go-booking";
 
 function escapeHtml(value: string): string {
   return value
@@ -53,7 +54,7 @@ export function buildDeliveryEmail(order: Order, stage: DeliveryNoticeStage, ori
       </tr>
       <tr>
         <td style="padding:20px 32px 0;font-size:13px;color:#101820;">
-          <p style="margin:0 0 8px;color:rgba(16,24,32,0.5);">Order ${escapeHtml(order.tracking_id)}</p>
+          <p style="margin:0 0 8px;color:rgba(16,24,32,0.5);">Order ${escapeHtml(order.tracking_id)}${order.parcel2go_reference ? ` · Parcel2Go tracking <a href="${parcel2GoTrackingUrl(order.parcel2go_reference)}" style="color:#101820;">${escapeHtml(order.parcel2go_reference)}</a>` : ""}</p>
           <ul style="margin:0;padding-left:18px;color:rgba(16,24,32,0.75);">${items}</ul>
         </td>
       </tr>

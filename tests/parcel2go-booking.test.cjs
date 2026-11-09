@@ -181,7 +181,8 @@ test('express orders use the express service', () => {
   const { serviceForOrder } = setup();
   const express = ukOrder({ shipping_address: { ...ukOrder().shipping_address, shippingMethod: 'express' } });
   assert.equal(serviceForOrder(express, SETTINGS).slug, 'rm-24');
-  assert.equal(serviceForOrder(express, { ...SETTINGS, expressService: '' }).slug, 'evri-48');
+  // No express service chosen: picked automatically (a fast one) per order.
+  assert.deepEqual(serviceForOrder(express, { ...SETTINGS, expressService: '' }), { slug: '', name: '', express: true });
 });
 
 // ---------- Booking ----------
@@ -318,10 +319,57 @@ test('the daily check books recent orders that were never tried', async () => {
 
 // ---------- Settings ----------
 
-test('automatic booking cannot be switched on with details missing', async () => {
+test('automatic booking needs only the sender details, not a courier', async () => {
   const { saveParcel2GoBookingSettings } = setup({ settings: {} });
-  await assert.rejects(saveParcel2GoBookingSettings({ ...SETTINGS, standardService: '' }), /Choose a courier service/);
-  await assert.rejects(saveParcel2GoBookingSettings({ ...SETTINGS, sender: { ...SETTINGS.sender, postcode: '' } }), /collection address/);
+  await assert.rejects(saveParcel2GoBookingSettings({ ...SETTINGS, sender: { ...SETTINGS.sender, name: '' } }), /Add your name/);
+  await assert.rejects(saveParcel2GoBookingSettings({ ...SETTINGS, sender: { ...SETTINGS.sender, postcode: '' } }), /address, town and postcode/);
+  const saved = await saveParcel2GoBookingSettings({ ...SETTINGS, standardService: '', expressService: '', sender: { ...SETTINGS.sender, property: '' } });
+  assert.equal(saved.autoBook, true);
+});
+
+// ---------- Choosing a courier automatically ----------
+
+const quote = (slug, price, extra = {}) => ({
+  TotalPrice: price,
+  Service: { Slug: slug, Name: slug, CourierName: 'C', CollectionType: 'Shop', DeliveryType: 'Door', Classification: 'Medium', IsPrinterRequired: false, ...extra },
+});
+
+test('automatic picks the cheapest drop-off-to-door service, and a fast one for express', () => {
+  const { pickQuote } = setup();
+  const quotes = [
+    quote('shop-to-shop', 2.34, { DeliveryType: 'Shop' }),
+    quote('needs-printer', 2.5, { IsPrinterRequired: true }),
+    quote('collected', 2.6, { CollectionType: 'Collection' }),
+    quote('evri', 2.71),
+    quote('inpost', 2.64),
+    quote('evri-next-day', 3.82, { Classification: 'Fast' }),
+    quote('rm-24', 4.8, { Classification: 'Fast' }),
+  ];
+  assert.equal(pickQuote(quotes, '', false).Service.Slug, 'inpost');
+  assert.equal(pickQuote(quotes, '', true).Service.Slug, 'evri-next-day');
+  assert.equal(pickQuote(quotes, 'rm-24', false).Service.Slug, 'rm-24');
+  assert.equal(pickQuote(quotes, 'gone', false), undefined);
+  // No fast service: express still gets booked on the cheapest one.
+  assert.equal(pickQuote(quotes.filter((q) => q.Service.Classification !== 'Fast'), '', true).Service.Slug, 'inpost');
+});
+
+test('with no courier chosen, the booking uses the automatic pick and records its name', async () => {
+  const { bookOrderOnParcel2Go, state } = setup({
+    settings: { ...SETTINGS, standardService: '', standardServiceName: '', sender: { ...SETTINGS.sender, property: '', street: '10 Broad Street' } },
+    parcel2go: {
+      quoteParcel2Go: async (request) => {
+        state.calls.push(['quote', request]);
+        return [quote('evri', 2.71, { Name: 'Evri ParcelShop', CourierName: 'Evri' }), quote('inpost', 2.64, { Name: 'Shop to Home', CourierName: 'InPost' })];
+      },
+    },
+  });
+  await bookOrderOnParcel2Go('ord-1', 'auto');
+  assert.equal(state.calls[0][1].service, undefined, 'quotes every service');
+  const created = state.calls.find(([name]) => name === 'create')[1].Items[0];
+  assert.equal(created.Service, 'inpost');
+  assert.deepEqual([created.CollectionAddress.Property, created.CollectionAddress.Street], ['10', 'Broad Street']);
+  assert.equal(state.orders['ord-1'].parcel2go_booking.serviceName, 'InPost Shop to Home');
+  assert.equal(state.orders['ord-1'].parcel2go_booking.status, 'booked');
 });
 
 test('switching automatic booking on starts the clock, and saving again keeps it', async () => {
