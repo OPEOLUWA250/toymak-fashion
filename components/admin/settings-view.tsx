@@ -7,6 +7,7 @@ import type { Currency } from "@/lib/types";
 import { invalidateSettingsCache } from "@/lib/use-settings";
 import { PAYSTACK_ENABLED } from "@/lib/utils";
 import { NumberInput } from "./number-input";
+import { Parcel2GoSettingsCard } from "./parcel2go-settings";
 
 const currencyRows: { currency: Currency; symbol: string }[] = [
   { currency: "GBP", symbol: "£" },
@@ -348,6 +349,8 @@ export function SettingsView() {
           </p>
         )}
       </div>
+
+      <Parcel2GoSettingsCard />
 
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5 flex items-center gap-3">

@@ -74,6 +74,20 @@ export function useOrders() {
         setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
         return data.trackingNotice;
       },
+      /**
+       * Books the order on Parcel2Go (or retries, or pays for an unpaid
+       * booking). Resolves to why it didn't fully work, if it didn't.
+       */
+      bookParcel2Go: async (orderId: string) => {
+        const response = await fetch(`/api/admin/orders/${orderId}/parcel2go`, { method: "POST" });
+        const data = (await response.json().catch(() => ({}))) as { order?: Order; error?: string };
+        if (data.order) {
+          const updated = reviveDates([data.order])[0];
+          setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
+        }
+        if (!response.ok && !data.order) throw new Error(data.error ?? "Could not book this order. Please try again.");
+        return data.error;
+      },
     }),
     [],
   );

@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
         await notifyDelivery(order).catch((error) => console.error(`Delivery email for order ${order.id} failed:`, error));
       }
     });
-    return NextResponse.json({ orders }, { headers: { "Cache-Control": "private, no-store" } });
+    // The Parcel2Go booking (payment and label links) is for the admin only.
+    const visible = orders.map((order) => ({ ...order, parcel2go_booking: undefined }));
+    return NextResponse.json({ orders: visible }, { headers: { "Cache-Control": "private, no-store" } });
   } catch {
     return NextResponse.json({ error: "Could not look up your order. Please retry." }, { status: 500 });
   }

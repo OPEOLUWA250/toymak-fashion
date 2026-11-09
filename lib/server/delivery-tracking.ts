@@ -9,7 +9,9 @@ import { sendDeliveryEmail } from "./delivery-email";
  * Keeps shipped orders' delivery status in step with Parcel2Go and emails
  * the customer when the parcel is out for delivery and when it's delivered.
  * Runs when the admin saves a Parcel2Go reference, when a customer opens
- * Track Order, and on the daily /api/cron/delivery-tracking job.
+ * Track Order, and on the daily /api/cron/delivery-tracking job. Orders
+ * booked through lib/server/parcel2go-booking.ts are followed too, and turn
+ * "shipped" when the courier first scans the parcel.
  */
 
 // Old news isn't worth an email: a parcel found "out for delivery" a day
@@ -23,8 +25,18 @@ const NOTICE_WINDOW_MS: Record<DeliveryNoticeStage, number> = {
 // Parcels still undelivered after this long need a person, not polling.
 const TRACK_FOR_DAYS = 45;
 
+/** Shipped orders, and orders booked on Parcel2Go that the courier may not have yet. */
+function isTracked(order: Order): boolean {
+  return Boolean(order.parcel2go_reference) && (order.status === "shipped" || Boolean(order.parcel2go_booking));
+}
+
 function needsRefresh(order: Order): boolean {
-  return order.status === "shipped" && Boolean(order.parcel2go_reference) && order.delivery?.stage !== "delivered";
+  return isTracked(order) && order.delivery?.stage !== "delivered";
+}
+
+/** A booked order becomes "shipped" once the courier has scanned the parcel. */
+function shippedOnceScanned(order: Order, tracking: DeliveryTracking): Pick<Order, "status"> {
+  return { status: order.status === "unshipped" && tracking.stage !== "awaiting" ? "shipped" : order.status };
 }
 
 function sameStatus(a: DeliveryTracking | null | undefined, b: DeliveryTracking): boolean {
@@ -41,18 +53,20 @@ export async function refreshOrderDelivery(order: Order): Promise<Order> {
   if (!needsRefresh(order) || !parcel2GoConfigured()) return order;
 
   const tracking = await fetchParcel2GoTracking(order.parcel2go_reference!, order.shipping_address.postalCode ?? "");
-  if (!tracking || sameStatus(order.delivery, tracking)) return order;
+  if (!tracking) return order;
+  const { status } = shippedOnceScanned(order, tracking);
+  if (sameStatus(order.delivery, tracking) && status === order.status) return order;
 
   const { data, error } = await getSupabaseAdmin()
     .from("orders")
-    .update({ delivery_tracking: tracking })
+    .update({ delivery_tracking: tracking, status })
     .eq("id", order.id)
     // The reference may have changed while Parcel2Go was answering.
     .eq("parcel2go_reference", order.parcel2go_reference!)
     .select("id")
     .maybeSingle();
   if (error) throw new Error(`Could not save delivery tracking for order ${order.id}: ${error.message}`);
-  return data ? { ...order, delivery: tracking } : order;
+  return data ? { ...order, delivery: tracking, status } : order;
 }
 
 /** Which email, if any, the order's delivery status calls for now. */
@@ -119,14 +133,13 @@ export async function applyParcel2GoTrackingEvent(event: {
   const { data, error } = await getSupabaseAdmin()
     .from("orders")
     .select("id")
-    .eq("status", "shipped")
     .in("parcel2go_reference", [event.orderLineId, `P2G${event.orderLineId}`]);
   if (error) throw new Error(`Could not find the order for Parcel2Go ${event.orderLineId}: ${error.message}`);
 
   let updated = 0;
   for (const { id } of data ?? []) {
     const order = await getServerOrderById(id);
-    if (!order?.parcel2go_reference) continue;
+    if (!order || !isTracked(order)) continue;
 
     let fresh = await refreshOrderDelivery(order);
     const hinted = stageFromName(event.stage);
@@ -143,13 +156,14 @@ export async function applyParcel2GoTrackingEvent(event: {
         latestEventAt: at ?? fresh.delivery?.latestEventAt ?? null,
         updatedAt: new Date().toISOString(),
       };
+      const { status } = shippedOnceScanned(fresh, tracking);
       const { error: saveError } = await getSupabaseAdmin()
         .from("orders")
-        .update({ delivery_tracking: tracking })
+        .update({ delivery_tracking: tracking, status })
         .eq("id", order.id)
-        .eq("parcel2go_reference", order.parcel2go_reference);
+        .eq("parcel2go_reference", order.parcel2go_reference!);
       if (saveError) throw new Error(`Could not save delivery tracking for order ${order.id}: ${saveError.message}`);
-      fresh = { ...fresh, delivery: tracking };
+      fresh = { ...fresh, delivery: tracking, status };
     }
 
     await notifyDelivery(fresh);
@@ -158,7 +172,7 @@ export async function applyParcel2GoTrackingEvent(event: {
   return updated;
 }
 
-/** The daily job: every shipped, undelivered order with a Parcel2Go reference. */
+/** The daily job: every undelivered order with a Parcel2Go reference, shipped or booked. */
 export async function sweepDeliveryTracking(): Promise<{ checked: number; updated: number; emailed: number; failed: number }> {
   if (!parcel2GoConfigured()) return { checked: 0, updated: 0, emailed: 0, failed: 0 };
 
@@ -166,7 +180,6 @@ export async function sweepDeliveryTracking(): Promise<{ checked: number; update
   const { data, error } = await getSupabaseAdmin()
     .from("orders")
     .select("id")
-    .eq("status", "shipped")
     .not("parcel2go_reference", "is", null)
     .gte("created_at", since);
   if (error) throw new Error(`Could not load shipped orders: ${error.message}`);

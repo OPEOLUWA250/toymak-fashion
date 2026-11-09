@@ -6,8 +6,13 @@ import { CircleAlert, ShoppingCart, Store, TrendingUp, Users } from "lucide-reac
 import { Currency, Order, Product } from "@/lib/types";
 import { deriveCustomers } from "@/lib/admin-data";
 import { formatCurrency } from "@/lib/pricing";
-import { StatCard, StatusBadge } from "./admin-ui";
+import { ShipToAddress, StatCard, StatusBadge } from "./admin-ui";
 import type { AdminView } from "./types";
+
+// minmax(0, …) lets every column shrink to its share, so a long name or email
+// can't widen its own row and push that row's columns out of line.
+const recentOrderColumns =
+  "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,1.4fr)_minmax(0,0.75fr)_minmax(0,0.85fr)]";
 
 export function OverviewView({
   orders,
@@ -99,35 +104,38 @@ export function OverviewView({
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-neutral-200">
-            <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid">
+            <div className={`hidden ${recentOrderColumns} gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid`}>
               <span>Order</span>
               <span>Customer</span>
+              <span>Ship to</span>
               <span>Total</span>
               <span>Status</span>
-              <span>Payment</span>
             </div>
 
             <div className="divide-y divide-neutral-200 bg-white">
               {recentOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-[1.2fr_1fr_1fr_0.8fr_0.8fr] sm:items-center"
+                  className={`grid grid-cols-1 gap-x-4 gap-y-3 px-4 py-4 sm:items-start ${recentOrderColumns}`}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-neutral-900">{order.tracking_id}</p>
                     <p className="text-xs text-neutral-500">
                       {order.created_at.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
-                    <p className="text-xs text-neutral-500">{order.customer_email}</p>
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-neutral-900">{order.customer_name}</p>
+                    <p className="truncate text-xs text-neutral-500" title={order.customer_email}>{order.customer_email}</p>
                   </div>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {formatCurrency(order.total_amount, order.currency)}
-                  </p>
+                  <ShipToAddress address={order.shipping_address} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {formatCurrency(order.total_amount, order.currency)}
+                    </p>
+                    <p className="text-xs capitalize text-neutral-500">{order.payment_gateway}</p>
+                  </div>
                   <StatusBadge status={order.status} />
-                  <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
                 </div>
               ))}
             </div>

@@ -1,5 +1,6 @@
 import type { ShippingMethod } from './shipping'
 import type { DeliveryNoticeStage, DeliveryTracking } from './delivery'
+import type { Parcel2GoOrderBooking } from './parcel2go-booking'
 
 // Category ids (slugs) are managed by admins — see lib/categories.ts.
 export type ProductCategory = string
@@ -98,6 +99,8 @@ export interface Order {
   delivery?: DeliveryTracking | null
   /** The delivery email already sent to the customer, if any. */
   delivery_notified_stage?: DeliveryNoticeStage | null
+  /** The parcel booked on Parcel2Go for this order (lib/server/parcel2go-booking.ts). Admin-only. */
+  parcel2go_booking?: Parcel2GoOrderBooking | null
   currency: Currency
   payment_gateway: PaymentGateway
   payment_reference: string

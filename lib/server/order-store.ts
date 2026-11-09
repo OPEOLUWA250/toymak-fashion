@@ -21,6 +21,7 @@ interface OrderRow {
   parcel2go_reference?: string | null;
   delivery_tracking?: Order["delivery"];
   delivery_notified_stage?: Order["delivery_notified_stage"];
+  parcel2go_booking?: Order["parcel2go_booking"];
   currency: Order["currency"];
   payment_gateway: Order["payment_gateway"];
   payment_reference: string;
@@ -49,6 +50,7 @@ function rowToOrder(row: OrderRow): Order {
     parcel2go_reference: row.parcel2go_reference ?? undefined,
     delivery: row.delivery_tracking ?? null,
     delivery_notified_stage: row.delivery_notified_stage ?? null,
+    parcel2go_booking: row.parcel2go_booking ?? null,
     currency: row.currency,
     payment_gateway: row.payment_gateway,
     payment_reference: row.payment_reference,
@@ -120,6 +122,10 @@ export async function appendServerOrder(
       console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
     );
     await dispatchOrderEmails(order.id);
+    // Book the parcel on Parcel2Go when automatic booking is on. Loaded here
+    // rather than at the top, as the booking code reads orders from this file.
+    const { autoBookParcel2Go } = await import("./parcel2go-booking");
+    await autoBookParcel2Go(order);
   });
 
   return { added: true };

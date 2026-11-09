@@ -7,7 +7,8 @@ import { formatCurrency } from "@/lib/pricing";
 import { orderShippingLabel } from "@/lib/shipping";
 import { normalizeExternalUrl } from "@/lib/utils";
 import { deliveryStageLabels, normalizeParcel2GoReference } from "@/lib/delivery";
-import { StatusBadge } from "./admin-ui";
+import { ShipToAddress, StatusBadge } from "./admin-ui";
+import { Parcel2GoBookingLine, Parcel2GoBookingPanel, type BookParcel2Go } from "./parcel2go-booking-panel";
 
 const statusFilters: { label: string; value: OrderStatus | "all" }[] = [
   { label: "All", value: "all" },
@@ -22,15 +23,22 @@ const statusOptions: { label: string; value: OrderStatus }[] = [
 
 const requiresTracking = (status: OrderStatus) => status !== "unshipped"
 
+// minmax(0, …) lets every column shrink to its share, so a long name or email
+// can't widen its own row and push that row's columns out of line.
+const orderColumns =
+  "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.7fr)_5.5rem]"
+
 /** Resolves to a note about the Parcel2Go check, if there is one. */
 type UpdateOrderStatus = (orderId: string, status: OrderStatus, trackingLink?: string, parcel2goReference?: string) => Promise<string | undefined>
 
 export function OrdersView({
   orders,
   onUpdateStatus,
+  onBookParcel2Go,
 }: {
   orders: Order[]
   onUpdateStatus: UpdateOrderStatus
+  onBookParcel2Go: BookParcel2Go
 }) {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
   const [search, setSearch] = useState("")
@@ -45,7 +53,9 @@ export function OrdersView({
           !query ||
           order.tracking_id.toLowerCase().includes(query) ||
           order.customer_name.toLowerCase().includes(query) ||
-          order.customer_email.toLowerCase().includes(query),
+          order.customer_email.toLowerCase().includes(query) ||
+          [order.shipping_address?.street, order.shipping_address?.city, order.shipping_address?.postalCode]
+            .some((part) => part?.toLowerCase().includes(query)),
       )
       .sort((a, b) => b.created_at.getTime() - a.created_at.getTime())
   }, [orders, statusFilter, search])
@@ -80,7 +90,7 @@ export function OrdersView({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search tracking ID or customer"
+              placeholder="Search order, customer or postcode"
               className="w-56 bg-transparent text-sm outline-none placeholder:text-neutral-400"
             />
           </div>
@@ -88,9 +98,10 @@ export function OrdersView({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200">
-        <div className="hidden grid-cols-[1.2fr_1fr_1fr_0.9fr_0.8fr_auto] gap-3 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid">
+        <div className={`hidden ${orderColumns} gap-4 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-neutral-500 sm:grid`}>
           <span>Order</span>
           <span>Customer</span>
+          <span>Ship to</span>
           <span>Total</span>
           <span>Status</span>
           <span>Payment</span>
@@ -105,31 +116,34 @@ export function OrdersView({
                 <button
                   type="button"
                   onClick={() => setExpandedId(expanded ? null : order.id)}
-                  className="grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-neutral-50 sm:grid-cols-[1.2fr_1fr_1fr_0.9fr_0.8fr_auto] sm:items-center"
+                  className={`grid w-full grid-cols-1 gap-x-4 gap-y-3 px-4 py-4 text-left transition hover:bg-neutral-50 sm:items-start ${orderColumns}`}
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-semibold text-neutral-900">{order.tracking_id}</p>
                     <p className="text-xs text-neutral-500">
                       {order.created_at.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-900">{order.customer_name}</p>
-                    <p className="text-xs text-neutral-500">{order.customer_email}</p>
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-neutral-900">{order.customer_name}</p>
+                    <p className="truncate text-xs text-neutral-500" title={order.customer_email}>{order.customer_email}</p>
                   </div>
+                  <ShipToAddress address={order.shipping_address} />
                   <p className="text-sm font-semibold text-neutral-900">
                     {formatCurrency(order.total_amount, order.currency)}
                   </p>
-                  <div>
+                  <div className="min-w-0">
                     <StatusBadge status={order.status} />
-                    {order.delivery && (
+                    {order.delivery ? (
                       <p className={`mt-1 text-xs ${order.delivery.problem ? "font-medium text-amber-700" : "text-neutral-500"}`}>
                         {deliveryStageLabels[order.delivery.stage]}
                       </p>
+                    ) : (
+                      <Parcel2GoBookingLine order={order} />
                     )}
                   </div>
-                  <p className="text-sm text-neutral-600">{order.payment_gateway}</p>
-                  <span className="inline-flex items-center gap-1.5 text-sm text-neutral-500">
+                  <p className="text-sm capitalize text-neutral-600">{order.payment_gateway}</p>
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-neutral-500">
                     {order.items.length} item{order.items.length === 1 ? "" : "s"}
                     <ChevronDown
                       size={14}
@@ -170,6 +184,7 @@ export function OrdersView({
 
                     {order.fulfillment_issue && <p role="alert" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{order.fulfillment_issue}</p>}
                     {(order.refunded_amount ?? 0) > 0 && <p className="text-sm">Refunded: {formatCurrency(order.refunded_amount!, order.currency)}</p>}
+                    <Parcel2GoBookingPanel order={order} onBook={onBookParcel2Go} />
                     <OrderTrackingEditor order={order} onUpdateStatus={onUpdateStatus} />
                   </div>
                 )}
