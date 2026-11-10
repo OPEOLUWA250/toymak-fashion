@@ -12,6 +12,7 @@ interface ProductRow {
   price_gbp: number;
   price_ngn: number;
   price_usd: number | null;
+  weight_kg?: number | null;
   compare_at_price_gbp: number | null;
   category: Product["category"];
   sizes: string[];
@@ -37,6 +38,7 @@ function rowToProduct(row: ProductRow): Product {
     price_gbp: Number(row.price_gbp),
     price_ngn: Number(row.price_ngn),
     price_usd: row.price_usd === null ? undefined : Number(row.price_usd),
+    weight_kg: row.weight_kg == null ? 0.5 : Number(row.weight_kg),
     compare_at_price_gbp: row.compare_at_price_gbp === null ? undefined : Number(row.compare_at_price_gbp),
     category: row.category,
     sizes: row.sizes,
@@ -58,6 +60,7 @@ function productToRow(product: Product) {
   if (typeof product.category !== 'string' || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(product.category)) throw new Error('Choose a category.');
   for (const value of [product.stock_qty, product.low_stock_threshold]) if (!Number.isSafeInteger(value) || value < 0) throw new Error('Stock quantities must be nonnegative whole numbers.');
   for (const value of [product.price_gbp, product.price_ngn, product.price_usd ?? 0]) if (!Number.isFinite(value) || value < 0) throw new Error('Prices must be nonnegative numbers.');
+  if (product.weight_kg != null && (!Number.isFinite(product.weight_kg) || product.weight_kg <= 0 || product.weight_kg > 70)) throw new Error('Item weight must be greater than 0 and no more than 70 kg.');
   if (product.compare_at_price_gbp != null && !(Number.isFinite(product.compare_at_price_gbp) && product.compare_at_price_gbp > product.price_gbp && product.price_gbp > 0)) throw new Error('The sale price must be lower than the regular price.');
   const variants = product.variants ?? [];
   const seen = new Set<string>();
@@ -77,6 +80,7 @@ function productToRow(product: Product) {
     price_gbp: product.price_gbp,
     price_ngn: product.price_ngn,
     price_usd: product.price_usd ?? null,
+    weight_kg: product.weight_kg ?? 0.5,
     compare_at_price_gbp: product.compare_at_price_gbp ?? null,
     category: product.category,
     sizes: product.sizes,
@@ -156,4 +160,3 @@ export async function deleteProduct(id: string): Promise<void> {
   const { error } = await getSupabaseAdmin().from("products").delete().eq("id", id);
   if (error) throw new Error(`Failed to delete product ${id}: ${error.message}`);
 }
-

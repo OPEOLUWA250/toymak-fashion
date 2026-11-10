@@ -130,6 +130,7 @@ export function buildOrderItems(
       color: item.color,
       unit_price: unitPrice,
       subtotal: unitPrice * item.quantity,
+      weight_kg: product?.weight_kg ?? 0.5,
     };
   });
 }

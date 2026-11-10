@@ -76,6 +76,7 @@ export default function ProductClient({
       color: selectedColor,
       price_at_addition: product.price_gbp,
       image_url: product.images[0],
+      weight_kg: product.weight_kg ?? 0.5,
     });
     trackAddToCart(product, quantity);
     setJustAdded(true);

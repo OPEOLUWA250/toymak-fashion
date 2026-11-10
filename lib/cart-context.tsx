@@ -30,7 +30,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         item !== null && typeof item === 'object' &&
         ['product_id', 'product_name', 'size', 'color', 'image_url'].every(key => typeof item[key] === 'string') &&
         Number.isSafeInteger(item.quantity) && item.quantity > 0 &&
-        Number.isFinite(item.price_at_addition) && item.price_at_addition >= 0
+        Number.isFinite(item.price_at_addition) && item.price_at_addition >= 0 &&
+        (item.weight_kg === undefined || (Number.isFinite(item.weight_kg) && item.weight_kg > 0))
       ) : [])
     } catch {
       // Invalid or unavailable storage must not prevent shopping.

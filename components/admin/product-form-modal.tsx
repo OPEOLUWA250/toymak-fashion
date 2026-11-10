@@ -48,6 +48,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   const [priceGbp, setPriceGbp] = useState(regular ? String(regular.gbp) : "");
   const [priceNgn, setPriceNgn] = useState(regular ? String(regular.ngn) : "");
   const [priceUsd, setPriceUsd] = useState(regular?.usd ? String(regular.usd) : "");
+  const [weightKg, setWeightKg] = useState(product ? String(product.weight_kg ?? 0.5) : "0.5");
   const [salePriceGbp, setSalePriceGbp] = useState(product && isOnSale(product) ? String(product.price_gbp) : "");
   // Tracks whether NGN/USD were hand-edited, so the GBP-driven suggestion
   // below only ever fills an empty field — it never overwrites a price the
@@ -167,6 +168,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       description: description.trim(),
       // Sale or regular prices in every currency, plus the regular GBP price when on sale.
       ...sale.prices,
+      weight_kg: Number(weightKg) > 0 ? Number(weightKg) : 0.5,
       stock_qty: normalizedVariants.length ? normalizedVariants.reduce((sum, v) => sum + v.stock, 0) : Number(stockQty) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 0,
       sizes,
@@ -224,6 +226,20 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
                 readOnly
                 className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-500"
               />
+            </div>
+
+            <div className="max-w-sm">
+              <Field
+                id="product-weight-kg"
+                label="Item weight (kg)"
+                value={weightKg}
+                onChange={setWeightKg}
+                type="number"
+                required
+              />
+              <p className="mt-1.5 text-xs text-neutral-500">
+                Weight of one item. Parcel2Go multiplies this by the quantity ordered.
+              </p>
             </div>
           </div>
 

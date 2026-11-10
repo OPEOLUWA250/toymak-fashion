@@ -32,7 +32,7 @@ const senderFields: { key: keyof Parcel2GoSender; label: string; placeholder: st
 ];
 
 const parcelFields: { key: keyof Parcel2GoParcelSize; label: string; unit: string }[] = [
-  { key: "weightKg", label: "Weight", unit: "kg" },
+  { key: "weightKg", label: "Fallback weight", unit: "kg" },
   { key: "lengthCm", label: "Length", unit: "cm" },
   { key: "widthCm", label: "Width", unit: "cm" },
   { key: "heightCm", label: "Height", unit: "cm" },
@@ -228,7 +228,7 @@ export function Parcel2GoSettingsCard() {
           <span>
             More options
             <span className="block text-xs font-normal text-neutral-500">
-              Courier: {settings.standardService ? settings.standardServiceName || settings.standardService : "cheapest drop-off service, chosen per order"} · parcel {settings.parcel.weightKg} kg ·{" "}
+              Courier: {settings.standardService ? settings.standardServiceName || settings.standardService : "Royal Mail 48 preferred for standard; Royal Mail 24 preferred for express"} · parcel dimensions {settings.parcel.lengthCm} × {settings.parcel.widthCm} × {settings.parcel.heightCm} cm ·{" "}
               {settings.payWithPrepay ? `paid from prepay up to £${settings.maxPriceGBP.toFixed(2)}` : "paid by hand"}
             </span>
           </span>
@@ -238,7 +238,7 @@ export function Parcel2GoSettingsCard() {
         <div className="space-y-6 border-t border-neutral-100 px-4 py-4">
           <div>
             <h4 className="text-sm font-semibold text-neutral-900">Parcel</h4>
-            <p className="mb-3 text-xs text-neutral-500">The packed size and weight used for every booking. Too small and the courier may charge extra.</p>
+            <p className="mb-3 text-xs text-neutral-500">The packed dimensions used for every booking. Weight comes from each product and is multiplied by quantity; the weight below is only a fallback for older orders.</p>
             <div className="grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
               {parcelFields.map((field) => (
                 <label key={field.key} className="block text-xs text-neutral-500">
@@ -281,7 +281,7 @@ export function Parcel2GoSettingsCard() {
               <label className="block text-xs text-neutral-500">
                 Standard delivery orders
                 <select value={settings.standardService} onChange={(event) => pickService("standard", event.target.value)} className={inputClass}>
-                  <option value="">Automatic (cheapest drop-off)</option>
+                  <option value="">Royal Mail 48 tracked drop-off (preferred)</option>
                   {optionsFor(settings.standardService, settings.standardServiceName).map((option) => (
                     <option key={option.slug} value={option.slug}>{option.label}</option>
                   ))}
@@ -290,7 +290,7 @@ export function Parcel2GoSettingsCard() {
               <label className="block text-xs text-neutral-500">
                 Express delivery orders
                 <select value={settings.expressService} onChange={(event) => pickService("express", event.target.value)} className={inputClass}>
-                  <option value="">Automatic (cheapest fast drop-off)</option>
+                  <option value="">Royal Mail 24 tracked drop-off (preferred)</option>
                   {optionsFor(settings.expressService, settings.expressServiceName).map((option) => (
                     <option key={option.slug} value={option.slug}>{option.label}</option>
                   ))}

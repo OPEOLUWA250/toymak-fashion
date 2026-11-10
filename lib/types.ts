@@ -33,6 +33,8 @@ export interface Product {
   price_gbp: number
   price_ngn: number
   price_usd?: number
+  /** Shipping weight for one item, in kilograms. */
+  weight_kg?: number
   compare_at_price_gbp?: number
   category: ProductCategory
   sizes: string[]
@@ -56,6 +58,8 @@ export interface CartItem {
   color: string
   price_at_addition: number
   image_url: string
+  /** Snapshot for display/backward-compatible saved carts; checkout re-reads the product. */
+  weight_kg?: number
 }
 
 export interface Address {
@@ -79,6 +83,8 @@ export interface OrderItem {
   color: string
   unit_price: number
   subtotal: number
+  /** Shipping weight for one item, in kilograms. */
+  weight_kg?: number
 }
 
 export interface Order {

@@ -150,9 +150,9 @@ export function serviceForOrder(order: Order, settings: Parcel2GoBookingSettings
 
 /**
  * The quote to book. A chosen service must be quoted; otherwise the
- * cheapest service where the parcel is dropped at a local shop (no printer
- * needed) and delivered to the customer's door, and for express orders the
- * cheapest of those Parcel2Go rates as fast.
+ * Royal Mail 48 tracked drop-off for standard and Royal Mail 24 tracked
+ * drop-off for express when available; otherwise the cheapest suitable
+ * drop-off-to-door service, with the express service preferring fast rates.
  */
 export function pickQuote(quotes: Parcel2GoQuote[], wanted: string, express: boolean): Parcel2GoQuote | undefined {
   if (wanted) return quotes.find((quote) => quote.Service?.Slug === wanted);
@@ -160,6 +160,11 @@ export function pickQuote(quotes: Parcel2GoQuote[], wanted: string, express: boo
     quote.Service?.Slug && quote.TotalPrice > 0
     && quote.Service.DeliveryType === "Door" && quote.Service.CollectionType === "Shop" && !quote.Service.IsPrinterRequired);
   const fast = dropOffToDoor.filter((quote) => quote.Service.Classification === "Fast");
+  const preferred = dropOffToDoor.filter((quote) => {
+    const name = `${quote.Service.CourierName} ${quote.Service.Name}`.toLowerCase();
+    return express ? /\broyal mail\b.*\b24\b|\b24\b.*\broyal mail\b/.test(name) : /\broyal mail\b.*\b48\b|\b48\b.*\broyal mail\b/.test(name);
+  });
+  if (preferred.length > 0) return [...preferred].sort((a, b) => a.TotalPrice - b.TotalPrice)[0];
   const pool = express && fast.length > 0 ? fast : dropOffToDoor;
   return [...pool].sort((a, b) => a.TotalPrice - b.TotalPrice)[0];
 }
@@ -167,6 +172,15 @@ export function pickQuote(quotes: Parcel2GoQuote[], wanted: string, express: boo
 function quoteServiceName(quote: Parcel2GoQuote): string {
   const { Name, CourierName } = quote.Service;
   return Name.startsWith(CourierName) ? Name : `${CourierName} ${Name}`;
+}
+
+function parcelWeight(order: Order, fallback: number): number {
+  const hasItemWeights = order.items.some((item) => item.weight_kg != null);
+  const total = order.items.reduce(
+    (sum, item) => sum + (item.weight_kg ?? (hasItemWeights ? fallback : 0)) * item.quantity,
+    0,
+  );
+  return Math.max(0.01, Math.round((total || fallback) * 1000) / 1000);
 }
 
 /** The order as Parcel2Go's POST /orders wants it. */
@@ -205,7 +219,7 @@ export function buildParcel2GoOrder(
       },
       Parcels: [{
         Id: ids.parcel,
-        Weight: settings.parcel.weightKg,
+        Weight: parcelWeight(order, settings.parcel.weightKg),
         Length: settings.parcel.lengthCm,
         Width: settings.parcel.widthCm,
         Height: settings.parcel.heightCm,
@@ -333,7 +347,7 @@ export async function bookOrderOnParcel2Go(
       service: service.slug || undefined,
       collection: { Country: "GBR", Postcode: settings.sender.postcode, Town: settings.sender.town },
       delivery: { Country: "GBR", Postcode: address.postalCode.trim(), Town: address.city.trim(), Property: splitStreetLine(address.street).property },
-      parcel: { value: Math.max(1, order.subtotal), ...settings.parcel },
+      parcel: { value: Math.max(1, order.subtotal), ...settings.parcel, weightKg: parcelWeight(order, settings.parcel.weightKg) },
     });
     const quote = pickQuote(quotes, service.slug, service.express);
     if (!quote) {

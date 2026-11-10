@@ -30,6 +30,7 @@ export function buildCartItemsFromCatalog(input: unknown, products: Product[]): 
       color,
       price_at_addition: product.price_gbp,
       image_url: product.images[0] ?? "",
+      weight_kg: product.weight_kg ?? 0.5,
     });
   }
   return items;
