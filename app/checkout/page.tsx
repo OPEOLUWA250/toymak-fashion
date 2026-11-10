@@ -150,9 +150,17 @@ export default function CheckoutPage() {
     settings,
     activeCoupon?.discountPercent ?? 0,
   ).shipping;
+  const expressShipping = calculateOrderTotals(
+    items,
+    checkoutCurrency,
+    products,
+    settings,
+    activeCoupon?.discountPercent ?? 0,
+    "express",
+  ).shipping;
   const deliveryOptions: { method: ShippingMethod; price: number }[] = [
     { method: "standard", price: standardShipping },
-    ...(expressAvailable ? [{ method: "express" as const, price: settings.expressShippingGBP }] : []),
+    ...(expressAvailable ? [{ method: "express" as const, price: expressShipping }] : []),
   ];
 
   // Waits for the catalog, because the subtotal is 0 until prices have loaded.

@@ -43,6 +43,34 @@ export interface OrderTotals {
   discount: number;
 }
 
+/** Total shipment weight for the requested quantities, defaulting old products to 0.5 kg. */
+export function calculateParcelWeight(
+  items: { product_id: string; quantity: number }[],
+  products: Product[],
+): number {
+  const productLookup = new Map(products.map((product) => [product.id, product]));
+  const total = items.reduce(
+    (sum, item) => sum + (productLookup.get(item.product_id)?.weight_kg ?? 0.5) * item.quantity,
+    0,
+  );
+  return Math.max(0, Math.round(total * 1000) / 1000);
+}
+
+function weightSurcharge(
+  weightKg: number,
+  currency: Currency,
+  settings: StoreSettings,
+): number {
+  const additionalKg = Math.max(0, Math.ceil(weightKg - 0.5));
+  if (additionalKg === 0) return 0;
+  const gbpToCurrency = currency === "GBP"
+    ? 1
+    : currency === "NGN"
+      ? settings.exchangeRates?.gbpToNgn ?? 1
+      : settings.exchangeRates?.gbpToUsd ?? 1;
+  return additionalKg * gbpToCurrency;
+}
+
 /**
  * Shared by the checkout page (for display) and the Paystack initialize route
  * (to compute the amount actually charged) so the two can never drift apart —
@@ -58,9 +86,10 @@ export interface OrderTotals {
  * Standard shipping is keyed by currency (not country) since currency is
  * already deterministic from the gateway/country choice made earlier in
  * checkout — this is what makes the admin's Settings page numbers the same
- * ones actually charged, not a separate copy that can drift. Express is a
- * flat GBP price from Settings that never becomes free; callers check the
- * address is in the UK before offering it.
+ * ones actually charged, not a separate copy that can drift. Both methods
+ * add £1-equivalent for each additional kg above 0.5 kg, rounded up.
+ * Standard can still become free at its configured subtotal threshold;
+ * express never becomes free.
  *
  * No VAT is added on top: prices are charged as listed, so `tax` is always 0
  * (the field stays for orders recorded before VAT was removed).
@@ -84,9 +113,12 @@ export function calculateOrderTotals(
   const discount = (rawMinor - subtotalMinor) / 100;
   const subtotal = subtotalMinor / 100;
   if (shippingMethod === "express" && currency !== "GBP") throw new Error("Express delivery is only available in the UK.");
+  const weightCost = weightSurcharge(calculateParcelWeight(items, products), currency, settings);
   const shippingMinor = shippingMethod === "express"
-    ? Math.round(settings.expressShippingGBP * 100)
-    : subtotal >= settings.shippingThreshold[currency] ? 0 : Math.round(settings.shippingCost[currency] * 100);
+    ? Math.round((settings.expressShippingGBP + weightCost) * 100)
+    : subtotal >= settings.shippingThreshold[currency]
+      ? 0
+      : Math.round((settings.shippingCost[currency] + weightCost) * 100);
   const shipping = shippingMinor / 100;
   const total = (subtotalMinor + shippingMinor) / 100;
 

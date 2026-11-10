@@ -22,9 +22,16 @@ test('no VAT is added, whatever tax rate is still saved in settings', () => {
   assert.equal(totals.tax, 0);
   assert.equal(Math.round(totals.total*100), Math.round((totals.subtotal+totals.shipping)*100));
 });
-test('express is the flat UK price from settings, never becomes free, and is refused outside GBP', () => {
+test('shipping adds £1-equivalent per rounded-up kg above 0.5 kg', () => {
+  const weighted = [{ ...products[0], price_gbp: 20, weight_kg: 0.6 }];
+  assert.equal(calculateOrderTotals([{ product_id: 'p', quantity: 1 }], 'GBP', weighted, settings).shipping, 4.99);
+  assert.equal(calculateOrderTotals([{ product_id: 'p', quantity: 2 }], 'GBP', weighted, settings).shipping, 4.99);
+  assert.equal(calculateOrderTotals([{ product_id: 'p', quantity: 2 }], 'GBP', [{ ...weighted[0], price_gbp: 100 }], settings).shipping, 0);
+});
+test('express weight surcharge is included and express is refused outside GBP', () => {
   const big = [{...products[0],price_gbp:500}];
   assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'express').shipping,8.49);
+  assert.equal(calculateOrderTotals([{product_id:'p',quantity:2}],'GBP',[{...big[0],weight_kg:0.6}],settings,0,'express').shipping,9.49);
   assert.equal(calculateOrderTotals([{product_id:'p',quantity:1}],'GBP',big,settings,0,'standard').shipping,0);
   assert.throws(()=>calculateOrderTotals([item],'NGN',products,settings,0,'express'));
   const { isExpressAvailable } = load('lib/shipping.ts');

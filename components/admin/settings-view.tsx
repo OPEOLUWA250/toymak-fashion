@@ -121,8 +121,9 @@ export function SettingsView() {
       {saved && <p role="status" className="text-sm text-emerald-700">Settings saved.</p>}
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-4">
         <p className="text-sm leading-6 text-neutral-600">
-          These numbers drive real checkout math — the standard and express shipping a customer
-          is actually charged come straight from what&apos;s saved here. No VAT is added at checkout.
+          These numbers drive real checkout math. Base shipping comes from what&apos;s saved here;
+          orders over 0.5 kg add £1 (or the currency equivalent) per additional kg, rounded up.
+          Free standard shipping above the threshold still applies. No VAT is added at checkout.
         </p>
         <button
           type="button"
