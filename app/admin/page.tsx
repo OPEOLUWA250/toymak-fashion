@@ -172,7 +172,7 @@ export default function AdminPage() {
   const bottomNavItems = isSuperAdmin ? [adminsNavItem, settingsNavItem] : [settingsNavItem];
 
   const { products, isLoading: productsLoading, error: productsError, addProduct, updateProduct, removeProduct } = useAdminProducts();
-  const { orders, isLoading: ordersLoading, error: ordersError, addOrder, updateOrderStatus, bookParcel2Go, refresh: refreshOrders } = useOrders();
+  const { orders, isLoading: ordersLoading, error: ordersError, addOrder, updateOrderStatus, sendToRoyalMail, refresh: refreshOrders } = useOrders();
   const { signups } = useSignups();
   const { reviews: allReviews, setApproval: setReviewApproval, removeReview } = useAdminReviews();
   const {
@@ -366,7 +366,7 @@ export default function AdminPage() {
             )}
             {activeView === "analytics" && <AnalyticsView orders={orders} />}
             {activeView === "orders" && (
-              <OrdersView orders={orders} onUpdateStatus={updateOrderStatus} onBookParcel2Go={bookParcel2Go} />
+              <OrdersView orders={orders} onUpdateStatus={updateOrderStatus} onSendToRoyalMail={sendToRoyalMail} />
             )}
             {activeView === "messages" && (
               <MessagesView

@@ -12,9 +12,8 @@ import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-bui
 import { useCookieConsent } from "@/lib/cookie-consent";
 import { trackPurchaseOnce } from "@/lib/meta-pixel";
 import { Order, PaymentGateway } from "@/lib/types";
-import { CheckCircle2, ExternalLink, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { isExpressAvailable } from "@/lib/shipping";
-import { parcel2GoTrackingUrl } from "@/lib/parcel2go-booking";
 
 type VerifyState = "loading" | "success" | "failed" | "error";
 type PaymentRef = { gateway: PaymentGateway; paymentId: string | null };
@@ -147,7 +146,10 @@ function CheckoutSuccessContent() {
             <div className="mt-8 w-full rounded-2xl border border-neutral/10 bg-[#fafafa] p-6 text-left text-sm">
               <Row label="Order number" value={order.tracking_id} />
               {isExpressAvailable(order.shipping_address.country) && (
-                <ParcelTrackingRow email={order.customer_email} orderNumber={order.tracking_id} />
+                <Row
+                  label="Delivery"
+                  value={order.shipping_address.shippingMethod === "express" ? "Royal Mail Tracked 24" : "Royal Mail Tracked 48"}
+                />
               )}
               <Row
                 label="Amount paid"
@@ -158,7 +160,8 @@ function CheckoutSuccessContent() {
 
             <p className="mt-4 text-xs text-neutral/50">
               Keep your order number ({order.tracking_id}) — with your email, it&apos;s all you
-              need to track this order. We&apos;ve also emailed it to you.
+              need to track this order. We&apos;ve also emailed it to you, and we&apos;ll email your
+              tracking number as soon as your order ships.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -245,72 +248,6 @@ function Row({ label, value, mono = false }: { label: string; value: ReactNode; 
         {value}
       </span>
     </div>
-  );
-}
-
-// UK orders are booked with Parcel2Go a few seconds after payment.
-const PARCEL_CHECKS = 12;
-const PARCEL_CHECK_EVERY_MS = 5000;
-
-/**
- * The order's Parcel2Go tracking number, which arrives a few seconds after
- * payment when the parcel is booked. Checks for a minute, then gives up
- * quietly (the number is also emailed, and shown on Track Order).
- */
-function ParcelTrackingRow({ email, orderNumber }: { email: string; orderNumber: string }) {
-  const [reference, setReference] = useState<string | null>(null);
-  const [gaveUp, setGaveUp] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    let checks = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const check = async () => {
-      checks++;
-      try {
-        const response = await fetch("/api/orders/lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, orderNumber }),
-        });
-        const data = (await response.json()) as { orders?: Order[] };
-        const found = data.orders?.[0]?.parcel2go_reference;
-        if (found) {
-          if (!cancelled) setReference(found);
-          return;
-        }
-      } catch {
-        // Try again on the next check.
-      }
-      if (cancelled) return;
-      if (checks < PARCEL_CHECKS) timer = setTimeout(check, PARCEL_CHECK_EVERY_MS);
-      else setGaveUp(true);
-    };
-    timer = setTimeout(check, 2000);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [email, orderNumber]);
-
-  if (gaveUp) return null;
-  return (
-    <Row
-      label="Parcel2Go tracking number"
-      value={
-        reference ? (
-          <a href={parcel2GoTrackingUrl(reference)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary underline underline-offset-4">
-            {reference}
-            <ExternalLink size={12} />
-          </a>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-neutral/50">
-            <Loader2 size={12} className="animate-spin" />
-            Booking with the courier…
-          </span>
-        )
-      }
-    />
   );
 }
 

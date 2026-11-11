@@ -1,4 +1,4 @@
--- Store the weight of one product in kilograms for Parcel2Go quoting.
+-- Store the weight of one product in kilograms for Royal Mail parcels.
 -- Existing products default to 0.5 kg until an admin updates them.
 alter table public.products
   add column if not exists weight_kg numeric(8,3) not null default 0.5;

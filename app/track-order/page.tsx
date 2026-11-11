@@ -13,16 +13,11 @@ import { useProducts } from "@/lib/use-products";
 import { Order, OrderStatus } from "@/lib/types";
 import { contactEmail } from "@/lib/site-info";
 import { orderShippingLabel } from "@/lib/shipping";
-import { deliveryStageLabels, type DeliveryStage, type DeliveryTracking } from "@/lib/delivery";
-import { parcel2GoTrackingUrl } from "@/lib/parcel2go-booking";
+import { royalMailTrackingUrl } from "@/lib/royal-mail";
 import {
-  AlertTriangle,
-  CircleCheck,
   ExternalLink,
   Loader2,
-  MapPin,
   Package,
-  Route,
   Search,
   ShieldOff,
   Truck,
@@ -34,16 +29,15 @@ const statusLabels: Record<OrderStatus, string> = {
   shipped: "Shipped",
 };
 
-// Orders shipped without a Parcel2Go reference: only "Preparing" and
-// "Shipped" happen on our side, and the courier's own tracking link
-// (order.tracking_link) covers the rest, so the stepper ends with a muted
-// "With Courier" handoff node instead of stages we can't actually track.
+// Only "Preparing" and "Shipped" happen on our side; Royal Mail's own
+// tracking (or the courier's link) covers the rest, so the stepper ends with
+// a muted "With Royal Mail" handoff node instead of stages we don't track.
 const orderStages: { status: OrderStatus; label: string; icon: LucideIcon }[] = [
   { status: "unshipped", label: "Preparing", icon: Package },
   { status: "shipped", label: "Shipped", icon: Truck },
 ];
 
-function OrderProgress({ status }: { status: OrderStatus }) {
+function OrderProgress({ status, courier }: { status: OrderStatus; courier: string }) {
   const currentIndex = orderStages.findIndex((stage) => stage.status === status);
   const handedToCourier = currentIndex === orderStages.length - 1;
 
@@ -100,100 +94,9 @@ function OrderProgress({ status }: { status: OrderStatus }) {
             handedToCourier ? "text-neutral/60" : "text-neutral/35"
           }`}
         >
-          With Courier
+          With {courier}
         </span>
       </div>
-    </div>
-  );
-}
-
-// With a Parcel2Go reference the store follows the parcel all the way to
-// the door, so the courier steps replace the "With Courier" handoff.
-const deliverySteps: { label: string; icon: LucideIcon }[] = [
-  { label: "Preparing", icon: Package },
-  { label: "Shipped", icon: Truck },
-  { label: "In transit", icon: Route },
-  { label: "Out for delivery", icon: MapPin },
-  { label: "Delivered", icon: CircleCheck },
-];
-
-const deliveryStepIndex: Record<DeliveryStage, number> = {
-  awaiting: 1,
-  dropped_off: 2,
-  collected: 2,
-  in_transit: 2,
-  at_depot: 2,
-  out_for_delivery: 3,
-  delivered: 4,
-};
-
-function DeliveryProgress({ tracking }: { tracking: DeliveryTracking | null | undefined }) {
-  const currentIndex = deliveryStepIndex[tracking?.stage ?? "awaiting"];
-  return (
-    <div className="flex items-start">
-      {deliverySteps.map((step, index) => {
-        const Icon = step.icon;
-        const isActive = index <= currentIndex;
-        const isLast = index === deliverySteps.length - 1;
-        return (
-          <div key={step.label} className={`flex flex-col items-center ${isLast ? "" : "flex-1"}`}>
-            <div className="flex w-full items-center">
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
-                  isActive ? "border-primary bg-primary text-white" : "border-neutral/15 bg-white text-neutral/25"
-                }`}
-              >
-                <Icon size={15} strokeWidth={index === currentIndex ? 2.5 : 2} />
-              </span>
-              {!isLast && <span className={`mx-1 h-px flex-1 transition ${index < currentIndex ? "bg-primary" : "bg-neutral/10"}`} />}
-            </div>
-            <span
-              className={`mt-2.5 max-w-[4.5rem] text-center text-[10px] font-semibold uppercase leading-4 tracking-[0.1em] sm:max-w-none sm:tracking-[0.14em] ${
-                isActive ? "text-neutral" : "text-neutral/35"
-              }`}
-            >
-              {step.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function DeliveryDetails({ tracking }: { tracking: DeliveryTracking | null | undefined }) {
-  if (!tracking) {
-    return (
-      <p className="mt-7 rounded-xl bg-tertiary/25 px-4 py-3 text-sm text-neutral/60">
-        Your order has shipped. Tracking updates appear here once the courier scans your parcel.
-      </p>
-    );
-  }
-  const showEstimate = tracking.estimatedDelivery && tracking.stage !== "delivered";
-  return (
-    <div className={`mt-7 space-y-1.5 rounded-xl px-4 py-3 text-sm ${tracking.problem ? "bg-amber-50 text-amber-900" : "bg-tertiary/25 text-neutral/70"}`}>
-      {tracking.problem && (
-        <p className="flex items-center gap-2 font-semibold">
-          <AlertTriangle size={15} className="shrink-0" />
-          The courier has reported a delay or delivery problem. Check the latest update below, or email us if you need help.
-        </p>
-      )}
-      {showEstimate && (
-        <p className="font-semibold text-neutral">
-          Estimated delivery:{" "}
-          {new Date(tracking.estimatedDelivery!).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-        </p>
-      )}
-      {tracking.latestEvent && (
-        <p>
-          <span className="font-medium">Latest update:</span> {tracking.latestEvent}
-          {tracking.latestEventAt && (
-            <span className="text-neutral/45">
-              {" "}· {new Date(tracking.latestEventAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-            </span>
-          )}
-        </p>
-      )}
     </div>
   );
 }
@@ -393,36 +296,26 @@ function TrackOrderContent() {
                   {/* Progress */}
                   <div className="px-6 py-7 sm:px-10">
                     <p className="mb-6 text-sm font-semibold text-neutral">
-                      {order.status === "shipped" && order.parcel2go_reference && order.delivery
-                        ? deliveryStageLabels[order.delivery.stage]
-                        : statusLabels[order.status]}
+                      {statusLabels[order.status]}
                     </p>
-                    {order.status === "shipped" && order.parcel2go_reference ? (
-                      <DeliveryProgress tracking={order.delivery} />
-                    ) : (
-                      <OrderProgress status={order.status} />
-                    )}
+                    <OrderProgress status={order.status} courier={order.tracking_number || !order.tracking_link ? "Royal Mail" : "Courier"} />
 
-                    {order.status === "shipped" && order.parcel2go_reference && (
-                      <DeliveryDetails tracking={order.delivery} />
-                    )}
-
-                    {order.parcel2go_reference && (
+                    {order.tracking_number && (
                       <div className="mt-7 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral/10 px-4 py-3">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral/45">
-                            Parcel2Go tracking number
+                            Royal Mail tracking number
                           </p>
-                          <p className="mt-0.5 font-semibold text-neutral">{order.parcel2go_reference}</p>
+                          <p className="mt-0.5 font-semibold text-neutral">{order.tracking_number}</p>
                         </div>
                         <a
-                          href={parcel2GoTrackingUrl(order.parcel2go_reference)}
+                          href={royalMailTrackingUrl(order.tracking_number)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary/90"
                         >
                           <Truck size={15} />
-                          Track on Parcel2Go
+                          Track with Royal Mail
                           <ExternalLink size={13} />
                         </a>
                       </div>
@@ -430,9 +323,12 @@ function TrackOrderContent() {
 
                     {order.status === "unshipped" ? (
                       <p className="mt-4 rounded-xl bg-tertiary/25 px-4 py-3 text-sm text-neutral/60">
-                        {order.parcel2go_reference
-                          ? "Your parcel is booked with the courier. This page updates as soon as they have it."
-                          : "Your order is being prepared. A tracking link will appear here as soon as it ships."}
+                        Your order is being prepared. Your Royal Mail tracking number will appear here, and be emailed
+                        to you, as soon as it ships.
+                      </p>
+                    ) : order.tracking_number ? (
+                      <p className="mt-3 text-xs text-neutral/45">
+                        Royal Mail emails you when it&apos;s out for delivery. See every update on their tracking page.
                       </p>
                     ) : order.tracking_link ? (
                       <div className="mt-7 space-y-2">
@@ -447,9 +343,7 @@ function TrackOrderContent() {
                           <ExternalLink size={14} />
                         </a>
                         <p className="text-xs text-neutral/45">
-                          {order.parcel2go_reference
-                            ? "See every scan on the courier's own tracking page."
-                            : "Your order has shipped — follow it out for delivery with our courier partner above."}
+                          Your order has shipped — follow it out for delivery with our courier partner above.
                         </p>
                       </div>
                     ) : null}

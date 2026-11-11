@@ -18,10 +18,9 @@ interface OrderRow {
   shipping_address: Order["shipping_address"];
   status: Order["status"];
   tracking_link: string | null;
-  parcel2go_reference?: string | null;
-  delivery_tracking?: Order["delivery"];
-  delivery_notified_stage?: Order["delivery_notified_stage"];
-  parcel2go_booking?: Order["parcel2go_booking"];
+  tracking_number?: string | null;
+  royal_mail?: Order["royal_mail"];
+  shipped_email_sent_at?: string | null;
   currency: Order["currency"];
   payment_gateway: Order["payment_gateway"];
   payment_reference: string;
@@ -47,10 +46,9 @@ function rowToOrder(row: OrderRow): Order {
     shipping_address: row.shipping_address,
     status: row.status,
     tracking_link: row.tracking_link ?? undefined,
-    parcel2go_reference: row.parcel2go_reference ?? undefined,
-    delivery: row.delivery_tracking ?? null,
-    delivery_notified_stage: row.delivery_notified_stage ?? null,
-    parcel2go_booking: row.parcel2go_booking ?? null,
+    tracking_number: row.tracking_number ?? undefined,
+    royal_mail: row.royal_mail ?? null,
+    shipped_email_sent_at: row.shipped_email_sent_at ?? null,
     currency: row.currency,
     payment_gateway: row.payment_gateway,
     payment_reference: row.payment_reference,
@@ -121,12 +119,12 @@ export async function appendServerOrder(
     await deleteAbandonedCartByEmail(order.customer_email).catch((error) =>
       console.error(`Could not clear abandoned cart for order ${order.id}:`, error),
     );
-    // Book the parcel on Parcel2Go first (when automatic booking is on), so
-    // the confirmation email can give the customer their P2G number. Loaded
-    // here rather than at the top, as the booking code reads orders from
-    // this file. It never throws; the email goes out either way.
-    const { autoBookParcel2Go } = await import("./parcel2go-booking");
-    await autoBookParcel2Go(order);
+    // Send the order to Royal Mail Click & Drop first (when automatic
+    // sending is on), so the shop's new-order email can say it's there.
+    // Loaded here rather than at the top, as that code reads orders from
+    // this file. It never throws; the emails go out either way.
+    const { autoSendToRoyalMail } = await import("./royal-mail-orders");
+    await autoSendToRoyalMail(order);
     await dispatchOrderEmails(order.id);
   });
 
@@ -137,17 +135,16 @@ export async function updateServerOrderStatus(
   id: string,
   status: Order["status"],
   trackingLink?: string,
-  /** A new Parcel2Go reference, or null to remove it; undefined leaves it. */
-  parcel2goReference?: string | null,
+  /** A new Royal Mail tracking number, or null to remove it; undefined leaves it. */
+  trackingNumber?: string | null,
   previous?: Order,
 ): Promise<Order | null> {
   const updates: Record<string, unknown> = { status };
   if (trackingLink !== undefined) updates.tracking_link = trackingLink;
-  if (parcel2goReference !== undefined && parcel2goReference !== (previous?.parcel2go_reference ?? null)) {
-    // A different parcel: forget the old one's status and emails.
-    updates.parcel2go_reference = parcel2goReference;
-    updates.delivery_tracking = null;
-    updates.delivery_notified_stage = null;
+  if (trackingNumber !== undefined && trackingNumber !== (previous?.tracking_number ?? null)) {
+    updates.tracking_number = trackingNumber;
+    // A corrected number: the customer is emailed the right one.
+    if (trackingNumber && previous?.tracking_number) updates.shipped_email_sent_at = null;
   }
 
   const { data, error } = await getSupabaseAdmin()

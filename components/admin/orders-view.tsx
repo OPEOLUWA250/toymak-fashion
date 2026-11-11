@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ExternalLink, Link2, Search, Truck } from "lucide-react";
+import { ChevronDown, ExternalLink, Link2, Search } from "lucide-react";
 import { Order, OrderStatus } from "@/lib/types";
 import { formatCurrency } from "@/lib/pricing";
 import { orderShippingLabel } from "@/lib/shipping";
 import { normalizeExternalUrl } from "@/lib/utils";
-import { deliveryStageLabels, normalizeParcel2GoReference } from "@/lib/delivery";
+import { normalizeTrackingNumber, royalMailTrackingUrl } from "@/lib/royal-mail";
 import { ShipToAddress, StatusBadge } from "./admin-ui";
-import { Parcel2GoBookingLine, Parcel2GoBookingPanel, type BookParcel2Go } from "./parcel2go-booking-panel";
+import { RoyalMailLine, RoyalMailPanel, type SendToRoyalMail } from "./royal-mail-panel";
 
 const statusFilters: { label: string; value: OrderStatus | "all" }[] = [
   { label: "All", value: "all" },
@@ -28,17 +28,16 @@ const requiresTracking = (status: OrderStatus) => status !== "unshipped"
 const orderColumns =
   "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1.5fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.7fr)_5.5rem]"
 
-/** Resolves to a note about the Parcel2Go check, if there is one. */
-type UpdateOrderStatus = (orderId: string, status: OrderStatus, trackingLink?: string, parcel2goReference?: string) => Promise<string | undefined>
+type UpdateOrderStatus = (orderId: string, status: OrderStatus, trackingLink?: string, trackingNumber?: string) => Promise<void>
 
 export function OrdersView({
   orders,
   onUpdateStatus,
-  onBookParcel2Go,
+  onSendToRoyalMail,
 }: {
   orders: Order[]
   onUpdateStatus: UpdateOrderStatus
-  onBookParcel2Go: BookParcel2Go
+  onSendToRoyalMail: SendToRoyalMail
 }) {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
   const [search, setSearch] = useState("")
@@ -134,13 +133,7 @@ export function OrdersView({
                   </p>
                   <div className="min-w-0">
                     <StatusBadge status={order.status} />
-                    {order.delivery ? (
-                      <p className={`mt-1 text-xs ${order.delivery.problem ? "font-medium text-amber-700" : "text-neutral-500"}`}>
-                        {deliveryStageLabels[order.delivery.stage]}
-                      </p>
-                    ) : (
-                      <Parcel2GoBookingLine order={order} />
-                    )}
+                    <RoyalMailLine order={order} />
                   </div>
                   <p className="text-sm capitalize text-neutral-600">{order.payment_gateway}</p>
                   <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-neutral-500">
@@ -184,7 +177,7 @@ export function OrdersView({
 
                     {order.fulfillment_issue && <p role="alert" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{order.fulfillment_issue}</p>}
                     {(order.refunded_amount ?? 0) > 0 && <p className="text-sm">Refunded: {formatCurrency(order.refunded_amount!, order.currency)}</p>}
-                    <Parcel2GoBookingPanel order={order} onBook={onBookParcel2Go} />
+                    <RoyalMailPanel order={order} onSend={onSendToRoyalMail} />
                     <OrderTrackingEditor order={order} onUpdateStatus={onUpdateStatus} />
                   </div>
                 )}
@@ -216,9 +209,8 @@ function OrderTrackingEditor({
 }) {
   const [draftStatus, setDraftStatus] = useState<OrderStatus>(order.status)
   const [draftLink, setDraftLink] = useState(order.tracking_link ?? "")
-  const [draftReference, setDraftReference] = useState(order.parcel2go_reference ?? "")
+  const [draftNumber, setDraftNumber] = useState(order.tracking_number ?? "")
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [justSaved, setJustSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -226,29 +218,27 @@ function OrderTrackingEditor({
   const dirty =
     draftStatus !== order.status ||
     draftLink !== (order.tracking_link ?? "") ||
-    draftReference !== (order.parcel2go_reference ?? "")
-  const delivery = order.delivery
+    draftNumber !== (order.tracking_number ?? "")
 
   const handleSave = async () => {
     if (isSaving) return
-    if (needsTracking && draftLink.trim() === "" && draftReference.trim() === "") {
-      setError("Add the Parcel2Go order number (or a tracking link) before marking this order as shipped.")
+    if (needsTracking && draftLink.trim() === "" && draftNumber.trim() === "") {
+      setError("Add the Royal Mail tracking number (or a tracking link) before marking this order as shipped.")
       return
     }
-    const reference = draftReference.trim() ? normalizeParcel2GoReference(draftReference) : ""
-    if (reference === null) {
-      setError("That doesn't look like a Parcel2Go order number or tracking number. Use letters and numbers only.")
+    const number = draftNumber.trim() ? normalizeTrackingNumber(draftNumber) : ""
+    if (number === null) {
+      setError("That doesn't look like a tracking number. Use letters and numbers only, e.g. MZ584625660GB.")
       return
     }
     setError(null)
-    setNotice(null)
     const normalizedLink = draftLink.trim() ? normalizeExternalUrl(draftLink) : undefined
     setDraftLink(normalizedLink ?? "")
-    setDraftReference(reference)
+    setDraftNumber(number)
     setIsSaving(true)
     setJustSaved(false)
     try {
-      setNotice((await onUpdateStatus(order.id, draftStatus, normalizedLink, reference)) ?? null)
+      await onUpdateStatus(order.id, draftStatus, normalizedLink, number)
       setJustSaved(true)
       setTimeout(() => setJustSaved(false), 2000)
     } catch (error) {
@@ -287,19 +277,19 @@ function OrderTrackingEditor({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">
-            Parcel2Go order number (P2G…) {needsTracking && <span className="text-primary">*</span>}
+            Royal Mail tracking number {needsTracking && <span className="text-primary">*</span>}
           </label>
           <input
             type="text"
             disabled={isSaving}
-            value={draftReference}
+            value={draftNumber}
             onChange={(e) => {
-              setDraftReference(e.target.value)
-              // A parcel number means it's been booked: no need to also pick "Shipped".
+              setDraftNumber(e.target.value)
+              // A tracking number means it's been sent: no need to also pick "Shipped".
               if (e.target.value.trim()) setDraftStatus("shipped")
               setError(null)
             }}
-            placeholder="P2G12345678"
+            placeholder="MZ584625660GB"
             maxLength={60}
             autoComplete="off"
             className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary"
@@ -308,7 +298,7 @@ function OrderTrackingEditor({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-neutral-500">
-            Carrier tracking link <span className="text-neutral-400">(optional)</span>
+            Other courier&apos;s tracking link <span className="text-neutral-400">(optional)</span>
           </label>
           <input
             type="url"
@@ -318,38 +308,17 @@ function OrderTrackingEditor({
               setDraftLink(e.target.value)
               setError(null)
             }}
-            placeholder="https://www.royalmail.com/track-your-item#/tracking-results/..."
+            placeholder="Only if it isn't going by Royal Mail"
             className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-primary"
           />
         </div>
       </div>
 
       {error && <p role="alert" className="mt-2 text-xs font-medium text-red-600">{error}</p>}
-      {notice && <p role="status" className="mt-2 text-xs font-medium text-amber-700">{notice}</p>}
-
-      {delivery && order.parcel2go_reference && (
-        <div className={`mt-3 flex gap-2.5 rounded-xl px-3 py-2.5 text-xs ${delivery.problem ? "bg-amber-50 text-amber-900" : "bg-neutral-50 text-neutral-700"}`}>
-          {delivery.problem ? <AlertTriangle size={14} className="mt-0.5 shrink-0" /> : <Truck size={14} className="mt-0.5 shrink-0 text-primary" />}
-          <div className="space-y-0.5">
-            <p className="font-semibold">
-              Parcel2Go: {deliveryStageLabels[delivery.stage]}
-              {delivery.estimatedDelivery && delivery.stage !== "delivered" && (
-                <span className="font-normal"> · due {new Date(delivery.estimatedDelivery).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</span>
-              )}
-            </p>
-            {delivery.latestEvent && (
-              <p>
-                {delivery.latestEvent}
-                {delivery.latestEventAt && (
-                  <span className="text-neutral-400"> · {new Date(delivery.latestEventAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
-                )}
-              </p>
-            )}
-            {order.delivery_notified_stage && (
-              <p className="text-neutral-400">Customer emailed: {deliveryStageLabels[order.delivery_notified_stage].toLowerCase()}</p>
-            )}
-          </div>
-        </div>
+      {order.shipped_email_sent_at && (
+        <p className="mt-2 text-xs text-neutral-400">
+          Customer emailed that it shipped · {new Date(order.shipped_email_sent_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}
+        </p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -366,7 +335,18 @@ function OrderTrackingEditor({
             Saved. The customer can now see this on Track Order
           </span>
         )}
-        {order.tracking_link && (
+        {order.tracking_number && (
+          <a
+            href={royalMailTrackingUrl(order.tracking_number)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 hover:text-primary"
+          >
+            Track on Royal Mail
+            <ExternalLink size={12} />
+          </a>
+        )}
+        {order.tracking_link && !order.tracking_number && (
           <a
             href={normalizeExternalUrl(order.tracking_link)}
             target="_blank"

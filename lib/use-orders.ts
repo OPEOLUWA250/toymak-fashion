@@ -61,31 +61,30 @@ export function useOrders() {
           return [order, ...current];
         });
       },
-      /** Resolves to a note about the Parcel2Go check, if there is one. */
-      updateOrderStatus: async (orderId: string, status: OrderStatus, trackingLink?: string, parcel2goReference?: string) => {
+      updateOrderStatus: async (orderId: string, status: OrderStatus, trackingLink?: string, trackingNumber?: string) => {
         const response = await fetch(`/api/admin/orders/${orderId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status, trackingLink, parcel2goReference }),
+          body: JSON.stringify({ status, trackingLink, trackingNumber }),
         });
-        const data = (await response.json()) as { order?: Order; error?: string; trackingNotice?: string };
+        const data = (await response.json()) as { order?: Order; error?: string };
         if (!response.ok || !data.order) throw new Error(data.error ?? "Could not update this order. Please try again.");
         const updated = reviveDates([data.order])[0];
         setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
-        return data.trackingNotice;
       },
       /**
-       * Books the order on Parcel2Go (or retries, or pays for an unpaid
-       * booking). Resolves to why it didn't fully work, if it didn't.
+       * Sends the order to Royal Mail Click & Drop (or again, after a
+       * failure), or once it's there, checks for its tracking number.
+       * Resolves to why it didn't fully work, if it didn't.
        */
-      bookParcel2Go: async (orderId: string) => {
-        const response = await fetch(`/api/admin/orders/${orderId}/parcel2go`, { method: "POST" });
+      sendToRoyalMail: async (orderId: string) => {
+        const response = await fetch(`/api/admin/orders/${orderId}/royal-mail`, { method: "POST" });
         const data = (await response.json().catch(() => ({}))) as { order?: Order; error?: string };
         if (data.order) {
           const updated = reviveDates([data.order])[0];
           setOrders((current) => current.map((o) => (o.id === updated.id ? updated : o)));
         }
-        if (!response.ok && !data.order) throw new Error(data.error ?? "Could not book this order. Please try again.");
+        if (!response.ok && !data.order) throw new Error(data.error ?? "Could not reach Royal Mail. Please try again.");
         return data.error;
       },
     }),

@@ -238,7 +238,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
                 required
               />
               <p className="mt-1.5 text-xs text-neutral-500">
-                Weight of one item. Parcel2Go multiplies this by the quantity ordered.
+                Weight of one item. Royal Mail parcels are weighed as this times the quantity ordered.
               </p>
             </div>
           </div>

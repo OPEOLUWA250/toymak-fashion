@@ -5,7 +5,7 @@ import { generateReceiptPdf } from "./receipt-pdf";
 import { emailSender, sendEmail } from "./email-sender";
 import { contactEmail } from "@/lib/site-info";
 import { orderShippingLabel } from "@/lib/shipping";
-import { parcel2GoTrackingUrl } from "@/lib/parcel2go-booking";
+import { royalMailTrackingUrl } from "@/lib/royal-mail";
 
 function escapeHtml(value: string): string {
   return value
@@ -69,10 +69,10 @@ function buildOrderEmailHtml(order: Order, origin: string): string {
             <tr>
               <td style="font-size:12px;color:rgba(16,24,32,0.5);padding-top:4px;">Order number</td>
               <td style="font-size:12px;color:#101820;text-align:right;font-weight:600;padding-top:4px;">${escapeHtml(order.tracking_id)}</td>
-            </tr>${order.parcel2go_reference ? `
+            </tr>${order.tracking_number ? `
             <tr>
-              <td style="font-size:12px;color:rgba(16,24,32,0.5);padding-top:4px;">Parcel2Go tracking number</td>
-              <td style="font-size:12px;text-align:right;font-weight:600;padding-top:4px;"><a href="${parcel2GoTrackingUrl(order.parcel2go_reference)}" style="color:#101820;">${escapeHtml(order.parcel2go_reference)}</a></td>
+              <td style="font-size:12px;color:rgba(16,24,32,0.5);padding-top:4px;">Royal Mail tracking number</td>
+              <td style="font-size:12px;text-align:right;font-weight:600;padding-top:4px;"><a href="${royalMailTrackingUrl(order.tracking_number)}" style="color:#101820;">${escapeHtml(order.tracking_number)}</a></td>
             </tr>` : ""}
           </table>
         </td>
@@ -109,6 +109,16 @@ function buildOrderEmailHtml(order: Order, origin: string): string {
   </div>`;
 }
 
+/** For the shop: whether the order is waiting in Click & Drop, and what's left to do. */
+function royalMailNote(order: Order): string {
+  const record = order.royal_mail;
+  if (!record) return "";
+  const text = record.status === "sent"
+    ? `In Royal Mail Click &amp; Drop${record.serviceName ? ` on ${escapeHtml(record.serviceName)}` : ""}: pay for and print the label there.${record.message ? ` ${escapeHtml(record.message)}` : ""}`
+    : `Not in Royal Mail Click &amp; Drop yet${record.message ? `: ${escapeHtml(record.message)}` : "."}`;
+  return `<p style="margin:0 0 12px;color:rgba(16,24,32,0.75);">${text}</p>`;
+}
+
 function buildAdminNotificationHtml(order: Order, origin: string): string {
   const itemsList = order.items
     .map(
@@ -136,7 +146,8 @@ function buildAdminNotificationHtml(order: Order, origin: string): string {
       <tr>
         <td style="padding:20px 32px 0;font-size:13px;color:#101820;">
           <p style="margin:0 0 8px;"><strong>${escapeHtml(order.customer_name)}</strong> — ${escapeHtml(order.customer_email)}</p>
-          <p style="margin:0 0 12px;color:rgba(16,24,32,0.6);">Order ${escapeHtml(order.tracking_id)} · ${escapeHtml(order.payment_gateway)}${order.parcel2go_reference ? ` · Booked on Parcel2Go: ${escapeHtml(order.parcel2go_reference)}` : ""}</p>
+          <p style="margin:0 0 12px;color:rgba(16,24,32,0.6);">Order ${escapeHtml(order.tracking_id)} · ${escapeHtml(order.payment_gateway)}</p>
+          ${royalMailNote(order)}
           ${order.shipping_address.shippingMethod === "express" ? `<p style="margin:0 0 12px;font-weight:700;">Express delivery — dispatch for next business day.</p>` : ""}
           <ul style="margin:0;padding-left:18px;color:rgba(16,24,32,0.75);">
             ${itemsList}
