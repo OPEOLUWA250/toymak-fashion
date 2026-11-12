@@ -23,7 +23,8 @@ import type { Metadata } from "next";
 // Same reasoning as app/page.tsx — without this, price/stock/description
 // edits made in the admin dashboard wouldn't show up on the live product
 // page until the next deploy.
-export const revalidate = 60;
+// Hourly, and at once when an admin saves a storefront change (see adminRoute).
+export const revalidate = 3600;
 
 // One catalog read per request, shared by generateMetadata and the page.
 const loadCatalog = cache(() => getAllProducts());

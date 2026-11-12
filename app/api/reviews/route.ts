@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createReview, getAllApprovedReviews, getApprovedReviewsForProduct } from "@/lib/server/reviews";
+import { PUBLIC_CDN_CACHE_HEADERS } from "@/lib/server/cdn-cache";
 
 const MAX_COMMENT_LENGTH = 2000;
 const MAX_NAME_LENGTH = 80;
@@ -16,7 +17,9 @@ export async function GET(request: NextRequest) {
     const reviews = productId
       ? await getApprovedReviewsForProduct(productId)
       : await getAllApprovedReviews();
-    return NextResponse.json({ reviews });
+    // Approved reviews are public and the same for everyone: every shop page asks for them,
+    // so the CDN answers (about one database read a minute per URL) instead of a function.
+    return NextResponse.json({ reviews }, { headers: PUBLIC_CDN_CACHE_HEADERS });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load reviews." },

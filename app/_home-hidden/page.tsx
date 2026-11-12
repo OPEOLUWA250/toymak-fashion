@@ -24,7 +24,8 @@ import { productPath } from "@/lib/product-url";
 // Otherwise Next.js bakes this page (including product data) at build time
 // and it goes stale until the next deploy — a sold-out product could still
 // show as available. Re-fetches from Supabase at most once a minute.
-export const revalidate = 60;
+// Hourly, and at once when an admin saves a storefront change (see adminRoute).
+export const revalidate = 3600;
 
 const heroSlides = [
   {

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { runAsAdmin } from "./supabase";
 import { AdminRole, isAllowedAdminEmail, mustChangePassword, resolveAdminRole } from "./admin-roles";
@@ -92,6 +93,13 @@ export function adminRoute<C = unknown>(
     const session = await getAdminSession();
     const denied = checkAccess(session, options.superAdmin ?? false);
     if (denied) return denied;
-    return runAsAdmin(session!.email, () => handler(request, context, session!));
+    const response = await runAsAdmin(session!.email, () => handler(request, context, session!));
+    // The shop pages are cached for an hour; a saved product, category, review or setting
+    // refreshes them straight away so shoppers see the change on their next visit.
+    if (request.method !== "GET" && response.ok && STOREFRONT_WRITES.test(request.nextUrl.pathname)) revalidatePath("/", "layout");
+    return response;
   };
 }
+
+/** Admin writes that change what shoppers see. */
+const STOREFRONT_WRITES = /^\/api\/(admin\/)?(products|categories|settings|reviews)(\/|$)/;

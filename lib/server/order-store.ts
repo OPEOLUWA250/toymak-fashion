@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "./supabase";
 
 import { dispatchOrderEmails } from "./order-outbox";
 import { after } from "next/server";
+import { revalidatePath } from "next/cache";
 import { deleteAbandonedCartByEmail } from "./abandoned-carts";
 
 interface OrderRow {
@@ -110,6 +111,8 @@ export async function appendServerOrder(
   if (error) throw new Error(`Failed to record order: ${error.message}`);
   if (!added) return { added: false };
   eventBus.emit("order", order);
+  // The sale changed stock, which the cached shop and product pages show: refresh them.
+  revalidatePath("/", "layout");
 
   // A real conversion — clear any abandoned-cart record for this email so
   // it never gets a "you left something behind" email after actually buying.

@@ -15,7 +15,8 @@ export const metadata = pageMetadata({
   path: "/",
 });
 
-export const revalidate = 60;
+// Hourly, and at once when an admin saves a storefront change (see adminRoute).
+export const revalidate = 3600;
 
 const organization = {
   "@context": "https://schema.org",

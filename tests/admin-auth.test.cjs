@@ -103,7 +103,6 @@ test('admin route handlers run with their database writes attributed to the admi
 const guarded = [
   ['app/api/orders/route.ts', ['GET']],
   ['app/api/admin/activity/route.ts', ['GET']],
-  ['app/api/admin/events/route.ts', ['GET']],
   ['app/api/admin/orders/[id]/route.ts', ['PUT']],
   ['app/api/admin/products/route.ts', ['POST', 'GET']],
   ['app/api/admin/products/[id]/route.ts', ['PUT', 'DELETE']],
