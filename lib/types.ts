@@ -117,14 +117,27 @@ export interface Order {
   updated_at: Date
 }
 
+/** Where a review was written: on this site, or on our TikTok Shop and copied here. */
+export type ReviewSource = 'website' | 'tiktok'
+export type ReviewFit = 'small' | 'as_expected' | 'large'
+
 export interface Review {
   id: string
-  product_id: string
+  /** Null for shop-wide reviews, which is all of them since reviews moved to /reviews. */
+  product_id: string | null
   customer_name: string
   rating: Rating
   comment: string
   photo_urls: string[]
   approved: boolean
+  source: ReviewSource
+  /** A confirmed purchase: a matching order here, or TikTok Shop's own badge. */
+  verified: boolean
+  item_color: string | null
+  item_size: string | null
+  fit: ReviewFit | null
+  /** Reviewer's country, e.g. "United Kingdom". */
+  location: string | null
   created_at: Date
   updated_at: Date
 }

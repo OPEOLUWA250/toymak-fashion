@@ -1,20 +1,46 @@
 "use client";
 
-import { useState } from "react";
-import { Check, MessageSquareText, Star, Trash2, X } from "lucide-react";
-import { Review } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { BadgeCheck, Check, MessageSquareText, Star, Trash2, X } from "lucide-react";
+import { Product, Review } from "@/lib/types";
+import { FIT_LABELS, reviewItemLabel } from "@/lib/reviews-utils";
+
+function ReviewTags({ review }: { review: Review }) {
+  const item = reviewItemLabel(review);
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+      {review.verified ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
+          <BadgeCheck size={12} /> Verified purchase
+        </span>
+      ) : (
+        <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-medium text-neutral-500">Not verified</span>
+      )}
+      {review.source === "tiktok" && (
+        <span className="rounded-full bg-neutral-900 px-2 py-0.5 font-medium text-white">TikTok Shop</span>
+      )}
+      {item && <span className="text-neutral-500">Item: {item}</span>}
+      {review.fit && <span className="text-neutral-500">· {FIT_LABELS[review.fit]}</span>}
+      {review.location && <span className="text-neutral-500">· {review.location}</span>}
+    </div>
+  );
+}
 
 export function ReviewsView({
   reviews,
+  products,
   onApprove,
   onReject,
   onDelete,
 }: {
   reviews: Review[];
+  products: Product[];
   onApprove: (id: string) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
+  const productNames = useMemo(() => new Map(products.map((product) => [product.id, product.name])), [products]);
+  const productName = (id: string | null) => (id ? productNames.get(id) ?? id : "Shop review");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -69,7 +95,7 @@ export function ReviewsView({
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-neutral-900">Awaiting approval</h2>
           <p className="text-sm text-neutral-500">
-            Submitted from product pages. Nothing here shows on the storefront until you approve it.
+            Submitted on the Reviews page. Nothing here shows on the storefront until you approve it.
           </p>
         </div>
 
@@ -96,8 +122,9 @@ export function ReviewsView({
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-neutral-400">
-                      Product: {review.product_id} · {review.created_at.toLocaleDateString("en-GB", { dateStyle: "medium" })}
+                      {productName(review.product_id)} · {review.created_at.toLocaleDateString("en-GB", { dateStyle: "medium" })}
                     </p>
+                    <ReviewTags review={review} />
                     <p className="mt-2 text-sm leading-6 text-neutral-700">{review.comment}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
@@ -128,7 +155,7 @@ export function ReviewsView({
       <div className="rounded-none border border-neutral-200 bg-white p-5 lg:p-6">
         <div className="mb-5">
           <h2 className="text-2xl font-bold text-neutral-900">Live reviews</h2>
-          <p className="text-sm text-neutral-500">Currently visible on product pages.</p>
+          <p className="text-sm text-neutral-500">Currently visible on the Reviews page.</p>
         </div>
 
         {approved.length === 0 ? (
@@ -152,10 +179,11 @@ export function ReviewsView({
                   {approved.map((review) => (
                     <tr key={review.id}>
                       <td className="px-4 py-4 align-top text-sm font-medium text-neutral-900">{review.customer_name}</td>
-                      <td className="px-4 py-4 align-top text-sm text-neutral-500">{review.product_id}</td>
+                      <td className="px-4 py-4 align-top text-sm text-neutral-500">{productName(review.product_id)}</td>
                       <td className="px-4 py-4 align-top text-sm text-neutral-600">{review.rating} / 5</td>
                       <td className="px-4 py-4 align-top text-sm text-neutral-600">
-                        <p className="max-w-md">{review.comment}</p>
+                        <p className="max-w-md">{review.comment || <span className="italic text-neutral-400">Rating only</span>}</p>
+                        <ReviewTags review={review} />
                       </td>
                       <td className="px-4 py-4 align-top">
                         <button

@@ -116,7 +116,7 @@ const viewCopy: Record<AdminView, { eyebrow: string; title: string; subtitle: st
   reviews: {
     eyebrow: "Storefront",
     title: "Reviews",
-    subtitle: "Moderate customer-submitted reviews before they go live on product pages.",
+    subtitle: "Moderate customer-submitted reviews before they go live on the Reviews page.",
   },
   settings: {
     eyebrow: "Configuration",
@@ -394,6 +394,7 @@ export default function AdminPage() {
             {activeView === "reviews" && (
               <ReviewsView
                 reviews={allReviews}
+                products={products}
                 onApprove={(id) => setReviewApproval(id, true)}
                 onReject={(id) => setReviewApproval(id, false)}
                 onDelete={removeReview}

@@ -1,0 +1,80 @@
+{
+  "about": "Reviews copied from the Toymak TikTok Shop, exactly as written there. They show on the shop-wide /reviews page. Listings just record which TikTok screenshot each batch came from. Import with: node scripts/import-tiktok-reviews.mjs (add --dry-run to check first). Re-running is safe: each review is saved under its id, so fixing a typo here and re-running updates it.",
+  "fields": {
+    "id": "tt-NNNN, never reused",
+    "name": "as TikTok shows it (already masked, e.g. V**a)",
+    "location": "country shown under the name",
+    "rating": "1-5",
+    "comment": "review text, empty string for a star-only review",
+    "color / size": "from the 'Item:' line",
+    "fit": "small | as_expected | large | null (from 'Fit:'; null when TikTok shows none)",
+    "date": "YYYY-MM-DD"
+  },
+  "listings": [
+    {
+      "tiktok_listing": "Screenshot 1 (sent 2026-11-14): TikTok shows 4.4 stars from 143 reviews",
+      "reviews": [
+        {
+          "id": "tt-0001",
+          "name": "V**a",
+          "location": "United Kingdom",
+          "rating": 5,
+          "comment": "Fits perfectly I love how I look in it gives me shape where I need it",
+          "color": "Black",
+          "size": "L",
+          "fit": "as_expected",
+          "date": "2025-03-26"
+        },
+        {
+          "id": "tt-0002",
+          "name": "🌻**🌻",
+          "location": "United Kingdom",
+          "rating": 5,
+          "comment": "10/10 definitely worth the price,  I'll a 100% recommend this to women who want sexy shape , thank you very much 😘⭐️⭐️⭐️⭐️⭐️",
+          "color": "Black",
+          "size": "M",
+          "fit": "as_expected",
+          "date": "2025-05-16"
+        }
+      ]
+    },
+    {
+      "tiktok_listing": "Screenshot 2 (sent 2026-11-14): TikTok shows 4.1 stars from 11 reviews",
+      "reviews": [
+        {
+          "id": "tt-0003",
+          "name": "M**🥰",
+          "location": "United Kingdom",
+          "rating": 5,
+          "comment": "I am very satisfied with my purchase.  I got exactly what I ordered.  I recommend this shop",
+          "color": "Black",
+          "size": "S",
+          "fit": "as_expected",
+          "date": "2025-06-21"
+        },
+        {
+          "id": "tt-0004",
+          "name": "R**e",
+          "location": "United Kingdom",
+          "rating": 5,
+          "comment": "Good product",
+          "color": "Black",
+          "size": "L",
+          "fit": "as_expected",
+          "date": "2025-04-14"
+        },
+        {
+          "id": "tt-0005",
+          "name": "d**9",
+          "location": "United Kingdom",
+          "rating": 5,
+          "comment": "",
+          "color": "Black",
+          "size": "2XL",
+          "fit": null,
+          "date": "2025-10-16"
+        }
+      ]
+    }
+  ]
+}

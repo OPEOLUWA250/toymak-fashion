@@ -5,18 +5,18 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { ShopLink } from "@/components/shop-link";
 import { getAllProducts } from "@/lib/server/products";
-import { getApprovedReviewsForProduct } from "@/lib/server/reviews";
+import { getAllApprovedReviews } from "@/lib/server/reviews";
+import { averageRating } from "@/lib/reviews-utils";
 import { findProductBySlug, productPath, productSlug } from "@/lib/product-url";
 import { absoluteUrl, jsonLd, metaDescription, pageMetadata, plainText } from "@/lib/seo";
 import { getCategories } from "@/lib/server/categories";
 import { categoryLabel } from "@/lib/categories";
-import type { Product, Review } from "@/lib/types";
+import type { Product } from "@/lib/types";
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { cache } from "react";
 import ProductClient from "./product-client";
 import { ProductGallery } from "@/components/product-gallery";
-import { ProductReviews } from "@/components/product-reviews";
 import { RecentlyViewed } from "@/components/recently-viewed";
 import type { Metadata } from "next";
 
@@ -59,7 +59,8 @@ export async function generateMetadata({
   });
 }
 
-function productJsonLd(product: Product, category: string, reviews: Review[], average: number) {
+// No review markup: reviews are about the shop as a whole (/reviews), not this product.
+function productJsonLd(product: Product, category: string) {
   const url = siteUrl + productPath(product);
   const onSale = product.compare_at_price_gbp !== undefined && product.compare_at_price_gbp > product.price_gbp;
 
@@ -97,16 +98,6 @@ function productJsonLd(product: Product, category: string, reviews: Review[], av
             },
           }),
         },
-        ...(reviews.length ? {
-          aggregateRating: { "@type": "AggregateRating", ratingValue: average, reviewCount: reviews.length, bestRating: 5 },
-          review: reviews.slice(0, 5).map((review) => ({
-            "@type": "Review",
-            author: { "@type": "Person", name: review.customer_name },
-            datePublished: new Date(review.created_at).toISOString().slice(0, 10),
-            reviewBody: review.comment,
-            reviewRating: { "@type": "Rating", ratingValue: review.rating, bestRating: 5 },
-          })),
-        } : {}),
       },
       {
         "@type": "BreadcrumbList",
@@ -143,17 +134,14 @@ export default async function ProductPage({
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
-  const reviews = await getApprovedReviewsForProduct(product.id);
-  const average =
-    reviews.length > 0
-      ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
-      : 0;
-  const count = reviews.length;
+  // The shop's overall rating, linking to /reviews.
+  const reviews = await getAllApprovedReviews();
+  const shopRating = { average: averageRating(reviews), count: reviews.length };
   const category = categoryLabel(await getCategories(), product.category);
 
   return (
     <main className="bg-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product, category, reviews, average)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product, category)) }} />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-10">
@@ -176,11 +164,9 @@ export default async function ProductPage({
             badge={product.featured ? "Best Seller" : "New Arrival"}
           />
 
-          <ProductClient product={product} rating={{ average, count }} />
+          <ProductClient product={product} shopRating={shopRating} />
         </div>
 
-        {/* Reviews */}
-        <ProductReviews productId={product.id} initialReviews={reviews} />
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (

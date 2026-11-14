@@ -17,7 +17,7 @@ const FALLBACK_SETTINGS: StoreSettings = {
   orderNotificationEmail: "",
 };
 
-// Module-level singleton, same de-dupe pattern as use-reviews.ts — Header
+// Module-level singleton so concurrent callers share one request — Header
 // now calls useSettings() on every single page, so without this every page
 // would fire a second (or third, alongside whatever the page itself
 // fetches) redundant GET /api/settings.

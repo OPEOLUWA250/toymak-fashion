@@ -2,11 +2,10 @@
 
 import { StoreImage } from "@/components/store-image";
 import Link from "next/link";
-import { Heart, Star } from "lucide-react";
+import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Product } from "@/lib/types";
 import { useWishlist } from "@/lib/wishlist-context";
-import { useProductRatings } from "@/lib/use-reviews";
 import { useRegion } from "@/lib/region-context";
 import { getProductPriceForCurrency } from "@/lib/pricing";
 import { compareAtFor } from "@/lib/sale-price";
@@ -16,8 +15,6 @@ import { productPath } from "@/lib/product-url";
 export function ProductCard({ product }: { product: Product }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
-  const ratings = useProductRatings();
-  const { average, count } = ratings[product.id] ?? { average: 0, count: 0 };
   const { currency } = useRegion();
 
   const outOfStock = product.stock_qty <= 0;
@@ -90,14 +87,6 @@ export function ProductCard({ product }: { product: Product }) {
         {product.name}
       </h3>
       <p className="mt-1 line-clamp-1 text-xs text-neutral/55 sm:text-sm">{product.description}</p>
-
-      {count > 0 && (
-        <div className="mt-1.5 flex items-center gap-1 text-xs text-neutral/55">
-          <Star size={12} className="fill-amber-400 text-amber-400" />
-          <span className="font-medium text-neutral">{average}</span>
-          <span>({count})</span>
-        </div>
-      )}
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:mt-3">
         <SalePrice price={displayPrice} compareAt={displayComparePrice} currency={currency} />

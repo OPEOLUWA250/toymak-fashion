@@ -1,42 +1,45 @@
 import { getSupabaseAdmin } from "./supabase";
-import { Review } from "../types";
+import { Review, ReviewFit, ReviewSource } from "../types";
 
 interface ReviewRow {
   id: string;
-  product_id: string;
+  product_id: string | null;
   customer_name: string;
   rating: number;
-  comment: string;
-  photo_urls: string[];
+  comment: string | null;
+  photo_urls: string[] | null;
   approved: boolean;
+  // Absent until docs/sql/0022_review_details.sql has run.
+  source?: ReviewSource | null;
+  verified?: boolean | null;
+  item_color?: string | null;
+  item_size?: string | null;
+  fit?: ReviewFit | null;
+  location?: string | null;
   created_at: string;
   updated_at: string;
 }
 
+// Lists only public fields: the row's order_id (which proved a purchase) is
+// never sent to the browser.
 function rowToReview(row: ReviewRow): Review {
   return {
     id: row.id,
     product_id: row.product_id,
     customer_name: row.customer_name,
     rating: row.rating as Review["rating"],
-    comment: row.comment,
-    photo_urls: row.photo_urls,
+    comment: row.comment ?? "",
+    photo_urls: row.photo_urls ?? [],
     approved: row.approved,
+    source: row.source ?? "website",
+    verified: row.verified ?? false,
+    item_color: row.item_color ?? null,
+    item_size: row.item_size ?? null,
+    fit: row.fit ?? null,
+    location: row.location ?? null,
     created_at: new Date(row.created_at),
     updated_at: new Date(row.updated_at),
   };
-}
-
-export async function getApprovedReviewsForProduct(productId: string): Promise<Review[]> {
-  const { data, error } = await getSupabaseAdmin()
-    .from("reviews")
-    .select("*")
-    .eq("product_id", productId)
-    .eq("approved", true)
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(`Failed to load reviews: ${error.message}`);
-  return (data as ReviewRow[]).map(rowToReview);
 }
 
 export async function getAllApprovedReviews(): Promise<Review[]> {
@@ -60,30 +63,45 @@ export async function getAllReviews(): Promise<Review[]> {
   return (data as ReviewRow[]).map(rowToReview);
 }
 
+/** That order was already used for a review. */
+export class DuplicateReviewError extends Error {
+  constructor() {
+    super("You've already left a review for that order. Thank you!");
+  }
+}
+
 /**
- * New reviews start unapproved — nothing a customer submits reaches the
- * storefront until someone on the team reviews it from the admin dashboard.
+ * A shop-wide review from the /reviews page. New reviews start unapproved —
+ * nothing a customer submits is shown until someone on the team approves it
+ * from the admin dashboard.
  */
 export async function createReview(input: {
-  productId: string;
   customerName: string;
   rating: number;
   comment: string;
+  location?: string | null;
+  /** Set only when the reviewer proved the purchase with their order. */
+  orderId?: string | null;
 }): Promise<Review> {
   const { data, error } = await getSupabaseAdmin()
     .from("reviews")
     .insert({
       id: `rev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      product_id: input.productId,
+      product_id: null,
       customer_name: input.customerName,
       rating: input.rating,
       comment: input.comment,
       photo_urls: [],
       approved: false,
+      source: "website",
+      verified: Boolean(input.orderId),
+      order_id: input.orderId ?? null,
+      location: input.location ?? null,
     })
     .select("*")
     .single();
 
+  if (error?.code === "23505") throw new DuplicateReviewError();
   if (error) throw new Error(`Failed to submit review: ${error.message}`);
   return rowToReview(data as ReviewRow);
 }

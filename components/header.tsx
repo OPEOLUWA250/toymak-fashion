@@ -200,6 +200,7 @@ export default function Header({
     { label: "Shapewear", href: shopHref({ category: "shapewear" }) },
     { label: "Waist Trainers", href: shopHref({ category: "waist-trainer" }) },
     { label: "New Arrivals", href: shopHref({ sort: "newest" }) },
+    { label: "Reviews", href: "/reviews" },
   ];
 
   return (

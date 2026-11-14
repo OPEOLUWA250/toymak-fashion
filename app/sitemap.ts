@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const catalogUpdated = products.reduce<Date | undefined>((latest, p) => (!latest || p.updated_at > latest ? p.updated_at : latest), undefined);
   return [
     { url: siteUrl, lastModified: catalogUpdated },
-    ...['/our-story', '/faq', '/size-guide', '/returns', '/privacy', '/terms'].map(path => ({ url: siteUrl + path })),
+    ...['/reviews', '/our-story', '/faq', '/size-guide', '/returns', '/privacy', '/terms'].map(path => ({ url: siteUrl + path })),
     ...products.map(product => ({
       url: siteUrl + productPath(product),
       lastModified: product.updated_at,

@@ -3,6 +3,7 @@
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { recordProductView } from "@/lib/use-recently-viewed";
 import { Heart, Share2, ChevronDown, Star, Minus, Plus, Check, Ruler } from "lucide-react";
 import { SizeGuideDialog } from "@/components/size-guide-panel";
@@ -22,14 +23,14 @@ function isSizeCategory(category: string): category is SizeCategory {
 
 export default function ProductClient({
   product,
-  rating,
+  shopRating,
 }: {
   product: Product;
-  rating: { average: number; count: number };
+  /** Across all shop reviews — reviews aren't per product. */
+  shopRating: { average: number; count: number };
 }) {
   const { addItem } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { average, count } = rating;
   const { currency } = useRegion();
   const displayPrice = getProductPriceForCurrency(product, currency);
 
@@ -131,26 +132,23 @@ export default function ProductClient({
         </p>
       </div>
 
-      <div className="flex items-center gap-3 text-sm text-neutral/55">
-        {count > 0 ? (
-          <>
-            <div className="flex gap-0.5" aria-label={`${average} out of 5 stars`}>
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={16}
-                  className={i < Math.round(average) ? "fill-amber-400 text-amber-400" : "fill-neutral/10 text-neutral/10"}
-                />
-              ))}
-            </div>
-            <a href="#reviews" className="hover:text-primary transition">
-              {average} ({count} review{count === 1 ? "" : "s"})
-            </a>
-          </>
-        ) : (
-          <span>No reviews yet — be the first to write one</span>
-        )}
-      </div>
+      {shopRating.count > 0 && (
+        <Link href="/reviews" className="group flex w-fit items-center gap-3 text-sm text-neutral/55">
+          <div className="flex gap-0.5" role="img" aria-label={`${shopRating.average} out of 5 stars`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={16}
+                aria-hidden
+                className={i < Math.round(shopRating.average) ? "fill-amber-400 text-amber-400" : "fill-neutral/10 text-neutral/10"}
+              />
+            ))}
+          </div>
+          <span className="transition group-hover:text-primary">
+            {shopRating.average.toFixed(1)} shop rating · {shopRating.count} customer review{shopRating.count === 1 ? "" : "s"}
+          </span>
+        </Link>
+      )}
 
       {sizeCategory && (
         <FitFinder category={sizeCategory} onRecommend={setSelectedSize} />
