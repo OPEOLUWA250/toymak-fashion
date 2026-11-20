@@ -93,8 +93,8 @@ test('accepting loads the pixel once, set up without its automatic tracking', ()
   assert.equal(window.fbq.disablePushState, true);
   assert.equal(window.fbq.allowDuplicatePageViews, true);
   assert.deepEqual(window.fbq.queue.slice(0, 2), [
-    ['set', 'autoConfig', false, '1641239721033624'],
-    ['init', '1641239721033624'],
+    ['set', 'autoConfig', false, '2476101966204731'],
+    ['init', '2476101966204731'],
   ]);
   assert.equal(events().length, 2);
 });
