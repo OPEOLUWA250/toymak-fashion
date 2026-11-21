@@ -147,7 +147,9 @@ export default function PrivacyPage() {
             Meta the pages you view, the products you look at or add to your bag, when you start
             checkout, and the value of what you buy, along with technical details such as your IP
             address and browser. Meta may link this to your Meta account and use it as described
-            in its own privacy policy. If you decline, none of this happens. You can change your
+            in its own privacy policy. Until you choose, Meta&apos;s pixel code is loaded but
+            switched off: it sends no events and sets no cookies. If you decline, it isn&apos;t
+            loaded at all and none of this happens. You can change your
             choice at any time using the Cookie Settings link at the bottom of every page.
           </p>
 

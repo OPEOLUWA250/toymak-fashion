@@ -72,18 +72,40 @@ test('addresses that can hold private details are never reported to Meta', () =>
   }
 });
 
-for (const [label, choose] of [
-  ['before a choice is made', () => {}],
-  ['after declining', () => storage.set('toymak-cookie-consent', 'denied')],
-]) {
-  test(`nothing loads or sends ${label}`, () => {
-    choose();
-    pixel.trackPageView();
-    pixel.trackViewContent(product);
-    assert.equal(window.fbq, undefined);
-    assert.equal(appendedScripts.length, 0);
-  });
-}
+test('before a choice the pixel is installed revoked, so Meta can see it but nothing is sent', () => {
+  pixel.installMetaPixel();
+  pixel.trackPageView();
+  pixel.trackViewContent(product);
+  assert.equal(appendedScripts.length, 1);
+  assert.deepEqual(window.fbq.queue, [
+    ['consent', 'revoke'],
+    ['set', 'autoConfig', false, '2476101966204731'],
+    ['init', '2476101966204731'],
+  ]);
+});
+
+test('accepting after the revoked install grants consent, then sends', () => {
+  pixel.installMetaPixel();
+  accept();
+  pixel.trackPageView();
+  assert.equal(appendedScripts.length, 1);
+  assert.deepEqual(window.fbq.queue.slice(3), [['consent', 'grant'], ['track', 'PageView']]);
+});
+
+test('nothing loads or sends after declining', () => {
+  storage.set('toymak-cookie-consent', 'denied');
+  pixel.installMetaPixel();
+  pixel.trackPageView();
+  pixel.trackViewContent(product);
+  assert.equal(window.fbq, undefined);
+  assert.equal(appendedScripts.length, 0);
+});
+
+test('private addresses never load the pixel, even before a choice', () => {
+  visit('/track-order?email=a%40b.com');
+  pixel.installMetaPixel();
+  assert.equal(window.fbq, undefined);
+});
 
 test('accepting loads the pixel once, set up without its automatic tracking', () => {
   accept();

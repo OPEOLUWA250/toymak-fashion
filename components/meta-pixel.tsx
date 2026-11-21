@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useCookieConsent } from "@/lib/cookie-consent";
-import { stopMetaPixel, trackPageView } from "@/lib/meta-pixel";
+import { installMetaPixel, stopMetaPixel, trackPageView } from "@/lib/meta-pixel";
 
 /**
  * Records a PageView per page. Pages change here without a full reload, so
@@ -17,6 +17,7 @@ export function MetaPixel() {
   useEffect(() => {
     if (consent === "granted") trackPageView();
     else if (consent === "denied") stopMetaPixel();
+    else installMetaPixel();
   }, [pathname, consent]);
 
   return null;

@@ -34,7 +34,13 @@ export function isPrivateUrl(pathname: string, search: string): boolean {
   return PRIVATE_PARAMS.some((param) => params.has(param));
 }
 
-/** Meta's standard loader, run only once a visitor has accepted. */
+let revoked = false;
+
+/**
+ * Meta's standard loader. Until a visitor accepts, the pixel starts in Meta's
+ * consent-revoked mode: it is installed (so Pixel Helper and Events Manager
+ * can see it) but sends no events and sets no cookies until consent is granted.
+ */
 function loadPixel(): Fbq {
   if (window.fbq) return window.fbq;
 
@@ -60,18 +66,33 @@ function loadPixel(): Fbq {
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
   document.head.appendChild(script);
 
+  // Must come before init, or init itself would set the _fbp cookie.
+  if (getCookieConsent() !== "granted") {
+    fbq("consent", "revoke");
+    revoked = true;
+  }
   // Only the events below are sent: no automatic button-click tracking.
   fbq("set", "autoConfig", false, META_PIXEL_ID);
   fbq("init", META_PIXEL_ID);
   return fbq;
 }
 
-let revoked = false;
+function canLoad(): boolean {
+  if (process.env.NODE_ENV !== "production" || typeof window === "undefined") return false;
+  return !isPrivateUrl(window.location.pathname, window.location.search);
+}
+
+/**
+ * Installs the pixel, revoked, for visitors who haven't chosen yet, so Meta's
+ * tools can detect it. Visitors who declined never load it.
+ */
+export function installMetaPixel() {
+  if (!canLoad() || getCookieConsent() === "denied") return;
+  loadPixel();
+}
 
 function send(...args: unknown[]): boolean {
-  if (process.env.NODE_ENV !== "production" || typeof window === "undefined") return false;
-  if (getCookieConsent() !== "granted") return false;
-  if (isPrivateUrl(window.location.pathname, window.location.search)) return false;
+  if (!canLoad() || getCookieConsent() !== "granted") return false;
 
   const fbq = loadPixel();
   if (revoked) {
