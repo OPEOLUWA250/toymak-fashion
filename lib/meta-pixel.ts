@@ -1,7 +1,7 @@
 import { getCookieConsent } from "./cookie-consent";
 import type { CartItem, Order, Product } from "./types";
 
-const META_PIXEL_ID = "2476101966204731";
+const META_PIXEL_ID = "1641239721033624";
 const LAST_PURCHASE_KEY = "toymak-pixel-last-purchase";
 
 type Fbq = ((...args: unknown[]) => void) & {
