@@ -6,6 +6,7 @@ import Link from "next/link";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { ReceiptDownloadForm } from "@/components/receipt-download-form";
+import { OrderRecommendations, useOrderRecommendations } from "@/components/order-recommendations";
 import { useCart } from "@/lib/cart-context";
 import { formatCurrency } from "@/lib/pricing";
 import { buildOrderFromVerification, PaymentVerification } from "@/lib/order-builder";
@@ -48,6 +49,21 @@ function hidePaymentRef(payment: PaymentRef) {
   } catch {
     // See above.
   }
+}
+
+// The name as typed at checkout, tidied: "sarah  JOHNSON" reads "Sarah Johnson".
+// Names already in mixed case ("McDonald", "da Silva") are kept as typed.
+function displayName(raw: string): string {
+  const name = raw.trim().replace(/\s+/g, " ");
+  if (!name || name.toLowerCase() === "guest") return "";
+  return name
+    .split(" ")
+    .map((word) =>
+      word === word.toLowerCase() || word === word.toUpperCase()
+        ? word.toLowerCase().replace(/(^|[-'])(\p{L})/gu, (_, sep: string, letter: string) => sep + letter.toUpperCase())
+        : word,
+    )
+    .join(" ");
 }
 
 function CheckoutSuccessContent() {
@@ -113,34 +129,36 @@ function CheckoutSuccessContent() {
     if (order && consent === "granted") trackPurchaseOnce(order);
   }, [order, consent]);
 
-  return (
-    <main className="bg-white">
-      <Header />
-      <section className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-20 text-center sm:px-6 lg:px-8">
-        {state === "loading" && (
-          <>
-            <Loader2 size={40} className="animate-spin text-primary" />
-            <h1 className="mt-6 text-2xl font-bold text-neutral">
-              Confirming your payment…
-            </h1>
-            <p className="mt-2 text-sm text-neutral/60">
-              Hang tight, we&apos;re checking with {gatewayLabels[gateway]}. Don&apos;t close
-              this tab.
-            </p>
-          </>
-        )}
+  const recommendations = useOrderRecommendations(order?.items ?? []);
 
-        {state === "success" && order && (
-          <>
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <CheckCircle2 size={32} />
+  if (state === "success" && order) {
+    const name = displayName(order.customer_name);
+    const showPicks = recommendations.isLoading || recommendations.picks.length > 0;
+    return (
+      <main className="bg-white">
+        <Header />
+        <section
+          className={`mx-auto grid gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:px-8 ${
+            showPicks ? "max-w-6xl lg:grid-cols-2 lg:gap-16" : "max-w-2xl"
+          }`}
+        >
+          <div className={showPicks ? "text-center lg:text-left" : "text-center"}>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary">
+              <CheckCircle2 size={15} /> Payment confirmed
             </span>
-            <h1 className="mt-6 text-3xl font-bold text-neutral">
-              Payment confirmed!
+            <h1 className="mt-5 break-words text-3xl font-bold leading-tight text-neutral sm:text-4xl">
+              {name ? (
+                <>
+                  Thank you for your order,
+                  <br />
+                  {name}!
+                </>
+              ) : (
+                "Thank you for your order!"
+              )}
             </h1>
-            <p className="mt-2 max-w-md text-sm leading-6 text-neutral/60">
-              Thanks, {order.customer_name.split(" ")[0]}. Your order is in and we&apos;ll
-              start getting it ready to ship.
+            <p className="mt-3 text-sm leading-6 text-neutral/60">
+              Your order is in and we&apos;ll start getting it ready to ship.
             </p>
 
             <div className="mt-8 w-full rounded-2xl border border-neutral/10 bg-[#fafafa] p-6 text-left text-sm">
@@ -158,22 +176,24 @@ function CheckoutSuccessContent() {
               <Row label="Payment reference" value={order.payment_reference} mono />
             </div>
 
-            <p className="mt-4 text-xs text-neutral/50">
+            <p className="mt-4 text-xs leading-5 text-neutral/50">
               Keep your order number ({order.tracking_id}) — with your email, it&apos;s all you
               need to track this order. We&apos;ve also emailed it to you, and we&apos;ll email your
               tracking number as soon as your order ships.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div
+              className={`mt-8 flex flex-col gap-3 sm:flex-row ${showPicks ? "sm:justify-center lg:justify-start" : "sm:justify-center"}`}
+            >
               <Link
                 href={`/track-order?email=${encodeURIComponent(order.customer_email)}&order=${encodeURIComponent(order.tracking_id)}`}
-                className="rounded-md bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-opacity-90"
+                className="rounded-md bg-primary px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-opacity-90"
               >
                 Track my order
               </Link>
               <Link
                 href="/shop"
-                className="rounded-md border border-neutral/15 px-6 py-3 text-sm font-semibold text-neutral transition hover:border-primary/40"
+                className="rounded-md border border-neutral/15 px-6 py-3 text-center text-sm font-semibold text-neutral transition hover:border-primary/40"
               >
                 Continue shopping
               </Link>
@@ -187,6 +207,29 @@ function CheckoutSuccessContent() {
                 iconSize={14}
               />
             </div>
+          </div>
+
+          {showPicks && <OrderRecommendations {...recommendations} />}
+        </section>
+        <Footer />
+      </main>
+    );
+  }
+
+  return (
+    <main className="bg-white">
+      <Header />
+      <section className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-20 text-center sm:px-6 lg:px-8">
+        {state === "loading" && (
+          <>
+            <Loader2 size={40} className="animate-spin text-primary" />
+            <h1 className="mt-6 text-2xl font-bold text-neutral">
+              Confirming your payment…
+            </h1>
+            <p className="mt-2 text-sm text-neutral/60">
+              Hang tight, we&apos;re checking with {gatewayLabels[gateway]}. Don&apos;t close
+              this tab.
+            </p>
           </>
         )}
 
