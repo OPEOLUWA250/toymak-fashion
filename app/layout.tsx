@@ -22,11 +22,13 @@ export const metadata: Metadata = {
   applicationName: siteName,
   openGraph: { type: "website", siteName, locale: "en_GB", description: defaultDescription },
   twitter: { card: "summary_large_image" },
-  // Paste the token from Google Search Console's "HTML tag" method into
-  // GOOGLE_SITE_VERIFICATION (or verify through DNS and leave it unset).
-  ...(process.env.GOOGLE_SITE_VERIFICATION
-    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
-    : {}),
+  verification: {
+    // Paste the token from Google Search Console's "HTML tag" method into
+    // GOOGLE_SITE_VERIFICATION (or verify through DNS and leave it unset).
+    ...(process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : {}),
+    // Meta Business Settings > Brand safety > Domains. Meta re-checks it, so it must stay.
+    other: { "facebook-domain-verification": "xy0ttik979ek9ov9oz1ds5a6puiowv" },
+  },
   // The TM monogram sits on a white tile, so one set reads on both light
   // and dark browser tabs.
   icons: {
