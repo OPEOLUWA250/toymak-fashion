@@ -2,8 +2,7 @@ export type ShippingMethod = "standard" | "express";
 
 // Express is a UK-only courier service at a flat price (set in Settings) that
 // never becomes free; standard uses the cost and free-shipping threshold from
-// Settings. This default only applies until the saved settings load, or if
-// the express_shipping_gbp column hasn't been added yet (docs/sql/0018).
+// Settings. This default only applies until the saved settings load.
 export const DEFAULT_EXPRESS_SHIPPING_GBP = 7.99;
 
 const ukCountryNames = ["united kingdom", "uk", "gb", "great britain", "england", "scotland", "wales", "northern ireland"];

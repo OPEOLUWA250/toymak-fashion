@@ -9,7 +9,7 @@ interface ReviewRow {
   comment: string | null;
   photo_urls: string[] | null;
   approved: boolean;
-  // Absent until docs/sql/0022_review_details.sql has run.
+  // Review details (source, verified, item, fit, location); null on older reviews.
   source?: ReviewSource | null;
   verified?: boolean | null;
   item_color?: string | null;

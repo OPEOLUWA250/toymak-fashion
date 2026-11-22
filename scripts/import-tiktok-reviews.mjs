@@ -5,7 +5,7 @@
  *   node scripts/import-tiktok-reviews.mjs --dry-run   # check, write nothing
  *   node scripts/import-tiktok-reviews.mjs
  *
- * Needs docs/sql/0022_review_details.sql applied and .env.local with
+ * Needs .env.local with
  * NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. Safe to re-run:
  * rows are upserted on id. /reviews shows them within the hour, or straight
  * away after approving or deleting any review in the admin dashboard.
