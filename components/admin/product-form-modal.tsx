@@ -1,5 +1,7 @@
 "use client";
 import { ProductInventoryFields } from "./product-inventory-fields";
+import { WeightField } from "./weight-field";
+import { parseWeight, weightDraftFromKg, type WeightDraft } from "@/lib/product-weight";
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Upload, X } from "lucide-react";
@@ -48,7 +50,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
   const [priceGbp, setPriceGbp] = useState(regular ? String(regular.gbp) : "");
   const [priceNgn, setPriceNgn] = useState(regular ? String(regular.ngn) : "");
   const [priceUsd, setPriceUsd] = useState(regular?.usd ? String(regular.usd) : "");
-  const [weightKg, setWeightKg] = useState(product ? String(product.weight_kg ?? 0.5) : "0.5");
+  const [weight, setWeight] = useState<WeightDraft>(() => weightDraftFromKg(product?.weight_kg ?? 0.5));
   const [salePriceGbp, setSalePriceGbp] = useState(product && isOnSale(product) ? String(product.price_gbp) : "");
   // Tracks whether NGN/USD were hand-edited, so the GBP-driven suggestion
   // below only ever fills an empty field — it never overwrites a price the
@@ -144,6 +146,11 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       setSaveError(sale.error);
       return;
     }
+    const parsedWeight = parseWeight(weight);
+    if (parsedWeight.error !== null) {
+      setSaveError(parsedWeight.error);
+      return;
+    }
     setSaveError(null);
     setIsSaving(true);
     const now = new Date();
@@ -168,7 +175,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
       description: description.trim(),
       // Sale or regular prices in every currency, plus the regular GBP price when on sale.
       ...sale.prices,
-      weight_kg: Number(weightKg) > 0 ? Number(weightKg) : 0.5,
+      weight_kg: parsedWeight.kg,
       stock_qty: normalizedVariants.length ? normalizedVariants.reduce((sum, v) => sum + v.stock, 0) : Number(stockQty) || 0,
       low_stock_threshold: Number(lowStockThreshold) || 0,
       sizes,
@@ -214,7 +221,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={isSaving} className="min-w-0 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block space-y-1 text-sm">Visibility<select className="block w-full rounded border p-2" value={status} onChange={e => setStatus(e.target.value as NonNullable<Product['status']>)}><option value="active">Published</option><option value="draft">Draft ? hidden from shop</option><option value="archived">Archived ? hidden from shop</option></select></label>
+            <label className="block space-y-1 text-sm">Visibility<select className="block w-full rounded border p-2" value={status} onChange={e => setStatus(e.target.value as NonNullable<Product['status']>)}><option value="active">Published</option><option value="draft">Draft — hidden from shop</option><option value="archived">Archived — hidden from shop</option></select></label>
             <Field id="product-name" label="Product name" value={name} onChange={setName} required />
             <div className="space-y-1.5">
               <label htmlFor="product-sku" className="text-sm font-medium text-neutral-700">
@@ -228,19 +235,7 @@ export function ProductFormModal({ product, onClose, onSave }: ProductFormModalP
               />
             </div>
 
-            <div className="max-w-sm">
-              <Field
-                id="product-weight-kg"
-                label="Item weight (kg)"
-                value={weightKg}
-                onChange={setWeightKg}
-                type="number"
-                required
-              />
-              <p className="mt-1.5 text-xs text-neutral-500">
-                Weight of one item. Royal Mail parcels are weighed as this times the quantity ordered.
-              </p>
-            </div>
+            <WeightField draft={weight} onChange={setWeight} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
