@@ -126,7 +126,7 @@ function CheckoutSuccessContent() {
   // Follows consent so a customer who only accepts the banner on this page
   // still has their purchase counted.
   useEffect(() => {
-    if (order && consent === "granted") trackPurchaseOnce(order);
+    if (order && consent === "granted") void trackPurchaseOnce(order);
   }, [order, consent]);
 
   const recommendations = useOrderRecommendations(order?.items ?? []);

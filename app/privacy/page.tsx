@@ -4,7 +4,7 @@ import Link from "next/link";
 import { pageMetadata } from "@/lib/seo";
 import { contactEmail } from "@/lib/site-info";
 
-const LAST_UPDATED = "6 November 2026";
+const LAST_UPDATED = "22 November 2026";
 
 export const metadata = pageMetadata({
   title: "Privacy Policy",
@@ -146,8 +146,10 @@ export default function PrivacyPage() {
             well our Facebook and Instagram ads work and to show you more relevant ads. It tells
             Meta the pages you view, the products you look at or add to your bag, when you start
             checkout, and the value of what you buy, along with technical details such as your IP
-            address and browser. Meta may link this to your Meta account and use it as described
-            in its own privacy policy. Until you choose, Meta&apos;s pixel code is loaded but
+            address and browser. When you place an order, it also sends your email address, phone
+            number, name, town, postcode area and country, scrambled (hashed) in your browser
+            first, so Meta can tell which of our ads led to the sale. Meta may link this to your
+            Meta account and use it as described in its own privacy policy. Until you choose, Meta&apos;s pixel code is loaded but
             switched off: it sends no events and sets no cookies. If you decline, it isn&apos;t
             loaded at all and none of this happens. You can change your
             choice at any time using the Cookie Settings link at the bottom of every page.

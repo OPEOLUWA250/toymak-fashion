@@ -147,10 +147,10 @@ test('shopping events carry the value and currency Meta needs', () => {
   assert.deepEqual([checkout.data.value, checkout.data.currency, checkout.data.num_items], [15000, 'NGN', 3]);
 });
 
-test('a purchase counts once across refreshes and never carries the payment id', () => {
+test('a purchase counts once across refreshes and never carries the payment id', async () => {
   accept();
   visit('/checkout/success');
-  pixel.trackPurchaseOnce(order);
+  await pixel.trackPurchaseOnce(order);
   const [purchase] = events();
   assert.equal(purchase.name, 'Purchase');
   assert.deepEqual([purchase.data.value, purchase.data.currency], [45.5, 'GBP']);
@@ -158,22 +158,22 @@ test('a purchase counts once across refreshes and never carries the payment id',
 
   visit('/checkout/success');
   pixel = load('lib/meta-pixel.ts');
-  pixel.trackPurchaseOnce(order);
+  await pixel.trackPurchaseOnce(order);
   assert.equal(window.fbq, undefined);
 });
 
-test('a purchase blocked by missing consent or a private address can still count later', () => {
+test('a purchase blocked by missing consent or a private address can still count later', async () => {
   visit('/checkout/success');
-  pixel.trackPurchaseOnce(order);
+  await pixel.trackPurchaseOnce(order);
   assert.equal(window.fbq, undefined);
 
   accept();
   visit('/checkout/success?gateway=stripe&session_id=cs_live_123');
-  pixel.trackPurchaseOnce(order);
+  await pixel.trackPurchaseOnce(order);
   assert.equal(window.fbq, undefined);
 
   visit('/checkout/success');
-  pixel.trackPurchaseOnce(order);
+  await pixel.trackPurchaseOnce(order);
   assert.equal(events().length, 1);
 });
 
@@ -197,4 +197,37 @@ test('withdrawing consent revokes the pixel, clears its cookies, and accepting a
   pixel.trackPageView();
   assert.deepEqual(window.fbq.queue.at(-2), ['consent', 'grant']);
   assert.equal(window.fbq.queue.at(-1)[1], 'PageView');
+});
+
+test("a purchase carries the buyer's details only as SHA-256 hashes", async () => {
+  const { createHash } = require('node:crypto');
+  const sha = (value) => createHash('sha256').update(value).digest('hex');
+  accept();
+  visit('/checkout/success');
+  await pixel.trackPurchaseOnce({
+    ...order,
+    customer_email: ' Sarah.Jones@Example.com ',
+    customer_phone: '07700 900123',
+    customer_name: 'Sarah Jones',
+    shipping_address: { city: 'London', postalCode: 'SW1A 1AA', country: 'United Kingdom' },
+  });
+  const init = window.fbq.queue.find(([method]) => method === 'init');
+  assert.deepEqual(init[2], {
+    em: sha('sarah.jones@example.com'),
+    ph: sha('447700900123'),
+    fn: sha('sarah'),
+    ln: sha('jones'),
+    ct: sha('london'),
+    zp: sha('sw1a1'),
+    country: sha('gb'),
+  });
+  assert.ok(!JSON.stringify(window.fbq.queue).includes('Sarah'));
+  assert.equal(events()[0].name, 'Purchase');
+});
+
+test("other events never carry the buyer's details", () => {
+  accept();
+  pixel.trackPageView();
+  const init = window.fbq.queue.find(([method]) => method === 'init');
+  assert.deepEqual(init, ['init', '1641239721033624']);
 });

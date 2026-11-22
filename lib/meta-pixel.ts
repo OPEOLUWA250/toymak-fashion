@@ -1,4 +1,5 @@
 import { getCookieConsent } from "./cookie-consent";
+import { hashedMatchingData, type MatchingData, type MatchingSource } from "./meta-matching";
 import type { CartItem, Order, Product } from "./types";
 
 const META_PIXEL_ID = "1641239721033624";
@@ -41,8 +42,13 @@ let revoked = false;
  * consent-revoked mode: it is installed (so Pixel Helper and Events Manager
  * can see it) but sends no events and sets no cookies until consent is granted.
  */
-function loadPixel(): Fbq {
-  if (window.fbq) return window.fbq;
+function loadPixel(matching?: MatchingData): Fbq {
+  if (window.fbq) {
+    // Already running (the visitor accepted cookies on this page): repeat
+    // init so the buyer's details apply to the events that follow.
+    if (matching && Object.keys(matching).length) window.fbq("init", META_PIXEL_ID, matching);
+    return window.fbq;
+  }
 
   const fbq = ((...args: unknown[]) => {
     if (fbq.callMethod) fbq.callMethod(...args);
@@ -73,7 +79,8 @@ function loadPixel(): Fbq {
   }
   // Only the events below are sent: no automatic button-click tracking.
   fbq("set", "autoConfig", false, META_PIXEL_ID);
-  fbq("init", META_PIXEL_ID);
+  if (matching && Object.keys(matching).length) fbq("init", META_PIXEL_ID, matching);
+  else fbq("init", META_PIXEL_ID);
   return fbq;
 }
 
@@ -91,10 +98,18 @@ export function installMetaPixel() {
   loadPixel();
 }
 
-function send(...args: unknown[]): boolean {
-  if (!canLoad() || getCookieConsent() !== "granted") return false;
+function canSend(): boolean {
+  return canLoad() && getCookieConsent() === "granted";
+}
 
-  const fbq = loadPixel();
+function send(...args: unknown[]): boolean {
+  return sendMatched(undefined, ...args);
+}
+
+function sendMatched(matching: MatchingData | undefined, ...args: unknown[]): boolean {
+  if (!canSend()) return false;
+
+  const fbq = loadPixel(matching);
   if (revoked) {
     fbq("consent", "grant");
     revoked = false;
@@ -162,19 +177,37 @@ export function trackInitiateCheckout(
   });
 }
 
+const pendingPurchases = new Set<string>();
+
 /**
  * Reports the amount actually charged. A refresh of the confirmation page must
  * not count the sale twice, so the order is remembered here and its tracking
  * id doubles as the event id, which Meta uses to discard duplicates.
+ *
+ * The buyer's details go with it, hashed (see lib/meta-matching.ts), so Meta
+ * can credit the sale to the ad that led to it.
  */
-export function trackPurchaseOnce(order: Pick<Order, "tracking_id" | "items" | "total_amount" | "currency">) {
+export async function trackPurchaseOnce(
+  order: Pick<Order, "tracking_id" | "items" | "total_amount" | "currency"> & MatchingSource,
+) {
   try {
     if (localStorage.getItem(LAST_PURCHASE_KEY) === order.tracking_id) return;
   } catch {
     // Storage blocked: Meta's event id check still catches duplicates.
   }
+  // Hashing is async, so a second call (consent changing mid-way) must wait its turn.
+  if (pendingPurchases.has(order.tracking_id) || !canSend()) return;
+  pendingPurchases.add(order.tracking_id);
 
-  const sent = send(
+  let matching: MatchingData | undefined;
+  try {
+    matching = await hashedMatchingData(order);
+  } catch {
+    // No Web Crypto (very old browser or insecure page): send the sale without them.
+  }
+
+  const sent = sendMatched(
+    matching,
     "track",
     "Purchase",
     {
@@ -187,6 +220,7 @@ export function trackPurchaseOnce(order: Pick<Order, "tracking_id" | "items" | "
     },
     { eventID: `purchase-${order.tracking_id}` },
   );
+  pendingPurchases.delete(order.tracking_id);
   if (!sent) return;
 
   try {
